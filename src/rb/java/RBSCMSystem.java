@@ -90,7 +90,7 @@ public class RBSCMSystem extends RBBase {
 	/**
 	 * Static builder function.
 	 */
-	public static RBSCMSystem buildSCMSystem(RBActivityEnums.SCMTypeEnum type) {
+	public static RBSCMSystem buildSCMSystem(RBEnums.SCMTypeEnum type) {
 
 		switch (type) {
 		case NONE:

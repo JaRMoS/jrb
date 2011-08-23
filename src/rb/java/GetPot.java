@@ -31,10 +31,6 @@ import java.util.Vector;
 
 public class GetPot {
 
-	// Flag that indicates whether the file we're reading is in Android's asset
-	// directory
-	public boolean isAssetFile;
-
 	// variable structure
 	public class variable {
 		// (*) constructor
@@ -176,7 +172,7 @@ public class GetPot {
 
 		for (Enumeration<String> arge = _argv.elements(); arge
 				.hasMoreElements(); i++) {
-			String arg = (String) arge.nextElement();
+			String arg = arge.nextElement();
 
 			if (i == 0) {
 				argv.addElement(arg);
@@ -268,19 +264,19 @@ public class GetPot {
 		int i3 = 2;
 
 		while (i1 < brute_tokens.size()) {
-			String SRef = (String) brute_tokens.elementAt(i1);
+			String SRef = brute_tokens.elementAt(i1);
 			// 1) concatinate 'abcdef' '=' 'efgasdef' to 'abcdef=efgasdef'
 			// note: java.lang.String: substring(a,b) = from a to b-1
 			// C++ string: substr(a,b) = from a to a + b
 			if (i2 < brute_tokens.size()
-					&& ((String) brute_tokens.elementAt(i2)).charAt(0) == '=') {
+					&& brute_tokens.elementAt(i2).charAt(0) == '=') {
 				if (i3 >= brute_tokens.size())
-					arglist.addElement((String) brute_tokens.elementAt(i1)
-							+ (String) brute_tokens.elementAt(i2));
+					arglist.addElement(brute_tokens.elementAt(i1)
+							+ brute_tokens.elementAt(i2));
 				else
-					arglist.addElement((String) brute_tokens.elementAt(i1)
-							+ (String) brute_tokens.elementAt(i2)
-							+ (String) brute_tokens.elementAt(i3));
+					arglist.addElement(brute_tokens.elementAt(i1)
+							+ brute_tokens.elementAt(i2)
+							+ brute_tokens.elementAt(i3));
 
 				i1 = i3 + 1;
 				i2 = i3 + 2;
@@ -465,7 +461,7 @@ public class GetPot {
 		String section = new String("");
 		if (section_stack.size() != 0)
 			for (int i = 0; i < section_stack.size(); i++)
-				section += (String) (section_stack.elementAt(i)) + "/";
+				section += (section_stack.elementAt(i)) + "/";
 		return section;
 	}
 
@@ -493,7 +489,7 @@ public class GetPot {
 		// a hexadecimal number
 		int number = 0;
 		for (int i = start_i; i < S.length(); i++) {
-			int c = (int) S.charAt(i);
+			int c = S.charAt(i);
 			int digit = 0;
 			if (c >= '0' && c <= '9')
 				digit = c - '0';
@@ -572,7 +568,7 @@ public class GetPot {
 
 		// (*) first loop from cursor position until end
 		for (int c = cursor; c < argv.size(); c++) {
-			if (((String) argv.elementAt(c)).compareTo(SearchTerm) == 0) {
+			if (argv.elementAt(c).compareTo(SearchTerm) == 0) {
 				cursor = c;
 				search_failed_f = false;
 				return true;
@@ -583,7 +579,7 @@ public class GetPot {
 
 		// (*) second loop from 0 to old cursor position
 		for (int c = 1; c < OldCursor; c++) {
-			if (((String) argv.elementAt(c)).compareTo(SearchTerm) == 0) {
+			if (argv.elementAt(c).compareTo(SearchTerm) == 0) {
 				cursor = c;
 				search_failed_f = false;
 				return true;
@@ -651,7 +647,7 @@ public class GetPot {
 	// => give them the 'python names'
 	String getitem(int idx) {
 		if (idx < argv.size())
-			return (String) argv.elementAt(idx);
+			return argv.elementAt(idx);
 		else
 			return new String("");
 	}
@@ -659,20 +655,20 @@ public class GetPot {
 	int get(int Idx, int Default) {
 		if (Idx >= argv.size())
 			return Default;
-		return __convert_to_type((String) argv.elementAt(Idx), Default);
+		return __convert_to_type(argv.elementAt(Idx), Default);
 	}
 
 	double get(int Idx, double Default) {
 		if (Idx >= argv.size())
 			return Default;
-		return __convert_to_type((String) argv.elementAt(Idx), Default);
+		return __convert_to_type(argv.elementAt(Idx), Default);
 	}
 
 	String get(int Idx, String Default) {
 		if (Idx >= argv.size())
 			return Default;
 		else
-			return (String) argv.elementAt(Idx);
+			return argv.elementAt(Idx);
 	}
 
 	int size() {
@@ -690,9 +686,9 @@ public class GetPot {
 		}
 
 		if (prefix.compareTo("") == 0)
-			return __convert_to_type((String) argv.elementAt(cursor), Default);
+			return __convert_to_type(argv.elementAt(cursor), Default);
 
-		String Remain = __get_remaining_string((String) argv.elementAt(cursor),
+		String Remain = __get_remaining_string(argv.elementAt(cursor),
 				prefix);
 
 		return Remain.compareTo("") != 0 ? __convert_to_type(Remain, Default)
@@ -709,9 +705,9 @@ public class GetPot {
 		}
 
 		if (prefix.compareTo("") == 0)
-			return __convert_to_type((String) argv.elementAt(cursor), Default);
+			return __convert_to_type(argv.elementAt(cursor), Default);
 
-		String Remain = __get_remaining_string((String) argv.elementAt(cursor),
+		String Remain = __get_remaining_string(argv.elementAt(cursor),
 				prefix);
 
 		return Remain.compareTo("") != 0 ? __convert_to_type(Remain, Default)
@@ -728,9 +724,9 @@ public class GetPot {
 		}
 
 		if (prefix.compareTo("") == 0)
-			return (String) argv.elementAt(cursor);
+			return argv.elementAt(cursor);
 
-		String Remain = __get_remaining_string((String) argv.elementAt(cursor),
+		String Remain = __get_remaining_string(argv.elementAt(cursor),
 				prefix);
 
 		return Remain.compareTo("") != 0 ? Remain : Default;
@@ -915,12 +911,12 @@ public class GetPot {
 
 		// (*) first loop from cursor position until end
 		for (int c = cursor; c < argv.size(); c++) {
-			String Arg = (String) argv.elementAt(c);
+			String Arg = argv.elementAt(c);
 			if (Arg.length() >= N
 					&& Arg.substring(0, N).compareTo(StartString) == 0) {
 				cursor = c;
 				search_failed_f = false;
-				return ((String) argv.elementAt(c)).substring(N);
+				return argv.elementAt(c).substring(N);
 			}
 		}
 
@@ -929,12 +925,12 @@ public class GetPot {
 
 		// (*) second loop from 0 to old cursor position
 		for (int c = 1; c < OldCursor; c++) {
-			String Arg = (String) argv.elementAt(c);
+			String Arg = argv.elementAt(c);
 			if (Arg.length() >= N
 					&& Arg.substring(0, N).compareTo(StartString) == 0) {
 				cursor = c;
 				search_failed_f = false;
-				return ((String) argv.elementAt(c)).substring(N);
+				return argv.elementAt(c).substring(N);
 			}
 		}
 		return "";
@@ -949,9 +945,9 @@ public class GetPot {
 		for (int i = 0; i < argv.size(); i++) {
 			String str;
 			if (prefix.compareTo("") != 0)
-				str = __get_remaining_string((String) argv.elementAt(i), prefix);
+				str = __get_remaining_string(argv.elementAt(i), prefix);
 			else
-				str = (String) argv.elementAt(i);
+				str = argv.elementAt(i);
 
 			if (str.length() > 1 && str.charAt(0) == '-'
 					&& str.charAt(1) != '-')
@@ -966,14 +962,14 @@ public class GetPot {
 			return false;
 
 		if (prefix.compareTo("") == 0)
-			return check_flags((String) argv.elementAt(Idx), FlagList);
+			return check_flags(argv.elementAt(Idx), FlagList);
 
 		// if a prefix is set, then the argument index is the index
 		// inside the 'namespace'
 		// => only check list of arguments that start with prefix
 		int no_matches = 0;
 		for (int i = 0; i < argv.size(); i++) {
-			String Remain = __get_remaining_string((String) argv.elementAt(i),
+			String Remain = __get_remaining_string(argv.elementAt(i),
 					prefix);
 			if (Remain.compareTo("") != 0) {
 				no_matches += 1;
@@ -1001,8 +997,8 @@ public class GetPot {
 		int i = 0;
 		for (Enumeration<Integer> inm = idx_nominus.elements(); inm
 				.hasMoreElements(); i++) {
-			Integer e = (Integer) inm.nextElement();
-			nv[i] = (String) argv.elementAt(e.intValue());
+			Integer e = inm.nextElement();
+			nv[i] = argv.elementAt(e.intValue());
 		}
 		return nv;
 	}
@@ -1011,7 +1007,7 @@ public class GetPot {
 		if (nominus_cursor >= idx_nominus.size() - 1)
 			return "";
 		int C = ++nominus_cursor;
-		return (String) argv.elementAt(((Integer) idx_nominus.elementAt(C))
+		return argv.elementAt(idx_nominus.elementAt(C)
 				.intValue());
 	}
 
@@ -1089,7 +1085,7 @@ public class GetPot {
 		String Name = prefix + NameX;
 		for (Enumeration<variable> inm = variables.elements(); inm
 				.hasMoreElements();) {
-			variable v = (variable) inm.nextElement();
+			variable v = inm.nextElement();
 			if (v.name.compareTo(Name) == 0)
 				return v;
 		}
@@ -1101,7 +1097,7 @@ public class GetPot {
 		int length = 0;
 		for (Enumeration<variable> inm = variables.elements(); inm
 				.hasMoreElements();) {
-			String Name = ((variable) inm.nextElement()).name;
+			String Name = inm.nextElement().name;
 			String Tmp = __get_remaining_string(Name, prefix);
 			if (Tmp != "") {
 				result.addElement(new String(Tmp));
@@ -1111,7 +1107,7 @@ public class GetPot {
 		String end[] = new String[length];
 		int i = 0;
 		for (Enumeration<String> inm = result.elements(); inm.hasMoreElements(); i++) {
-			String Name = (String) inm.nextElement();
+			String Name = inm.nextElement();
 			end[i] = Name;
 		}
 		return end;
@@ -1256,8 +1252,8 @@ public class GetPot {
 				open_brackets++;
 				start_idx.addElement(new Integer(i + 2));
 			} else if (letter == '}' && open_brackets > 0) {
-				int start = ((Integer) start_idx
-						.elementAt(start_idx.size() - 1)).intValue();
+				int start = start_idx
+						.elementAt(start_idx.size() - 1).intValue();
 				start_idx.removeElementAt(start_idx.size() - 1);
 				String Replacement = DBE_expand(str.substring(start, i));
 				if (start - 3 < 0)
@@ -1321,7 +1317,7 @@ public class GetPot {
 			Vector<String> A = DBE_get_expr_list(expr.substring(1), 1);
 			String result = "";
 			for (Enumeration<String> e = A.elements(); e.hasMoreElements();) {
-				String add = (String) e.nextElement();
+				String add = e.nextElement();
 				result += add;
 			}
 			return result;
@@ -1331,9 +1327,9 @@ public class GetPot {
 		else if (expr.length() >= 3
 				&& expr.substring(0, 3).compareTo("<->") == 0) {
 			Vector<String> A = DBE_get_expr_list(expr.substring(3), 3);
-			String Arg0 = (String) A.elementAt(0);
-			String Arg1 = (String) A.elementAt(1);
-			String Arg2 = (String) A.elementAt(2);
+			String Arg0 = A.elementAt(0);
+			String Arg1 = A.elementAt(1);
+			String Arg2 = A.elementAt(2);
 			int L = Arg1.length();
 
 			while (true) {
@@ -1355,7 +1351,7 @@ public class GetPot {
 			double result = 0.0;
 
 			for (Enumeration<String> e = A.elements(); e.hasMoreElements();) {
-				String add = (String) e.nextElement();
+				String add = e.nextElement();
 				result += __convert_to_type(add, 0.0);
 			}
 
@@ -1364,9 +1360,9 @@ public class GetPot {
 			Vector<String> A = DBE_get_expr_list(expr.substring(1), 2);
 
 			Enumeration<String> e = A.elements();
-			double result = __convert_to_type((String) e.nextElement(), 0.0);
+			double result = __convert_to_type(e.nextElement(), 0.0);
 			for (; e.hasMoreElements();) {
-				String sub = (String) e.nextElement();
+				String sub = e.nextElement();
 				result -= __convert_to_type(sub, 0.0);
 			}
 			return (new Double(result)).toString();
@@ -1375,7 +1371,7 @@ public class GetPot {
 
 			double result = 1.0;
 			for (Enumeration<String> e = A.elements(); e.hasMoreElements();) {
-				String mul = (String) e.nextElement();
+				String mul = e.nextElement();
 				result *= __convert_to_type(mul, 0.0);
 			}
 
@@ -1383,11 +1379,11 @@ public class GetPot {
 		} else if (expr.charAt(0) == '/') {
 			Vector<String> A = DBE_get_expr_list(expr.substring(1), 2);
 			Enumeration<String> e = A.elements();
-			double result = __convert_to_type((String) e.nextElement(), 0.0);
+			double result = __convert_to_type(e.nextElement(), 0.0);
 			if (result == 0)
 				return "0.0";
 			for (; e.hasMoreElements();) {
-				double Q = __convert_to_type((String) e.nextElement(), 0.0);
+				double Q = __convert_to_type(e.nextElement(), 0.0);
 				if (Q == 0.0)
 					return "0.0";
 				result /= Q;
@@ -1400,9 +1396,9 @@ public class GetPot {
 			Vector<String> A = DBE_get_expr_list(expr.substring(1), 2);
 
 			Enumeration<String> e = A.elements();
-			double result = __convert_to_type((String) e.nextElement(), 0.0);
+			double result = __convert_to_type(e.nextElement(), 0.0);
 			for (; e.hasMoreElements();) {
-				double p = __convert_to_type((String) e.nextElement(), 0.0);
+				double p = __convert_to_type(e.nextElement(), 0.0);
 				result = java.lang.Math.pow(result, p);
 			}
 
@@ -1437,11 +1433,11 @@ public class GetPot {
 				a = DBE_get_expr_list(expr.substring(2), 2);
 
 			Enumeration<String> e = a.elements();
-			String x_orig = (String) e.nextElement();
+			String x_orig = e.nextElement();
 			double x = __convert_to_type(x_orig, 1e37);
 			int i = 1;
 			for (; e.hasMoreElements();) {
-				String y_orig = (String) e.nextElement();
+				String y_orig = e.nextElement();
 				double y = __convert_to_type(y_orig, 1e37);
 
 				// set the strings as reference if something wasn't a number
@@ -1473,22 +1469,22 @@ public class GetPot {
 		else if (expr.length() >= 2
 				&& expr.substring(0, 2).compareTo("??") == 0) {
 			Vector<String> a = DBE_get_expr_list(expr.substring(2), 2);
-			double x = __convert_to_type((String) a.elementAt(0), 1e37);
+			double x = __convert_to_type(a.elementAt(0), 1e37);
 			// last element is always the default argument
 			if (x == 1e37 || x < 0 || x >= a.size() - 1)
-				return (String) a.elementAt(a.size() - 1);
+				return a.elementAt(a.size() - 1);
 
 			// round x to closest integer
 			int rx = (int) java.lang.Math.rint(x);
-			return (String) a.elementAt(rx);
+			return a.elementAt(rx);
 		}
 		// ${? expr expr expr} if then else conditions
 		else if (expr.charAt(0) == '?') {
 			Vector<String> a = DBE_get_expr_list(expr.substring(1), 2);
-			if (__convert_to_type((String) a.elementAt(0), 0.0) == 1.0)
-				return (String) a.elementAt(1);
+			if (__convert_to_type(a.elementAt(0), 0.0) == 1.0)
+				return a.elementAt(1);
 			else if (a.size() > 2)
-				return (String) a.elementAt(2);
+				return a.elementAt(2);
 		}
 		// ${! expr} maxro expansion
 		else if (expr.charAt(0) == '!') {
@@ -1498,44 +1494,44 @@ public class GetPot {
 				return Var.original;
 
 			Vector<String> A = DBE_get_expr_list(Var.original, 2);
-			return (String) A.elementAt(0);
+			return A.elementAt(0);
 		}
 		// ${@: } - string subscription
 		else if (expr.length() >= 2
 				&& expr.substring(0, 2).compareTo("@:") == 0) {
 			Vector<String> A = DBE_get_expr_list(expr.substring(2), 2);
-			double x = __convert_to_type((String) A.elementAt(1), 1e37);
+			double x = __convert_to_type(A.elementAt(1), 1e37);
 
 			// last element is always the default argument
 			if (x == 1e37 || x < 0
-					|| x >= (double) ((String) A.elementAt(0)).length() - 1)
+					|| x >= (double) A.elementAt(0).length() - 1)
 				return "<<1st index out of range>>";
 
 			if (A.size() > 2) {
-				double y = __convert_to_type((String) A.elementAt(2), 1e37);
+				double y = __convert_to_type(A.elementAt(2), 1e37);
 				if (y != 1e37 && y > 0
-						&& y <= (double) ((String) A.elementAt(0)).length() - 1
+						&& y <= (double) A.elementAt(0).length() - 1
 						&& y > x) {
 					// note: java.lang.String: substring(a,b) = from a to b - 1
 					// C++ string: substr(a,b) = from a to a + b
 					int rx1 = (int) java.lang.Math.rint(x);
 					int rx2 = (int) java.lang.Math.rint(y + 1.0);
-					return ((String) A.elementAt(0)).substring(rx1, rx2);
+					return A.elementAt(0).substring(rx1, rx2);
 				} else if (y == -1) {
 					int rx = (int) java.lang.Math.rint(x);
-					return ((String) A.elementAt(0)).substring(rx);
+					return A.elementAt(0).substring(rx);
 				}
 				return "<<2nd index out of range>>";
 			} else {
-				String tmp = (String) A.elementAt(0);
+				String tmp = A.elementAt(0);
 				int rx = (int) java.lang.Math.rint(x);
-				return (String) tmp.substring(rx, rx + 1);
+				return tmp.substring(rx, rx + 1);
 			}
 		}
 		// ${@ } - vector subscription
 		else if (expr.charAt(0) == '@') {
 			Vector<String> A = DBE_get_expr_list(expr.substring(1), 2);
-			variable Var = DBE_get_variable((String) A.elementAt(0));
+			variable Var = DBE_get_variable(A.elementAt(0));
 			// error
 			if (Var.name == "") {
 				// make a copy of the string if an error occured
@@ -1544,14 +1540,14 @@ public class GetPot {
 				return Var.original;
 			}
 
-			double x = __convert_to_type((String) A.elementAt(1), 1e37);
+			double x = __convert_to_type(A.elementAt(1), 1e37);
 
 			// last element is always the default argument
 			if (x == 1e37 || x < 0 || x >= Var.value.length)
 				return "<<1st index out of range>>";
 
 			if (A.size() > 2) {
-				double y = __convert_to_type((String) A.elementAt(2), 1e37);
+				double y = __convert_to_type(A.elementAt(2), 1e37);
 				int begin = (int) java.lang.Math.rint(x);
 				int end = 0;
 				if (y != 1e37 && y > 0 && y <= Var.value.length && y > x)
@@ -1571,12 +1567,12 @@ public class GetPot {
 			}
 		}
 		Vector<String> A = DBE_get_expr_list(expr, 1);
-		variable B = DBE_get_variable((String) A.elementAt(0));
+		variable B = DBE_get_variable(A.elementAt(0));
 
 		// make a copy of the string if an error occured
 		// (since the error variable is a static variable inside get_variable())
 		if (B.name == "")
-			return (String) B.original;
+			return B.original;
 		else
 			return B.original;
 	}
@@ -1588,7 +1584,7 @@ public class GetPot {
 	String[] string_vector_to_string_array(Vector<String> Vec) {
 		String[] result = new String[Vec.size()];
 		for (int i = 0; i < Vec.size(); i++)
-			result[i] = (String) Vec.elementAt(i);
+			result[i] = Vec.elementAt(i);
 		return result;
 	}
 
@@ -1606,9 +1602,9 @@ public class GetPot {
 			return string_vector_to_string_array(ufos);
 
 		// forget about first element (application name)
-		String it = (String) arge.nextElement();
+		String it = arge.nextElement();
 		for (; arge.hasMoreElements();) {
-			it = (String) arge.nextElement();
+			it = arge.nextElement();
 			// -- argument belongs to prefixed section ?
 			String arg = __get_remaining_string(it, prefix);
 			if (arg == "")
@@ -1628,9 +1624,9 @@ public class GetPot {
 		if (arge.hasMoreElements() == false)
 			return string_vector_to_string_array(ufos);
 		// forget about first element (application name)
-		String it = (String) arge.nextElement();
+		String it = arge.nextElement();
 		for (; arge.hasMoreElements();) {
-			it = (String) arge.nextElement();
+			it = arge.nextElement();
 			// -- argument belongs to prefixed section ?
 			String arg = __get_remaining_string(it, prefix);
 			if (arg == "")
@@ -1664,9 +1660,9 @@ public class GetPot {
 			if (arge.hasMoreElements() == false)
 				return ufos;
 			// forget about first element (application name)
-			String it = (String) arge.nextElement();
+			String it = arge.nextElement();
 			for (; arge.hasMoreElements();) {
-				it = (String) arge.nextElement();
+				it = arge.nextElement();
 				// -- argument belongs to prefixed section ?
 				String arg = __get_remaining_string(it, prefix);
 				if (arg == "")
@@ -1695,9 +1691,9 @@ public class GetPot {
 			if (arge.hasMoreElements() == false)
 				return ufos;
 			// forget about first element (application name)
-			String it = (String) arge.nextElement();
+			String it = arge.nextElement();
 			for (; arge.hasMoreElements();) {
-				it = (String) arge.nextElement();
+				it = arge.nextElement();
 				String Remain = __get_remaining_string(it, prefix);
 				if (Remain != "") {
 					no_matches += 1;
@@ -1722,7 +1718,7 @@ public class GetPot {
 
 		for (Enumeration<variable> inm = variables.elements(); inm
 				.hasMoreElements();) {
-			variable it = (variable) inm.nextElement();
+			variable it = inm.nextElement();
 			// -- variable belongs to prefixed section ?
 			String var_name = __get_remaining_string(it.name, prefix);
 			if (var_name == "")
@@ -1740,7 +1736,7 @@ public class GetPot {
 
 		for (Enumeration<String> inm = section_list.elements(); inm
 				.hasMoreElements();) {
-			String it = (String) inm.nextElement();
+			String it = inm.nextElement();
 			// -- section a subsection of prefix ?
 			String sec_name = __get_remaining_string(it, prefix);
 			if (sec_name == "")
@@ -1761,9 +1757,9 @@ public class GetPot {
 		if (arge.hasMoreElements() == false)
 			return string_vector_to_string_array(ufos);
 		// forget about first element (application name)
-		String it = (String) arge.nextElement();
+		String it = arge.nextElement();
 		for (; arge.hasMoreElements();) {
-			it = (String) arge.nextElement();
+			it = arge.nextElement();
 			// -- argument belongs to prefixed section ?
 			String arg = __get_remaining_string(it, prefix);
 			if (arg == "")

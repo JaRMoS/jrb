@@ -23,7 +23,7 @@ package rb.java;
 // determining which type of RB and SCM systems to
 // initialize for an Online solve
 
-public class RBActivityEnums {
+public class RBEnums {
 
 	// Enum for the RB system type
 	public enum SystemTypeEnum {

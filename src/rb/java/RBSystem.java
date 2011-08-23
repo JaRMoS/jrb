@@ -174,7 +174,7 @@ public class RBSystem extends RBBase {
 	/**
 	 * Static builder function.
 	 */
-	public static RBSystem buildRBSystem(RBActivityEnums.SystemTypeEnum type) {
+	public static RBSystem buildRBSystem(RBEnums.SystemTypeEnum type) {
 
 		switch (type) {
 		case NONE:
