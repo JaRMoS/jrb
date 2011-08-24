@@ -4,11 +4,13 @@
  */
 package test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
 import rb.java.RBContainer;
+import rmcommon.io.AModelManager;
 import rmcommon.io.AModelManager.ModelManagerException;
 import rmcommon.io.FileModelManager;
 
@@ -25,16 +27,21 @@ public class TestRBLoading {
 	@Test
 	public void test() {
 
+		
+		
 		FileModelManager f = new FileModelManager("models");
 		try {
 			f.setModelDir("aghdemo");
 		}
 		catch (ModelManagerException e) {
+			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		assertTrue(f.modelFileExists(AModelManager.CLASSES_JARFILE));
 
 		RBContainer rb = new RBContainer();
-		rb.loadModel(f);
+		assertTrue(rb.loadModel(f));
 	}
 
 }

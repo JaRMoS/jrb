@@ -135,18 +135,15 @@ public class RBContainer {
 
 		try {
 			initialize_systems(m);
-		}
-		catch (InconsistentStateException e) {
+		} catch (InconsistentStateException e) {
 			Log.e(DEBUG_TAG, "Inconsistent state exception occurred when parsing input file: "
 					+ e.getMessage());
 			success = false;
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			Log.e(DEBUG_TAG, "I/O Exception thrown when accessing "
 					+ Const.parameters_filename + ": " + e.getMessage());
 			success = false;
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			Log.e(DEBUG_TAG, "Exception thrown when accessing "
 					+ Const.parameters_filename, e);
 			success = false;
@@ -154,8 +151,7 @@ public class RBContainer {
 
 		try {
 			attach_affine_functions(m);
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			Log.e(DEBUG_TAG, "Exception occurred while attaching affine functions: "
 					+ e.getMessage(), e);
 			success = false;
@@ -173,8 +169,7 @@ public class RBContainer {
 				Log.d(DEBUG_TAG, "Finished reading offline data for RBSCMSystem.");
 			}
 
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			Log.e(DEBUG_TAG, "Exception occurred while reading offline data: "
 					+ e.getMessage(), e);
 			success = false;
@@ -233,7 +228,7 @@ public class RBContainer {
 
 	private void attach_affine_functions(AModelManager m) throws Exception {
 
-		ClassLoader cl = m.getClassLoader(); 
+		ClassLoader	cl = m.getClassLoader();	
 		Class<?> af = cl.loadClass("AffineFunctions");
 
 		Log.d(DEBUG_TAG, "Loaded AffineFunctions class");

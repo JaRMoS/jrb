@@ -14,7 +14,7 @@ public class Log {
 	 * @param msg
 	 */
 	public static void d(String ID, String msg) {
-		System.out.println("DEBUG:" + msg);
+		System.out.println("DEBUG: " + msg);
 	}
 	
 	/**
@@ -32,6 +32,7 @@ public class Log {
 	 */
 	public static void e(String debugTag, String string, Exception e) {
 		e(debugTag, string+", Exception: "+e.getMessage());
+		e.printStackTrace();
 	}
 
 }
