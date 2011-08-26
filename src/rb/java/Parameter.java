@@ -21,7 +21,7 @@ package rb.java;
 
 // A simple class to define a parameter vector
 
-public class Parameter {
+public class Parameter implements Cloneable {
 
 	/**
 	 * The actual parameter values, stored in a Vector.
@@ -73,6 +73,7 @@ public class Parameter {
 	/**
 	 * Clone this Parameter object.
 	 */
+	@Override
 	public Parameter clone() {
 		Parameter new_p = new Parameter(getNEntries());
 		for (int i = 0; i < getNEntries(); i++) {

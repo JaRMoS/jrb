@@ -42,6 +42,7 @@ import org.apache.commons.math.optimization.linear.LinearObjectiveFunction;
 import org.apache.commons.math.optimization.linear.Relationship;
 import org.apache.commons.math.optimization.linear.SimplexSolver;
 
+import rmcommon.Log;
 import rmcommon.io.AModelManager;
 
 public class RBnSCMCSystem extends RBSCMSystem {
@@ -65,7 +66,7 @@ public class RBnSCMCSystem extends RBSCMSystem {
 	 * @throws InconsistentStateException
 	 */
 	@SuppressWarnings("unchecked")
-	public void read_offline_data(AModelManager m)
+	public void loadOfflineData(AModelManager m)
 			throws IOException, InconsistentStateException {
 
 		BufferedReader reader = m.getBufReader("SCMdata.dat");

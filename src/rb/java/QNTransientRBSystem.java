@@ -31,6 +31,7 @@ import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 
+import rmcommon.Log;
 import rmcommon.io.AModelManager;
 
 // This class provides the Online reduced
@@ -593,9 +594,9 @@ public class QNTransientRBSystem extends TransientRBSystem {
 	 * the nonlinear problem.
 	 */
 	@Override
-	public void read_offline_data(AModelManager m) throws IOException {
+	public void loadOfflineData(AModelManager m) throws IOException {
 
-		super.read_offline_data(m);
+		super.loadOfflineData(m);
 
 		int n_bfs = get_n_basis_functions();
 

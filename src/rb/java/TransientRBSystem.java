@@ -31,6 +31,7 @@ import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 
+import rmcommon.Log;
 import rmcommon.io.AModelManager;
 import rmcommon.io.MathObjectReader;
 
@@ -45,36 +46,6 @@ public class TransientRBSystem extends RBSystem {
 	// Logging tag
 	private static final String DEBUG_TAG = "TransientRBSystem";
 
-	@SuppressWarnings({ "unused" })
-	/**
-	 * A secondary SCM object since we might need a lower bound for the mass
-	 * matrix and the stiffness matrix.
-	 */
-	private RBSCMSystem mSecondRbScmSystem;
-
-	/**
-	 * Time step size.
-	 */
-	private double dt;
-
-	/**
-	 * Parameter that defines the temporal discretization: euler_theta = 0 --->
-	 * Forward Euler euler_theta = 0.5 ---> Crank-Nicolson euler_theta = 1 --->
-	 * Backward Euler
-	 */
-	private double euler_theta;
-
-	/**
-	 * boolean flag that determines whether or not we impose a temporal filter
-	 * on each output
-	 */
-	private boolean apply_temporal_filter_flag;
-
-	/**
-	 * The standard deviation of the filter (in terms of time steps).
-	 */
-	private double filter_width;
-
 	/**
 	 * The current time-level, 0 <= _k <= _K.
 	 */
@@ -86,14 +57,32 @@ public class TransientRBSystem extends RBSystem {
 	protected int _K;
 
 	/**
-	 * The number of terms in the affine expansion of the mass matrix
+	 * boolean flag that determines whether or not we impose a temporal filter
+	 * on each output
 	 */
-	private int mQ_m;
+	private boolean apply_temporal_filter_flag;
+
+	protected double[][][][] Aq_Mq_representor_norms;
+
+	private double[][] cached_Aq_Aq_matrix;
+
+	private double[][] cached_Aq_Mq_matrix;
+
+	private double[] cached_Fq_Aq_vector;
+
+	private double[] cached_Fq_Mq_vector;
 
 	/**
-	 * RBSystem has a member RB_solution, we also need old_RB_solution here.
+	 * Private residual caching data.
 	 */
-	protected RealVector old_RB_solution;
+	private double cached_Fq_term;
+
+	private double[][] cached_Mq_Mq_matrix;
+
+	/**
+	 * Time step size.
+	 */
+	private double dt;
 
 	/**
 	 * The error bound for the field variable at each time level.
@@ -101,47 +90,262 @@ public class TransientRBSystem extends RBSystem {
 	protected double[] error_bound_all_k;
 
 	/**
+	 * Parameter that defines the temporal discretization: euler_theta = 0 --->
+	 * Forward Euler euler_theta = 0.5 ---> Crank-Nicolson euler_theta = 1 --->
+	 * Backward Euler
+	 */
+	private double euler_theta;
+
+	/**
+	 * The standard deviation of the filter (in terms of time steps).
+	 */
+	private double filter_width;
+	/**
+	 * Vectors storing the residual representor inner products to be used in
+	 * computing the residuals online.
+	 */
+	protected double[][][] Fq_Mq_representor_norms;
+	/**
+	 * The number of terms in the affine expansion of the mass matrix
+	 */
+	private int mQ_m;
+
+	// basis vector
+	// protected float[][][] Z_vector;
+
+	protected double[][][] Mq_Mq_representor_norms;
+	@SuppressWarnings({ "unused" })
+	/**
+	 * A secondary SCM object since we might need a lower bound for the mass
+	 * matrix and the stiffness matrix.
+	 */
+	private RBSCMSystem mSecondRbScmSystem;
+	/**
+	 * RBSystem has a member RB_solution, we also need old_RB_solution here.
+	 */
+	protected RealVector old_RB_solution;
+	/**
+	 * Dense RB mass matrix.
+	 */
+	protected RealMatrix RB_L2_matrix;
+	/**
+	 * Dense matrices for the RB computations.
+	 */
+	protected RealMatrix[] RB_M_q_vector;
+	/**
 	 * The solution coefficients at each time level from the most recent
 	 * RB_solve.
 	 */
 	protected RealVector[] RB_temporal_solution_data;
 
 	/**
-	 * Dense RB mass matrix.
+	 * Apply the temporal filter to the outputs
 	 */
-	protected RealMatrix RB_L2_matrix;
+	public void apply_temporal_filter() {
+		double[][] RB_convolved_outputs_all_k = new double[get_n_outputs()][get_K() + 1];
+		double[][] RB_convolved_error_bounds_all_k = new double[get_n_outputs()][get_K() + 1];
+
+		for (int n = 0; n < get_n_outputs(); n++) {
+			double output_dual_norm = compute_output_dual_norm(n);
+
+			for (int time_level = 0; time_level <= get_K(); time_level++) {
+				double conv_weight_integral_sq = 0.;
+				RB_convolved_outputs_all_k[n][time_level] = 0.;
+
+				for (int k_prime = 0; k_prime <= get_K(); k_prime++) {
+					double time_diff = get_dt() * (time_level - k_prime);
+					RB_convolved_outputs_all_k[n][time_level] += get_dt()
+							* conv_weight(time_diff)
+							* RB_outputs_all_k[n][k_prime];
+
+					conv_weight_integral_sq += get_dt()
+							* Math.pow(conv_weight(time_diff), 2.);
+				}
+
+				RB_convolved_error_bounds_all_k[n][time_level] = error_bound_all_k[get_K()]
+						* output_dual_norm * Math.sqrt(conv_weight_integral_sq);
+			}
+		}
+
+		RB_outputs_all_k = RB_convolved_outputs_all_k;
+		RB_output_error_bounds_all_k = RB_convolved_error_bounds_all_k;
+	}
 
 	/**
-	 * Dense matrices for the RB computations.
+	 * Helper function that caches the time-independent residual quantities.
 	 */
-	protected RealMatrix[] RB_M_q_vector;
+	protected void cache_online_residual_terms(int N) {
+
+		cached_Fq_term = 0.;
+		int q = 0;
+		for (int q_f1 = 0; q_f1 < get_Q_f(); q_f1++) {
+
+			double cached_theta_q_f1 = eval_theta_q_f(q_f1);
+			for (int q_f2 = q_f1; q_f2 < get_Q_f(); q_f2++) {
+				double delta = (q_f1 == q_f2) ? 1. : 2.;
+				cached_Fq_term += delta * cached_theta_q_f1
+						* eval_theta_q_f(q_f2) * Fq_representor_norms[q];
+
+				q++;
+			}
+		}
+
+		for (int q_f = 0; q_f < get_Q_f(); q_f++) {
+			double cached_theta_q_f = eval_theta_q_f(q_f);
+			for (int q_a = 0; q_a < get_Q_a(); q_a++) {
+				double cached_theta_q_a = eval_theta_q_a(q_a);
+				for (int i = 0; i < N; i++) {
+					// Clear the entries on the first pass
+					if ((q_f == 0) && (q_a == 0))
+						cached_Fq_Aq_vector[i] = 0.;
+
+					cached_Fq_Aq_vector[i] += 2. * cached_theta_q_f
+							* cached_theta_q_a
+							* Fq_Aq_representor_norms[q_f][q_a][i];
+				}
+			}
+		}
+
+		q = 0;
+		for (int q_a1 = 0; q_a1 < get_Q_a(); q_a1++) {
+			double cached_theta_q_a1 = eval_theta_q_a(q_a1);
+			for (int q_a2 = q_a1; q_a2 < get_Q_a(); q_a2++) {
+				double cached_theta_q_a2 = eval_theta_q_a(q_a2);
+				double delta = (q_a1 == q_a2) ? 1. : 2.;
+
+				for (int i = 0; i < N; i++) {
+					for (int j = 0; j < N; j++) {
+						// Clear the entries on the first pass
+						if (q == 0)
+							cached_Aq_Aq_matrix[i][j] = 0.;
+
+						cached_Aq_Aq_matrix[i][j] += delta * cached_theta_q_a1
+								* cached_theta_q_a2
+								* Aq_Aq_representor_norms[q][i][j];
+					}
+				}
+				q++;
+			}
+		}
+
+		for (int q_f = 0; q_f < get_Q_f(); q_f++) {
+			double cached_theta_q_f = eval_theta_q_f(q_f);
+
+			for (int q_m = 0; q_m < get_Q_m(); q_m++) {
+				double cached_theta_q_m = eval_theta_q_m(q_m);
+
+				for (int i = 0; i < N; i++) {
+					// Clear the entries on the first pass
+					if ((q_f == 0) && (q_m == 0))
+						cached_Fq_Mq_vector[i] = 0.;
+
+					cached_Fq_Mq_vector[i] += 2. * cached_theta_q_f
+							* cached_theta_q_m
+							* Fq_Mq_representor_norms[q_f][q_m][i];
+				}
+			}
+		}
+
+		for (int q_a = 0; q_a < get_Q_a(); q_a++) {
+			double cached_theta_q_a = eval_theta_q_a(q_a);
+
+			for (int q_m = 0; q_m < get_Q_m(); q_m++) {
+				double cached_theta_q_m = eval_theta_q_m(q_m);
+
+				for (int i = 0; i < N; i++) {
+					for (int j = 0; j < N; j++) {
+						// Clear the entries on the first pass
+						if ((q_a == 0) && (q_m == 0))
+							cached_Aq_Mq_matrix[i][j] = 0.;
+
+						cached_Aq_Mq_matrix[i][j] += 2. * cached_theta_q_a
+								* cached_theta_q_m
+								* Aq_Mq_representor_norms[q_a][q_m][i][j];
+					}
+				}
+			}
+		}
+
+		q = 0;
+		for (int q_m1 = 0; q_m1 < get_Q_m(); q_m1++) {
+			double cached_theta_q_m1 = eval_theta_q_m(q_m1);
+			for (int q_m2 = q_m1; q_m2 < get_Q_m(); q_m2++) {
+				double cached_theta_q_m2 = eval_theta_q_m(q_m2);
+				double delta = (q_m1 == q_m2) ? 1. : 2.;
+
+				for (int i = 0; i < N; i++) {
+					for (int j = 0; j < N; j++) {
+						if (q == 0)
+							cached_Mq_Mq_matrix[i][j] = 0.;
+
+						cached_Mq_Mq_matrix[i][j] += delta * cached_theta_q_m1
+								* cached_theta_q_m2
+								* Mq_Mq_representor_norms[q][i][j];
+					}
+				}
+				q++;
+			}
+		}
+
+	}
 
 	/**
-	 * Vectors storing the residual representor inner products to be used in
-	 * computing the residuals online.
+	 * Compute the dual norm of the residual for the solution saved in
+	 * RB_solution_vector. This assumes that the time-independent quantities
+	 * were cached in RB_solve.
 	 */
-	protected double[][][] Fq_Mq_representor_norms;
-	protected double[][][] Mq_Mq_representor_norms;
-	protected double[][][][] Aq_Mq_representor_norms;
+	@Override
+	protected double compute_residual_dual_norm(int N) {
+		// This assembly assumes we have already called
+		// cache_online_residual_terms
+		// and that the RB_solve parameter is constant in time
 
-	// basis vector
-	// protected float[][][] Z_vector;
+		RealVector RB_u_euler_theta = RB_solution
+				.mapMultiply(get_euler_theta()).add(
+						old_RB_solution.mapMultiply(1. - get_euler_theta()));
+		RealVector mass_coeffs = RB_solution.subtract(old_RB_solution)
+				.mapMultiply(-1. / get_dt());
 
-	/**
-	 * Private residual caching data.
-	 */
-	private double cached_Fq_term;
-	private double[] cached_Fq_Aq_vector;
-	private double[][] cached_Aq_Aq_matrix;
-	private double[] cached_Fq_Mq_vector;
-	private double[][] cached_Aq_Mq_matrix;
-	private double[][] cached_Mq_Mq_matrix;
+		double residual_norm_sq = cached_Fq_term;
 
-	/**
-	 * Set the secondary SCM system
-	 */
-	public void setSecondarySCM(RBSCMSystem second_scm_system) {
-		mSecondRbScmSystem = second_scm_system;
+		for (int i = 0; i < N; i++) {
+			residual_norm_sq += RB_u_euler_theta.getEntry(i)
+					* cached_Fq_Aq_vector[i];
+			residual_norm_sq += mass_coeffs.getEntry(i)
+					* cached_Fq_Mq_vector[i];
+		}
+
+		for (int i = 0; i < N; i++)
+			for (int j = 0; j < N; j++) {
+				residual_norm_sq += RB_u_euler_theta.getEntry(i)
+						* RB_u_euler_theta.getEntry(j)
+						* cached_Aq_Aq_matrix[i][j];
+				residual_norm_sq += mass_coeffs.getEntry(i)
+						* mass_coeffs.getEntry(j) * cached_Mq_Mq_matrix[i][j];
+				residual_norm_sq += RB_u_euler_theta.getEntry(i)
+						* mass_coeffs.getEntry(j) * cached_Aq_Mq_matrix[i][j];
+			}
+
+		if (residual_norm_sq < 0) {
+			Log.d(DEBUG_TAG, "Warning: Square of residual norm is negative "
+					+ "in TransientRBSystem::compute_residual_dual_norm()");
+
+			// Sometimes this is negative due to rounding error,
+			// but error is on the order of 1.e-10, so shouldn't
+			// affect result
+			residual_norm_sq = Math.abs(residual_norm_sq);
+		}
+
+		return Math.sqrt(residual_norm_sq);
+	}
+
+	protected double conv_weight(double x) {
+		// Specify a Gaussian with standard deviation sigma
+
+		double sigma = filter_width * get_dt();
+
+		return 1. / Math.sqrt(2. * Math.PI * sigma * sigma)
+				* Math.exp(-x * x / (2. * sigma * sigma));
 	}
 
 	/**
@@ -182,11 +386,359 @@ public class TransientRBSystem extends RBSystem {
 	}
 
 	/**
+	 * Get/set dt, the time-step size.
+	 */
+	public double get_dt() {
+		return dt;
+	}
+
+	/**
+	 * Get/set euler_theta, parameter that determines the temporal
+	 * discretization. euler_theta = 0 ---> Forward Euler euler_theta = 0.5 --->
+	 * Crank-Nicolson euler_theta = 1 ---> Backward Euler
+	 */
+	public double get_euler_theta() {
+		return euler_theta;
+	}
+
+	/**
+	 * Get/set K, the total number of time-steps.
+	 */
+	public int get_K() {
+		return _K;
+	}
+
+	/*
+	 * public double[] get_RBsolution(int nt){ int N = get_N(); double[] tmpsol
+	 * = new double[N*nt]; for (_k = 1; _k <= nt; _k++) for (int j = 0; j < N;
+	 * j++) tmpsol[(_k-1)*N+j] =
+	 * RB_temporal_solution_data[(int)Math.round(Math.floor
+	 * (_k*_K/nt))].getEntry(j); return tmpsol; }
+	 */
+	public int get_nt() {
+		/*
+		 * int nt = Math.round(50000/get_calN()); nt = nt>_K?_K:nt; return nt;
+		 */
+		int nt = (int) Math.round(75000 / get_calN()
+				/ (1 + 0.4 * (get_mfield() - 1))); // can go up to 150000
+		nt = nt > 25 ? 25 : nt; // cap nt at 25
+		return nt > _K ? _K : nt;
+	}
+
+	/**
 	 * @return Q_m, the number of terms in the affine expansion of the mass
 	 *         matrix
 	 */
 	public int get_Q_m() {
 		return mQ_m;
+	}
+
+	/**
+	 * Get/set the current time-level.
+	 */
+	public int get_time_level() {
+		return _k;
+	}
+
+	// return truth solution
+	public float[][][] get_truth_sol() {
+		int N = RB_temporal_solution_data[1].getDimension();
+		int nt = get_nt();
+		float[][][] truth_sol = new float[get_mfield()][1][get_calN() * nt];
+		for (int ifn = 0; ifn < get_mfield(); ifn++) {
+			double tmpval;
+			for (_k = 1; _k <= nt; _k++)
+				for (int i = 0; i < get_calN(); i++) {
+					tmpval = 0;
+					for (int j = 0; j < N; j++)
+						tmpval += Z_vector[ifn][j][i]
+								* RB_temporal_solution_data[(int) Math
+										.round(Math.floor(_k * _K / nt))]
+										.getEntry(j);
+					// tmpval +=
+					// Z_vector[ifn][j][i]*RB_temporal_solution_data[_k].getEntry(j);
+					truth_sol[ifn][0][(_k - 1) * get_calN() + i] = (float) tmpval;
+				}
+		}
+		return truth_sol;
+	}
+
+	/**
+	 * Resize the output vectors according to n_outputs.
+	 */
+	@Override
+	protected void initialize_data_vectors() {
+		super.initialize_data_vectors();
+
+		RB_outputs_all_k = new double[get_n_outputs()][get_K() + 1];
+		RB_output_error_bounds_all_k = new double[get_n_outputs()][get_K() + 1];
+
+		// Resize the error bound vector
+		error_bound_all_k = new double[get_K() + 1];
+
+		// Resize the array that stores the solution data at all time levels
+		RB_temporal_solution_data = new RealVector[get_K() + 1];
+	}
+
+	/**
+	 * Override read_offline_data_from_files in order to read in the mass matrix
+	 * and initial condition data as well.
+	 */
+	@Override
+	public void loadOfflineData(AModelManager m) throws IOException {
+
+		super.loadOfflineData(m);
+
+		// Initialize the residual caching data storage
+		cached_Fq_Aq_vector = new double[get_n_basis_functions()];
+		cached_Aq_Aq_matrix = new double[get_n_basis_functions()][get_n_basis_functions()];
+		cached_Fq_Mq_vector = new double[get_n_basis_functions()];
+		cached_Aq_Mq_matrix = new double[get_n_basis_functions()][get_n_basis_functions()];
+		cached_Mq_Mq_matrix = new double[get_n_basis_functions()][get_n_basis_functions()];
+
+		{
+			BufferedReader reader = m.getBufReader("RB_L2_matrix.dat");
+
+			String[] tokens = reader.readLine().split(" ");			 
+
+			// Set the size of the inner product matrix
+			RB_L2_matrix = new Array2DRowRealMatrix(get_n_basis_functions(),
+					get_n_basis_functions());
+
+			// Fill the matrix
+			int count = 0;
+			for (int i = 0; i < get_n_basis_functions(); i++)
+				for (int j = 0; j < get_n_basis_functions(); j++) {
+					RB_L2_matrix.setEntry(i, j,
+							Double.parseDouble(tokens[count]));
+					count++;
+				}
+			reader.close(); reader = null;
+
+			Log.d(DEBUG_TAG, "Finished reading RB_L2_matrix.dat");
+		}
+
+		// Read in the M_q matrices
+		{
+			RB_M_q_vector = new RealMatrix[get_Q_m()];
+			for (int q_m = 0; q_m < get_Q_m(); q_m++) {
+
+				BufferedReader reader = m.getBufReader("RB_M_"
+						+ String.format("%03d", q_m) + ".dat");
+
+				String line = reader.readLine();
+				reader.close(); reader = null;
+				String[] tokens = line.split(" ");
+
+				// Set the size of the inner product matrix
+				RB_M_q_vector[q_m] = new Array2DRowRealMatrix(
+						get_n_basis_functions(), get_n_basis_functions());
+
+				// Fill the vector
+				int count = 0;
+				for (int i = 0; i < get_n_basis_functions(); i++)
+					for (int j = 0; j < get_n_basis_functions(); j++) {
+						RB_M_q_vector[q_m].setEntry(i, j,
+								Double.parseDouble(tokens[count]));
+						count++;
+					}
+			}
+			Log.d(DEBUG_TAG, "Finished reading RB_M_q data");
+		}
+
+		// Read in Fq_Mq representor norm data
+		{
+			BufferedReader reader = m.getBufReader("Fq_Mq_norms.dat");
+
+			String line = reader.readLine();
+			reader.close(); reader = null;
+			String[] tokens = line.split(" ");
+
+			// Declare the array
+			Fq_Mq_representor_norms = new double[get_Q_f()][get_Q_m()][get_n_basis_functions()];
+
+			// Fill it
+			int count = 0;
+			for (int q_f = 0; q_f < get_Q_f(); q_f++)
+				for (int q_m = 0; q_m < get_Q_m(); q_m++)
+					for (int i = 0; i < get_n_basis_functions(); i++) {
+						Fq_Mq_representor_norms[q_f][q_m][i] = Double
+								.parseDouble(tokens[count]);
+						count++;
+					}
+
+			Log.d(DEBUG_TAG, "Finished reading Fq_Mq_norms.dat");
+		}
+
+		// Read in M_M representor norm data
+		{
+			BufferedReader reader = m.getBufReader("Mq_Mq_norms.dat");
+
+			String line = reader.readLine();
+			reader.close(); reader = null;
+			String[] tokens = line.split(" ");
+
+			// Declare the array
+			int Q_m_hat = get_Q_m() * (get_Q_m() + 1) / 2;
+			Mq_Mq_representor_norms = new double[Q_m_hat][get_n_basis_functions()][get_n_basis_functions()];
+
+			// Fill it
+			int count = 0;
+			for (int q = 0; q < Q_m_hat; q++)
+				for (int i = 0; i < get_n_basis_functions(); i++)
+					for (int j = 0; j < get_n_basis_functions(); j++) {
+						Mq_Mq_representor_norms[q][i][j] = Double
+								.parseDouble(tokens[count]);
+						count++;
+					}
+			Log.d(DEBUG_TAG, "Finished reading Mq_Mq_norms.dat");
+		}
+
+		// Read in Aq_M representor norm data
+		{
+			try {
+				BufferedReader reader = m.getBufReader("Aq_Mq_norms.dat");
+
+				String line = reader.readLine();
+				reader.close(); reader = null;
+				String[] tokens = line.split(" ");
+
+				// Declare the array
+				Aq_Mq_representor_norms = new double[get_Q_a()][get_Q_m()][get_n_basis_functions()][get_n_basis_functions()];
+
+				// Fill it
+				int count = 0;
+				for (int q_a = 0; q_a < get_Q_a(); q_a++)
+					for (int q_m = 0; q_m < get_Q_m(); q_m++)
+						for (int i = 0; i < get_n_basis_functions(); i++)
+							for (int j = 0; j < get_n_basis_functions(); j++) {
+								Aq_Mq_representor_norms[q_a][q_m][i][j] = Double
+										.parseDouble(tokens[count]);
+								count++;
+							}
+				
+			} catch (IOException iae) {
+				// Declare the array
+				Aq_Mq_representor_norms = new double[get_Q_a()][get_Q_m()][get_n_basis_functions()][get_n_basis_functions()];
+
+				MathObjectReader mr = m.getMathObjReader();
+				int count = 0;
+				for (int i = 0; i < get_Q_a(); i++)
+					for (int j = 0; j < get_Q_m(); j++) {
+						String file = "Aq_Mq_"
+								+ String.format("%03d", i) + "_"
+								+ String.format("%03d", j) + "_norms.bin";
+						Aq_Mq_representor_norms[i][j] = mr.readRawDoubleMatrix(m.getInStream(file),
+								get_n_basis_functions(), get_n_basis_functions());
+						
+//						for (int k = 0; k < get_n_basis_functions(); k++)
+//							for (int l = 0; l < get_n_basis_functions(); l++)
+//								Aq_Mq_representor_norms[i][j][k][l] = dis
+//										.ReadDouble();
+						count++;
+//						dis.close();
+					}
+			}
+
+			Log.d(DEBUG_TAG, "Finished reading Aq_Mq_norms.dat");
+		}
+
+		// This is read in in RBSystem, no?
+		// // Read calN number
+		// if (get_mfield() > 0)
+		// {
+		// InputStreamReader isr;
+		// String dataString = directory_name + "/calN.dat";
+		//
+		// if(!isAssetFile) {
+		// HttpGet request = new HttpGet(dataString);
+		// HttpResponse response = client.execute(request);
+		// isr = new InputStreamReader(response.getEntity()
+		// .getContent());
+		// }
+		// else { // Read from assets
+		// isr = new InputStreamReader(
+		// context.getAssets().open(dataString));
+		// }
+		// BufferedReader BufferedReader reader = new
+		// BufferedReader(isr,buffer_size);
+		//
+		// String String line = reader.readLine();
+		//
+		// set_calN(Integer.parseInt(line));
+		// reader.close(); reader = null;
+		// }
+		//
+		// Log.d(DEBUG_TAG, "Finished reading calN.dat");
+		/*
+		 * // Read in Z data if (get_mfield() > 0){ Z_vector = new
+		 * float[get_mfield()][get_n_basis_functions()][get_calN()]; for (int
+		 * imf = 0; imf < get_mfield(); imf++) for (int inbfs = 0; inbfs <
+		 * get_n_basis_functions(); inbfs++){ BinaryReader dis; String
+		 * dataString = directory_name + "/Z_" + String.format("%03d", imf) +
+		 * "_" + String.format("%03d", inbfs) + ".bin";
+		 * 
+		 * if(!isAssetFile) { HttpGet request = new HttpGet(dataString);
+		 * HttpResponse response = client.execute(request); dis = new
+		 * BinaryReader(response.getEntity() .getContent()); } else { // Read
+		 * from assets dis = new BinaryReader(
+		 * context.getAssets().open(dataString)); }
+		 * 
+		 * //Z_vector[imf][inbfs] = dis.ReadFloat(get_calN()); for (int i = 0; i
+		 * < get_calN(); i++) Z_vector[imf][inbfs][i] = dis.ReadFloat();
+		 * 
+		 * dis.close(); } }
+		 * 
+		 * Log.d(DEBUG_TAG, "Finished reading Z.dat");
+		 */
+	}
+
+	/**
+	 * @param parameters_filename
+	 *            The name of the file to parse Parse the input file to
+	 *            initialize this RBSystem.
+	 * @throws IOException 
+	 */
+	@Override
+	public void parse_parameters_file(AModelManager m) throws InconsistentStateException, IOException {
+		super.parse_parameters_file(m);
+
+//		GetPot infile = m.getParamFileGetPot();
+		GetPot infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
+
+		double dt_in = infile.call("dt", 0.);
+		set_dt(dt_in);
+
+		int K_in = infile.call("K", 0);
+		set_K(K_in);
+
+		double euler_theta_in = infile.call("euler_theta", 1.);
+		set_euler_theta(euler_theta_in);
+
+		int apply_temporal_filter_flag_in = infile.call(
+				"apply_temporal_filter_flag", 0);
+		apply_temporal_filter_flag = (apply_temporal_filter_flag_in != 0);
+
+		double filter_width_in = infile.call("filter_width", 2.);
+		filter_width = filter_width_in;
+
+		int n_plotting_steps_in = infile.call("n_plotting_steps", get_K() + 1);
+		n_plotting_steps = n_plotting_steps_in;
+
+		Log.d(DEBUG_TAG, "TransientRBSystem parameters from "
+				+ Const.parameters_filename + ":");
+		Log.d(DEBUG_TAG, "dt: " + get_dt());
+		Log.d(DEBUG_TAG, "Number of time steps: " + get_K());
+		Log.d(DEBUG_TAG, "euler_theta (for generalized Euler): "
+				+ get_euler_theta());
+		Log.d(DEBUG_TAG, "Apply a temporal filter? "
+				+ apply_temporal_filter_flag);
+		if (apply_temporal_filter_flag) {
+			Log.d(DEBUG_TAG, "Temporal filter std. dev. " + filter_width);
+			Log.d(DEBUG_TAG, "Number of timesteps to be plotted"
+					+ n_plotting_steps);
+		}
+
 	}
 
 	/**
@@ -332,142 +884,6 @@ public class TransientRBSystem extends RBSystem {
 	}
 
 	/**
-	 * Apply the temporal filter to the outputs
-	 */
-	public void apply_temporal_filter() {
-		double[][] RB_convolved_outputs_all_k = new double[get_n_outputs()][get_K() + 1];
-		double[][] RB_convolved_error_bounds_all_k = new double[get_n_outputs()][get_K() + 1];
-
-		for (int n = 0; n < get_n_outputs(); n++) {
-			double output_dual_norm = compute_output_dual_norm(n);
-
-			for (int time_level = 0; time_level <= get_K(); time_level++) {
-				double conv_weight_integral_sq = 0.;
-				RB_convolved_outputs_all_k[n][time_level] = 0.;
-
-				for (int k_prime = 0; k_prime <= get_K(); k_prime++) {
-					double time_diff = get_dt() * (time_level - k_prime);
-					RB_convolved_outputs_all_k[n][time_level] += get_dt()
-							* conv_weight(time_diff)
-							* RB_outputs_all_k[n][k_prime];
-
-					conv_weight_integral_sq += get_dt()
-							* Math.pow(conv_weight(time_diff), 2.);
-				}
-
-				RB_convolved_error_bounds_all_k[n][time_level] = error_bound_all_k[get_K()]
-						* output_dual_norm * Math.sqrt(conv_weight_integral_sq);
-			}
-		}
-
-		RB_outputs_all_k = RB_convolved_outputs_all_k;
-		RB_output_error_bounds_all_k = RB_convolved_error_bounds_all_k;
-	}
-
-	protected double conv_weight(double x) {
-		// Specify a Gaussian with standard deviation sigma
-
-		double sigma = filter_width * get_dt();
-
-		return 1. / Math.sqrt(2. * Math.PI * sigma * sigma)
-				* Math.exp(-x * x / (2. * sigma * sigma));
-	}
-
-	/**
-	 * Get/set dt, the time-step size.
-	 */
-	public double get_dt() {
-		return dt;
-	}
-
-	public void set_dt(double dt_in) {
-		this.dt = dt_in;
-	}
-
-	/**
-	 * Get/set euler_theta, parameter that determines the temporal
-	 * discretization. euler_theta = 0 ---> Forward Euler euler_theta = 0.5 --->
-	 * Crank-Nicolson euler_theta = 1 ---> Backward Euler
-	 */
-	public double get_euler_theta() {
-		return euler_theta;
-	}
-
-	public void set_euler_theta(double euler_theta_in) {
-		this.euler_theta = euler_theta_in;
-	}
-
-	/**
-	 * Get/set the current time-level.
-	 */
-	public int get_time_level() {
-		return _k;
-	}
-
-	public void set_time_level(int k_in) {
-		this._k = k_in;
-	}
-
-	/**
-	 * Get/set K, the total number of time-steps.
-	 */
-	public int get_K() {
-		return _K;
-	}
-
-	public void set_K(int K_in) {
-		this._K = K_in;
-	}
-
-	/**
-	 * @param parameters_filename
-	 *            The name of the file to parse Parse the input file to
-	 *            initialize this RBSystem.
-	 * @throws IOException 
-	 */
-	@Override
-	public void parse_parameters_file(AModelManager m) throws InconsistentStateException, IOException {
-		super.parse_parameters_file(m);
-
-//		GetPot infile = m.getParamFileGetPot();
-		GetPot infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
-
-		double dt_in = infile.call("dt", 0.);
-		set_dt(dt_in);
-
-		int K_in = infile.call("K", 0);
-		set_K(K_in);
-
-		double euler_theta_in = infile.call("euler_theta", 1.);
-		set_euler_theta(euler_theta_in);
-
-		int apply_temporal_filter_flag_in = infile.call(
-				"apply_temporal_filter_flag", 0);
-		apply_temporal_filter_flag = (apply_temporal_filter_flag_in != 0);
-
-		double filter_width_in = infile.call("filter_width", 2.);
-		filter_width = filter_width_in;
-
-		int n_plotting_steps_in = infile.call("n_plotting_steps", get_K() + 1);
-		n_plotting_steps = n_plotting_steps_in;
-
-		Log.d(DEBUG_TAG, "TransientRBSystem parameters from "
-				+ Const.parameters_filename + ":");
-		Log.d(DEBUG_TAG, "dt: " + get_dt());
-		Log.d(DEBUG_TAG, "Number of time steps: " + get_K());
-		Log.d(DEBUG_TAG, "euler_theta (for generalized Euler): "
-				+ get_euler_theta());
-		Log.d(DEBUG_TAG, "Apply a temporal filter? "
-				+ apply_temporal_filter_flag);
-		if (apply_temporal_filter_flag) {
-			Log.d(DEBUG_TAG, "Temporal filter std. dev. " + filter_width);
-			Log.d(DEBUG_TAG, "Number of timesteps to be plotted"
-					+ n_plotting_steps);
-		}
-
-	}
-
-	/**
 	 * Set the Q_a variable from the mTheta object.
 	 */
 	public void read_in_Q_m() {
@@ -496,387 +912,48 @@ public class TransientRBSystem extends RBSystem {
 		mQ_m = Q_m.intValue();
 	}
 
-	/**
-	 * Override read_offline_data_from_files in order to read in the mass matrix
-	 * and initial condition data as well.
-	 */
-	@Override
-	public void read_offline_data(AModelManager m) throws IOException {
-
-		super.read_offline_data(m);
-
-		// Initialize the residual caching data storage
-		cached_Fq_Aq_vector = new double[get_n_basis_functions()];
-		cached_Aq_Aq_matrix = new double[get_n_basis_functions()][get_n_basis_functions()];
-		cached_Fq_Mq_vector = new double[get_n_basis_functions()];
-		cached_Aq_Mq_matrix = new double[get_n_basis_functions()][get_n_basis_functions()];
-		cached_Mq_Mq_matrix = new double[get_n_basis_functions()][get_n_basis_functions()];
-
-		{
-			BufferedReader reader = m.getBufReader("RB_L2_matrix.dat");
-
-			String[] tokens = reader.readLine().split(" ");			 
-
-			// Set the size of the inner product matrix
-			RB_L2_matrix = new Array2DRowRealMatrix(get_n_basis_functions(),
-					get_n_basis_functions());
-
-			// Fill the matrix
-			int count = 0;
-			for (int i = 0; i < get_n_basis_functions(); i++)
-				for (int j = 0; j < get_n_basis_functions(); j++) {
-					RB_L2_matrix.setEntry(i, j,
-							Double.parseDouble(tokens[count]));
-					count++;
-				}
-			reader.close(); reader = null;
-
-			Log.d(DEBUG_TAG, "Finished reading RB_L2_matrix.dat");
-		}
-
-		// Read in the M_q matrices
-		{
-			RB_M_q_vector = new RealMatrix[get_Q_m()];
-			for (int q_m = 0; q_m < get_Q_m(); q_m++) {
-
-				BufferedReader reader = m.getBufReader("RB_M_"
-						+ String.format("%03d", q_m) + ".dat");
-
-				String line = reader.readLine();
-				reader.close(); reader = null;
-				String[] tokens = line.split(" ");
-
-				// Set the size of the inner product matrix
-				RB_M_q_vector[q_m] = new Array2DRowRealMatrix(
-						get_n_basis_functions(), get_n_basis_functions());
-
-				// Fill the vector
-				int count = 0;
-				for (int i = 0; i < get_n_basis_functions(); i++)
-					for (int j = 0; j < get_n_basis_functions(); j++) {
-						RB_M_q_vector[q_m].setEntry(i, j,
-								Double.parseDouble(tokens[count]));
-						count++;
-					}
-			}
-			Log.d(DEBUG_TAG, "Finished reading RB_M_q data");
-		}
-
-		// Read in Fq_Mq representor norm data
-		{
-			BufferedReader reader = m.getBufReader("Fq_Mq_norms.dat");
-
-			String line = reader.readLine();
-			reader.close(); reader = null;
-			String[] tokens = line.split(" ");
-
-			// Declare the array
-			Fq_Mq_representor_norms = new double[get_Q_f()][get_Q_m()][get_n_basis_functions()];
-
-			// Fill it
-			int count = 0;
-			for (int q_f = 0; q_f < get_Q_f(); q_f++)
-				for (int q_m = 0; q_m < get_Q_m(); q_m++)
-					for (int i = 0; i < get_n_basis_functions(); i++) {
-						Fq_Mq_representor_norms[q_f][q_m][i] = Double
-								.parseDouble(tokens[count]);
-						count++;
-					}
-
-			Log.d(DEBUG_TAG, "Finished reading Fq_Mq_norms.dat");
-		}
-
-		// Read in M_M representor norm data
-		{
-			BufferedReader reader = m.getBufReader("Mq_Mq_norms.dat");
-
-			String line = reader.readLine();
-			reader.close(); reader = null;
-			String[] tokens = line.split(" ");
-
-			// Declare the array
-			int Q_m_hat = get_Q_m() * (get_Q_m() + 1) / 2;
-			Mq_Mq_representor_norms = new double[Q_m_hat][get_n_basis_functions()][get_n_basis_functions()];
-
-			// Fill it
-			int count = 0;
-			for (int q = 0; q < Q_m_hat; q++)
-				for (int i = 0; i < get_n_basis_functions(); i++)
-					for (int j = 0; j < get_n_basis_functions(); j++) {
-						Mq_Mq_representor_norms[q][i][j] = Double
-								.parseDouble(tokens[count]);
-						count++;
-					}
-			Log.d(DEBUG_TAG, "Finished reading Mq_Mq_norms.dat");
-		}
-
-		// Read in Aq_M representor norm data
-		{
-			try {
-				BufferedReader reader = m.getBufReader("Aq_Mq_norms.dat");
-
-				String line = reader.readLine();
-				reader.close(); reader = null;
-				String[] tokens = line.split(" ");
-
-				// Declare the array
-				Aq_Mq_representor_norms = new double[get_Q_a()][get_Q_m()][get_n_basis_functions()][get_n_basis_functions()];
-
-				// Fill it
-				int count = 0;
-				for (int q_a = 0; q_a < get_Q_a(); q_a++)
-					for (int q_m = 0; q_m < get_Q_m(); q_m++)
-						for (int i = 0; i < get_n_basis_functions(); i++)
-							for (int j = 0; j < get_n_basis_functions(); j++) {
-								Aq_Mq_representor_norms[q_a][q_m][i][j] = Double
-										.parseDouble(tokens[count]);
-								count++;
-							}
-				
-			} catch (IOException iae) {
-				// Declare the array
-				Aq_Mq_representor_norms = new double[get_Q_a()][get_Q_m()][get_n_basis_functions()][get_n_basis_functions()];
-
-				MathObjectReader mr = m.getMathObjReader();
-				int count = 0;
-				for (int i = 0; i < get_Q_a(); i++)
-					for (int j = 0; j < get_Q_m(); j++) {
-						String file = "Aq_Mq_"
-								+ String.format("%03d", i) + "_"
-								+ String.format("%03d", j) + "_norms.bin";
-						Aq_Mq_representor_norms[i][j] = mr.readMatrixData(m.getInStream(file),
-								get_n_basis_functions(), get_n_basis_functions());
-						
-//						for (int k = 0; k < get_n_basis_functions(); k++)
-//							for (int l = 0; l < get_n_basis_functions(); l++)
-//								Aq_Mq_representor_norms[i][j][k][l] = dis
-//										.ReadDouble();
-						count++;
-//						dis.close();
-					}
-			}
-
-			Log.d(DEBUG_TAG, "Finished reading Aq_Mq_norms.dat");
-		}
-
-		// This is read in in RBSystem, no?
-		// // Read calN number
-		// if (get_mfield() > 0)
-		// {
-		// InputStreamReader isr;
-		// String dataString = directory_name + "/calN.dat";
-		//
-		// if(!isAssetFile) {
-		// HttpGet request = new HttpGet(dataString);
-		// HttpResponse response = client.execute(request);
-		// isr = new InputStreamReader(response.getEntity()
-		// .getContent());
-		// }
-		// else { // Read from assets
-		// isr = new InputStreamReader(
-		// context.getAssets().open(dataString));
-		// }
-		// BufferedReader BufferedReader reader = new
-		// BufferedReader(isr,buffer_size);
-		//
-		// String String line = reader.readLine();
-		//
-		// set_calN(Integer.parseInt(line));
-		// reader.close(); reader = null;
-		// }
-		//
-		// Log.d(DEBUG_TAG, "Finished reading calN.dat");
-		/*
-		 * // Read in Z data if (get_mfield() > 0){ Z_vector = new
-		 * float[get_mfield()][get_n_basis_functions()][get_calN()]; for (int
-		 * imf = 0; imf < get_mfield(); imf++) for (int inbfs = 0; inbfs <
-		 * get_n_basis_functions(); inbfs++){ BinaryReader dis; String
-		 * dataString = directory_name + "/Z_" + String.format("%03d", imf) +
-		 * "_" + String.format("%03d", inbfs) + ".bin";
-		 * 
-		 * if(!isAssetFile) { HttpGet request = new HttpGet(dataString);
-		 * HttpResponse response = client.execute(request); dis = new
-		 * BinaryReader(response.getEntity() .getContent()); } else { // Read
-		 * from assets dis = new BinaryReader(
-		 * context.getAssets().open(dataString)); }
-		 * 
-		 * //Z_vector[imf][inbfs] = dis.ReadFloat(get_calN()); for (int i = 0; i
-		 * < get_calN(); i++) Z_vector[imf][inbfs][i] = dis.ReadFloat();
-		 * 
-		 * dis.close(); } }
-		 * 
-		 * Log.d(DEBUG_TAG, "Finished reading Z.dat");
-		 */
-	}
-
 	// PROTECTED FUNCTIONS
 
 	/**
-	 * Compute the dual norm of the residual for the solution saved in
-	 * RB_solution_vector. This assumes that the time-independent quantities
-	 * were cached in RB_solve.
+	 * Specifies the residual scaling on the denominator to be used in the a
+	 * posteriori error bound. Overload in subclass in order to obtain the
+	 * desired error bound.
 	 */
 	@Override
-	protected double compute_residual_dual_norm(int N) {
-		// This assembly assumes we have already called
-		// cache_online_residual_terms
-		// and that the RB_solve parameter is constant in time
-
-		RealVector RB_u_euler_theta = RB_solution
-				.mapMultiply(get_euler_theta()).add(
-						old_RB_solution.mapMultiply(1. - get_euler_theta()));
-		RealVector mass_coeffs = RB_solution.subtract(old_RB_solution)
-				.mapMultiply(-1. / get_dt());
-
-		double residual_norm_sq = cached_Fq_term;
-
-		for (int i = 0; i < N; i++) {
-			residual_norm_sq += RB_u_euler_theta.getEntry(i)
-					* cached_Fq_Aq_vector[i];
-			residual_norm_sq += mass_coeffs.getEntry(i)
-					* cached_Fq_Mq_vector[i];
-		}
-
-		for (int i = 0; i < N; i++)
-			for (int j = 0; j < N; j++) {
-				residual_norm_sq += RB_u_euler_theta.getEntry(i)
-						* RB_u_euler_theta.getEntry(j)
-						* cached_Aq_Aq_matrix[i][j];
-				residual_norm_sq += mass_coeffs.getEntry(i)
-						* mass_coeffs.getEntry(j) * cached_Mq_Mq_matrix[i][j];
-				residual_norm_sq += RB_u_euler_theta.getEntry(i)
-						* mass_coeffs.getEntry(j) * cached_Aq_Mq_matrix[i][j];
-			}
-
-		if (residual_norm_sq < 0) {
-			Log.d(DEBUG_TAG, "Warning: Square of residual norm is negative "
-					+ "in TransientRBSystem::compute_residual_dual_norm()");
-
-			// Sometimes this is negative due to rounding error,
-			// but error is on the order of 1.e-10, so shouldn't
-			// affect result
-			residual_norm_sq = Math.abs(residual_norm_sq);
-		}
-
-		return Math.sqrt(residual_norm_sq);
+	protected double residual_scaling_denom(double alpha_LB) {
+		return alpha_LB;
 	}
 
 	/**
-	 * Helper function that caches the time-independent residual quantities.
+	 * Specifies the residual scaling on the numerator to be used in the a
+	 * posteriori error bound. Overload in subclass in order to obtain the
+	 * desired error bound.
 	 */
-	protected void cache_online_residual_terms(int N) {
+	protected double residual_scaling_numer(double alpha_LB) {
+		return get_dt();
+	}
 
-		cached_Fq_term = 0.;
-		int q = 0;
-		for (int q_f1 = 0; q_f1 < get_Q_f(); q_f1++) {
+	public void set_dt(double dt_in) {
+		this.dt = dt_in;
+	}
 
-			double cached_theta_q_f1 = eval_theta_q_f(q_f1);
-			for (int q_f2 = q_f1; q_f2 < get_Q_f(); q_f2++) {
-				double delta = (q_f1 == q_f2) ? 1. : 2.;
-				cached_Fq_term += delta * cached_theta_q_f1
-						* eval_theta_q_f(q_f2) * Fq_representor_norms[q];
+	public void set_euler_theta(double euler_theta_in) {
+		this.euler_theta = euler_theta_in;
+	}
 
-				q++;
-			}
-		}
+	public void set_K(int K_in) {
+		this._K = K_in;
+	}
 
-		for (int q_f = 0; q_f < get_Q_f(); q_f++) {
-			double cached_theta_q_f = eval_theta_q_f(q_f);
-			for (int q_a = 0; q_a < get_Q_a(); q_a++) {
-				double cached_theta_q_a = eval_theta_q_a(q_a);
-				for (int i = 0; i < N; i++) {
-					// Clear the entries on the first pass
-					if ((q_f == 0) && (q_a == 0))
-						cached_Fq_Aq_vector[i] = 0.;
+	public void set_time_level(int k_in) {
+		this._k = k_in;
+	}
 
-					cached_Fq_Aq_vector[i] += 2. * cached_theta_q_f
-							* cached_theta_q_a
-							* Fq_Aq_representor_norms[q_f][q_a][i];
-				}
-			}
-		}
-
-		q = 0;
-		for (int q_a1 = 0; q_a1 < get_Q_a(); q_a1++) {
-			double cached_theta_q_a1 = eval_theta_q_a(q_a1);
-			for (int q_a2 = q_a1; q_a2 < get_Q_a(); q_a2++) {
-				double cached_theta_q_a2 = eval_theta_q_a(q_a2);
-				double delta = (q_a1 == q_a2) ? 1. : 2.;
-
-				for (int i = 0; i < N; i++) {
-					for (int j = 0; j < N; j++) {
-						// Clear the entries on the first pass
-						if (q == 0)
-							cached_Aq_Aq_matrix[i][j] = 0.;
-
-						cached_Aq_Aq_matrix[i][j] += delta * cached_theta_q_a1
-								* cached_theta_q_a2
-								* Aq_Aq_representor_norms[q][i][j];
-					}
-				}
-				q++;
-			}
-		}
-
-		for (int q_f = 0; q_f < get_Q_f(); q_f++) {
-			double cached_theta_q_f = eval_theta_q_f(q_f);
-
-			for (int q_m = 0; q_m < get_Q_m(); q_m++) {
-				double cached_theta_q_m = eval_theta_q_m(q_m);
-
-				for (int i = 0; i < N; i++) {
-					// Clear the entries on the first pass
-					if ((q_f == 0) && (q_m == 0))
-						cached_Fq_Mq_vector[i] = 0.;
-
-					cached_Fq_Mq_vector[i] += 2. * cached_theta_q_f
-							* cached_theta_q_m
-							* Fq_Mq_representor_norms[q_f][q_m][i];
-				}
-			}
-		}
-
-		for (int q_a = 0; q_a < get_Q_a(); q_a++) {
-			double cached_theta_q_a = eval_theta_q_a(q_a);
-
-			for (int q_m = 0; q_m < get_Q_m(); q_m++) {
-				double cached_theta_q_m = eval_theta_q_m(q_m);
-
-				for (int i = 0; i < N; i++) {
-					for (int j = 0; j < N; j++) {
-						// Clear the entries on the first pass
-						if ((q_a == 0) && (q_m == 0))
-							cached_Aq_Mq_matrix[i][j] = 0.;
-
-						cached_Aq_Mq_matrix[i][j] += 2. * cached_theta_q_a
-								* cached_theta_q_m
-								* Aq_Mq_representor_norms[q_a][q_m][i][j];
-					}
-				}
-			}
-		}
-
-		q = 0;
-		for (int q_m1 = 0; q_m1 < get_Q_m(); q_m1++) {
-			double cached_theta_q_m1 = eval_theta_q_m(q_m1);
-			for (int q_m2 = q_m1; q_m2 < get_Q_m(); q_m2++) {
-				double cached_theta_q_m2 = eval_theta_q_m(q_m2);
-				double delta = (q_m1 == q_m2) ? 1. : 2.;
-
-				for (int i = 0; i < N; i++) {
-					for (int j = 0; j < N; j++) {
-						if (q == 0)
-							cached_Mq_Mq_matrix[i][j] = 0.;
-
-						cached_Mq_Mq_matrix[i][j] += delta * cached_theta_q_m1
-								* cached_theta_q_m2
-								* Mq_Mq_representor_norms[q][i][j];
-					}
-				}
-				q++;
-			}
-		}
-
+	/**
+	 * Set the secondary SCM system
+	 */
+	public void setSecondarySCM(RBSCMSystem second_scm_system) {
+		mSecondRbScmSystem = second_scm_system;
 	}
 
 	/**
@@ -999,81 +1076,5 @@ public class TransientRBSystem extends RBSystem {
 		}
 
 		return Math.sqrt(residual_norm_sq);
-	}
-
-	/**
-	 * Specifies the residual scaling on the numerator to be used in the a
-	 * posteriori error bound. Overload in subclass in order to obtain the
-	 * desired error bound.
-	 */
-	protected double residual_scaling_numer(double alpha_LB) {
-		return get_dt();
-	}
-
-	/**
-	 * Specifies the residual scaling on the denominator to be used in the a
-	 * posteriori error bound. Overload in subclass in order to obtain the
-	 * desired error bound.
-	 */
-	@Override
-	protected double residual_scaling_denom(double alpha_LB) {
-		return alpha_LB;
-	}
-
-	/**
-	 * Resize the output vectors according to n_outputs.
-	 */
-	@Override
-	protected void initialize_data_vectors() {
-		super.initialize_data_vectors();
-
-		RB_outputs_all_k = new double[get_n_outputs()][get_K() + 1];
-		RB_output_error_bounds_all_k = new double[get_n_outputs()][get_K() + 1];
-
-		// Resize the error bound vector
-		error_bound_all_k = new double[get_K() + 1];
-
-		// Resize the array that stores the solution data at all time levels
-		RB_temporal_solution_data = new RealVector[get_K() + 1];
-	}
-
-	// return truth solution
-	public float[][][] get_truth_sol() {
-		int N = RB_temporal_solution_data[1].getDimension();
-		int nt = get_nt();
-		float[][][] truth_sol = new float[get_mfield()][1][get_calN() * nt];
-		for (int ifn = 0; ifn < get_mfield(); ifn++) {
-			double tmpval;
-			for (_k = 1; _k <= nt; _k++)
-				for (int i = 0; i < get_calN(); i++) {
-					tmpval = 0;
-					for (int j = 0; j < N; j++)
-						tmpval += Z_vector[ifn][j][i]
-								* RB_temporal_solution_data[(int) Math
-										.round(Math.floor(_k * _K / nt))]
-										.getEntry(j);
-					// tmpval +=
-					// Z_vector[ifn][j][i]*RB_temporal_solution_data[_k].getEntry(j);
-					truth_sol[ifn][0][(_k - 1) * get_calN() + i] = (float) tmpval;
-				}
-		}
-		return truth_sol;
-	}
-
-	/*
-	 * public double[] get_RBsolution(int nt){ int N = get_N(); double[] tmpsol
-	 * = new double[N*nt]; for (_k = 1; _k <= nt; _k++) for (int j = 0; j < N;
-	 * j++) tmpsol[(_k-1)*N+j] =
-	 * RB_temporal_solution_data[(int)Math.round(Math.floor
-	 * (_k*_K/nt))].getEntry(j); return tmpsol; }
-	 */
-	public int get_nt() {
-		/*
-		 * int nt = Math.round(50000/get_calN()); nt = nt>_K?_K:nt; return nt;
-		 */
-		int nt = (int) Math.round(75000 / get_calN()
-				/ (1 + 0.4 * (get_mfield() - 1))); // can go up to 150000
-		nt = nt > 25 ? 25 : nt; // cap nt at 25
-		return nt > _K ? _K : nt;
 	}
 }

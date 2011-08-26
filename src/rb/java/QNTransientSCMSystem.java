@@ -26,6 +26,7 @@ import java.lang.reflect.Method;
 
 import org.apache.commons.math.linear.RealVector;
 
+import rmcommon.Log;
 import rmcommon.io.AModelManager;
 
 // This class implements the Online stage
@@ -198,7 +199,7 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 	 * QNTransient case.
 	 */
 	@Override
-	public void read_offline_data(AModelManager m) throws IOException,
+	public void loadOfflineData(AModelManager m) throws IOException,
 			InconsistentStateException {
 
 		// Initially set number of basis functions from n_bfs.dat
@@ -213,7 +214,7 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 			Log.d(DEBUG_TAG, "Finished reading n_bfs.dat");
 		}
 
-		super.read_offline_data(m);
+		super.loadOfflineData(m);
 
 		// Read C_J_RB_coeffs
 		{

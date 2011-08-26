@@ -2,6 +2,7 @@ package rb.java;
 
 import java.io.IOException;
 
+import rmcommon.Log;
 import rmcommon.io.AModelManager;
 
 /**
@@ -126,27 +127,20 @@ public class RBContainer {
 	 */
 	public boolean loadModel(AModelManager m) {
 
-		boolean success = true;
-
-		// Note: the local copy of the parameters_filename that has been
-		// created here
-		// if the source was a remote website has moved to
-		// ModelManager.getParamFileGetPot()
-
 		try {
 			initialize_systems(m);
 		} catch (InconsistentStateException e) {
 			Log.e(DEBUG_TAG, "Inconsistent state exception occurred when parsing input file: "
 					+ e.getMessage());
-			success = false;
+			return false;
 		} catch (IOException e) {
 			Log.e(DEBUG_TAG, "I/O Exception thrown when accessing "
 					+ Const.parameters_filename + ": " + e.getMessage());
-			success = false;
+			return false;
 		} catch (Exception e) {
 			Log.e(DEBUG_TAG, "Exception thrown when accessing "
 					+ Const.parameters_filename, e);
-			success = false;
+			return false;
 		}
 
 		try {
@@ -154,27 +148,27 @@ public class RBContainer {
 		} catch (Exception e) {
 			Log.e(DEBUG_TAG, "Exception occurred while attaching affine functions: "
 					+ e.getMessage(), e);
-			success = false;
+			return false;
 		}
 
 		// Finally, initialize the RB and SCM systems
 		try {
 			if (mRbSystem != null) {
-				mRbSystem.read_offline_data(m);
+				mRbSystem.loadOfflineData(m);
 				Log.d(DEBUG_TAG, "Finished reading offline data for RBSystem.");
 			}
 
 			if (mRbScmSystem != null) {
-				mRbScmSystem.read_offline_data(m);
+				mRbScmSystem.loadOfflineData(m);
 				Log.d(DEBUG_TAG, "Finished reading offline data for RBSCMSystem.");
 			}
 
 		} catch (Exception e) {
 			Log.e(DEBUG_TAG, "Exception occurred while reading offline data: "
 					+ e.getMessage(), e);
-			success = false;
+			return false;
 		}
-		return success;
+		return true;
 	}
 
 	private void initialize_systems(AModelManager m) throws Exception {

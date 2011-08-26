@@ -40,6 +40,7 @@ import org.apache.commons.math.optimization.linear.LinearObjectiveFunction;
 import org.apache.commons.math.optimization.linear.Relationship;
 import org.apache.commons.math.optimization.linear.SimplexSolver;
 
+import rmcommon.Log;
 import rmcommon.io.AModelManager;
 
 
@@ -327,7 +328,7 @@ public class RBSCMSystem extends RBBase {
 	 *            The URL of the directory containing the Offline data Read in
 	 *            the Offline data to initialize this RBSystem.
 	 */
-	public void read_offline_data(AModelManager m) throws IOException,
+	public void loadOfflineData(AModelManager m) throws IOException,
 			InconsistentStateException {
 
 		// Read in the bounding box minimum values

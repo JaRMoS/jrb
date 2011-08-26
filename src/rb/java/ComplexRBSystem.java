@@ -1,4 +1,5 @@
 package rb.java;
+
 //    rbAPPmit: An Android front-end for the Certified Reduced Basis Method
 //    Copyright (C) 2010 David J. Knezevic and Phuong Huynh
 //
@@ -17,8 +18,6 @@ package rb.java;
 //    You should have received a copy of the GNU General Public License
 //    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
 
-
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +31,7 @@ import org.apache.commons.math.linear.ArrayFieldVector;
 import org.apache.commons.math.linear.FieldMatrix;
 import org.apache.commons.math.linear.FieldVector;
 
+import rmcommon.Log;
 import rmcommon.io.AModelManager;
 import rmcommon.io.MathObjectReader;
 
@@ -59,9 +59,9 @@ public class ComplexRBSystem extends RBSystem {
 	protected Complex[][][] Z_vector;
 	protected Complex[][] uL_vector;
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked" })
 	@Override
-	public void read_offline_data(AModelManager m) throws IOException {
+	public void loadOfflineData(AModelManager m) throws IOException {
 
 		isReal = false;
 
@@ -297,18 +297,27 @@ public class ComplexRBSystem extends RBSystem {
 			Aq_Aq_representor_norms = new Complex[Q_a_hat][get_n_basis_functions()][get_n_basis_functions()];
 
 			int count = 0;
+			double[][] Rdata2=null, Idata2=null;
 			for (int i = 0; i < get_Q_a(); i++)
 				for (int j = i; j < get_Q_a(); j++) {
-					String file = "Aq_Aq_"
-							+ String.format("%03d", i) + "_"
+					String file = "Aq_Aq_" + String.format("%03d", i) + "_"
 							+ String.format("%03d", j) + "_norms.bin";
-					
+
 					int n = get_n_basis_functions();
-					double[][] Rdata2 = mr.readMatrixData(m.getInStream(file), n, n);
-					double[][] Idata2 = mr.readMatrixData(m.getInStream(file), n, n);
+					InputStream in = m.getInStream(file);
+					try {
+						Rdata2 = mr.readRawDoubleMatrix(in, n, n);
+						Idata2 = mr.readRawDoubleMatrix(in, n, n);
+					} catch (IOException io) {
+						Log.e("ComplexRBSystem", "IOException with file "+file, io);
+					} finally {
+						in.close();
+						in = null;
+					}
 					for (int k = 0; k < n; k++)
 						for (int l = 0; l < n; l++)
-							Aq_Aq_representor_norms[count][k][l] = new Complex(Rdata2[k][l],Idata2[k][l]);
+							Aq_Aq_representor_norms[count][k][l] = new Complex(
+									Rdata2[k][l], Idata2[k][l]);
 
 					count++;
 				}
@@ -333,10 +342,16 @@ public class ComplexRBSystem extends RBSystem {
 		{
 			if (get_Q_uL() > 0) {
 				uL_vector = new Complex[get_Q_uL()][get_calN()];
+				float[] Rdata3, Idata3;
 				for (int q_uL = 0; q_uL < get_Q_uL(); q_uL++) {
-					InputStream in = m.getInStream("uL_" + String.format("%03d", q_uL) + ".bin");
-					float[] Rdata3 = mr.readFloatArray(in, get_calN());
-					float[] Idata3 = mr.readFloatArray(in, get_calN());
+					InputStream in = m.getInStream("uL_"
+							+ String.format("%03d", q_uL) + ".bin");
+					try {
+						Rdata3 = mr.readRawFloatVector(in, get_calN());
+						Idata3 = mr.readRawFloatVector(in, get_calN());
+					} finally {
+						in.close();
+					}
 					for (int i = 0; i < get_calN(); i++)
 						uL_vector[q_uL][i] = new Complex((double) Rdata3[i],
 								(double) Idata3[i]);
@@ -349,14 +364,18 @@ public class ComplexRBSystem extends RBSystem {
 		{
 			if (get_mfield() > 0) {
 				Z_vector = new Complex[get_mfield()][get_n_basis_functions()][get_calN()];
+				float[] Rdata3, Idata3;
 				for (int imf = 0; imf < get_mfield(); imf++)
 					for (int inbfs = 0; inbfs < get_n_basis_functions(); inbfs++) {
 						InputStream in = m.getInStream("Z_"
 								+ String.format("%03d", imf) + "_"
 								+ String.format("%03d", inbfs) + ".bin");
-
-						float[] Rdata3 = mr.readFloatArray(in, get_calN());
-						float[] Idata3 = mr.readFloatArray(in, get_calN());
+						try {
+							Rdata3 = mr.readRawFloatVector(in, get_calN());
+							Idata3 = mr.readRawFloatVector(in, get_calN());
+						} finally {
+							in.close();
+						}
 						for (int i = 0; i < get_calN(); i++)
 							Z_vector[imf][inbfs][i] = new Complex(
 									(double) Rdata3[i], (double) Idata3[i]);

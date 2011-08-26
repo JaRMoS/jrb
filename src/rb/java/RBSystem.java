@@ -1,4 +1,5 @@
 package rb.java;
+
 //    rbAPPmit: An Android front-end for the Certified Reduced Basis Method
 //    Copyright (C) 2010 David J. Knezevic and Phuong Huynh
 //
@@ -17,10 +18,9 @@ package rb.java;
 //    You should have received a copy of the GNU General Public License
 //    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
 
-
-
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -31,6 +31,7 @@ import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 
+import rmcommon.Log;
 import rmcommon.io.AModelManager;
 import rmcommon.io.MathObjectReader;
 
@@ -45,131 +46,6 @@ public class RBSystem extends RBBase {
 	private static final String DEBUG_TAG = "RBSystem";
 
 	// PUBLIC MEMBER VARIABLES
-
-	/**
-	 * A reference to the SCM system.
-	 */
-	public RBSCMSystem mRbScmSystem;
-
-	/**
-	 * The RB solution vector. Stored as a Vector so that we can easily resize
-	 * it during an RB_solve.
-	 */
-	protected RealVector RB_solution;
-
-	/**
-	 * The vector storing the RB output values in the steady-state case.
-	 */
-	public double[] RB_outputs;
-
-	/**
-	 * The vector storing the RB error bounds in the steady-state case.
-	 */
-	public double[] RB_output_error_bounds;
-
-	/**
-	 * Boolean flag to indicate whether RB_solve returns an absolute or relative
-	 * error bound. True => relative, false => absolute.
-	 */
-	public boolean return_rel_error_bound;
-
-	// PRIVATE MEMBER VARIABLES
-
-	/**
-	 * The number of basis functions in the RB space.
-	 */
-	private int n_bfs;
-
-	private int calN;
-
-	// current N
-	protected int current_N;
-
-	/**
-	 * The number of terms in the affine expansion of the rhs
-	 */
-	private int mQ_f;
-
-	private int mQ_uL;
-
-	/**
-	 * The number of output functionals
-	 */
-	private int mN_outputs;
-
-	/**
-	 * The number of time steps we actually plot in the output plotter. This is
-	 * sometimes less than K so that we don't plot the effect of the filter near
-	 * the final time.
-	 */
-	public int n_plotting_steps;
-
-	/**
-	 * Dense matrices for the RB computations.
-	 */
-	protected RealMatrix[] RB_A_q_vector;
-
-	/**
-	 * Dense vector for the RHS.
-	 */
-	protected RealVector[] RB_F_q_vector;
-
-	/**
-	 * The vectors storing the RB output vectors
-	 */
-	protected RealVector[][] RB_output_vectors;
-
-	protected float[][][] Z_vector;
-
-	/* The number of fields: 0 means no visualization */
-	private int mfield;
-
-	protected float[][] uL_vector;
-
-	/**
-	 * This array stores the dual norms for each output. Row n stores the Q_l
-	 * dual norms for the expansion of the n^th output.
-	 */
-	public double[][] output_dual_norms;
-
-	/**
-	 * Arrays storing the residual representor inner products to be used in
-	 * computing the residuals in the Online stage. These are resized by reading
-	 * in the Offline data written out by rbOOmit.
-	 */
-	protected double[] Fq_representor_norms;
-	protected double[][][] Fq_Aq_representor_norms;
-	protected double[][][] Aq_Aq_representor_norms;
-
-	// (those two below are moved from TransientRBSystem
-	/**
-	 * The outputs at all time levels.
-	 */
-	public double[][] RB_outputs_all_k;
-	/**
-	 * The output error bounds at all time levels.
-	 */
-	public double[][] RB_output_error_bounds_all_k;
-
-	protected double[][][] RB_sweep_solution;
-
-	// PUBLIC FUNCTIONS
-
-	/**
-	 * Constructor.
-	 */
-	public RBSystem() {
-
-		// Initialize n_bfs to 0
-		n_bfs = 0;
-	}
-
-	/**
-	 * Set the primary SCM
-	 */
-	public void setPrimarySCM(RBSCMSystem scm_system) {
-		mRbScmSystem = scm_system;
-	}
 
 	/**
 	 * Static builder function.
@@ -193,365 +69,206 @@ public class RBSystem extends RBBase {
 
 	}
 
+	protected double[][][] Aq_Aq_representor_norms;
+
+	private int calN;
+
+	// current N
+	protected int current_N;
+
+	protected double[][][] Fq_Aq_representor_norms;
+
+	// PRIVATE MEMBER VARIABLES
+
 	/**
-	 * Perform online solve with the N RB basis functions, for the set of
-	 * parameters in current_params, where 1 <= N <= RB_size.
+	 * Arrays storing the residual representor inner products to be used in
+	 * computing the residuals in the Online stage. These are resized by reading
+	 * in the Offline data written out by rbOOmit.
 	 */
-	public double RB_solve(int N) {
+	protected double[] Fq_representor_norms;
 
-		current_N = N;
+	/* The number of fields: 0 means no visualization */
+	private int mfield;
 
-		if (N > get_n_basis_functions()) {
-			throw new RuntimeException(
-					"ERROR: N cannot be larger than the number "
-							+ "of basis functions in RB_solve");
+	/**
+	 * The number of output functionals
+	 */
+	private int mN_outputs;
+
+	/**
+	 * The number of terms in the affine expansion of the rhs
+	 */
+	private int mQ_f;
+
+	private int mQ_uL;
+
+	/**
+	 * A reference to the SCM system.
+	 */
+	public RBSCMSystem mRbScmSystem;
+
+	/**
+	 * The number of basis functions in the RB space.
+	 */
+	private int n_bfs;
+
+	/**
+	 * The number of time steps we actually plot in the output plotter. This is
+	 * sometimes less than K so that we don't plot the effect of the filter near
+	 * the final time.
+	 */
+	public int n_plotting_steps;
+
+	/**
+	 * This array stores the dual norms for each output. Row n stores the Q_l
+	 * dual norms for the expansion of the n^th output.
+	 */
+	public double[][] output_dual_norms;
+
+	/**
+	 * Dense matrices for the RB computations.
+	 */
+	protected RealMatrix[] RB_A_q_vector;
+
+	/**
+	 * Dense vector for the RHS.
+	 */
+	protected RealVector[] RB_F_q_vector;
+
+	/**
+	 * The vector storing the RB error bounds in the steady-state case.
+	 */
+	public double[] RB_output_error_bounds;
+
+	/**
+	 * The output error bounds at all time levels.
+	 */
+	public double[][] RB_output_error_bounds_all_k;
+
+	/**
+	 * The vectors storing the RB output vectors
+	 */
+	protected RealVector[][] RB_output_vectors;
+
+	/**
+	 * The vector storing the RB output values in the steady-state case.
+	 */
+	public double[] RB_outputs;
+	// (those two below are moved from TransientRBSystem
+	/**
+	 * The outputs at all time levels.
+	 */
+	public double[][] RB_outputs_all_k;
+	/**
+	 * The RB solution vector. Stored as a Vector so that we can easily resize
+	 * it during an RB_solve.
+	 */
+	protected RealVector RB_solution;
+
+	protected double[][][] RB_sweep_solution;
+	/**
+	 * Boolean flag to indicate whether RB_solve returns an absolute or relative
+	 * error bound. True => relative, false => absolute.
+	 */
+	public boolean return_rel_error_bound;
+
+	protected float[][] uL_vector;
+
+	// PUBLIC FUNCTIONS
+
+	protected float[][][] Z_vector;
+
+	/**
+	 * Constructor.
+	 */
+	public RBSystem() {
+
+		// Initialize n_bfs to 0
+		n_bfs = 0;
+	}
+
+	/**
+	 * Compute the dual norm of the i^th output function at the current
+	 * parameter value
+	 */
+	protected double compute_output_dual_norm(int i) {
+
+		// Use the stored representor inner product values
+		// to evaluate the output dual norm
+		double output_norm_sq = 0.;
+
+		int q = 0;
+		for (int q_l1 = 0; q_l1 < get_Q_l(i); q_l1++) {
+			for (int q_l2 = q_l1; q_l2 < get_Q_l(i); q_l2++) {
+				double delta = (q_l1 == q_l2) ? 1. : 2.;
+				output_norm_sq += delta * eval_theta_q_l(i, q_l1)
+						* eval_theta_q_l(i, q_l2) * output_dual_norms[i][q];
+
+				q++;
+			}
 		}
-		if (N == 0) {
-			throw new RuntimeException(
-					"ERROR: N must be greater than 0 in RB_solve");
+
+		return Math.sqrt(output_norm_sq);
+	}
+
+	/**
+	 * Compute the dual norm of the residual for the solution saved in
+	 * RB_solution_vector.
+	 */
+	protected double compute_residual_dual_norm(int N) {
+
+		// Use the stored representor inner product values
+		// to evaluate the residual norm
+		double residual_norm_sq = 0.;
+
+		int q = 0;
+		for (int q_f1 = 0; q_f1 < get_Q_f(); q_f1++) {
+			for (int q_f2 = q_f1; q_f2 < get_Q_f(); q_f2++) {
+				double delta = (q_f1 == q_f2) ? 1. : 2.;
+				residual_norm_sq += delta * eval_theta_q_f(q_f1)
+						* eval_theta_q_f(q_f2) * Fq_representor_norms[q];
+
+				q++;
+			}
 		}
-
-		// Assemble the RB system
-		RealMatrix RB_system_matrix_N = new Array2DRowRealMatrix(N, N);
-
-		for (int q_a = 0; q_a < get_Q_a(); q_a++) {
-			RB_system_matrix_N = RB_system_matrix_N.add(RB_A_q_vector[q_a]
-					.getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(
-							eval_theta_q_a(q_a)));
-		}
-
-		// Assemble the RB rhs
-		RealVector RB_rhs_N = new ArrayRealVector(N);
 
 		for (int q_f = 0; q_f < get_Q_f(); q_f++) {
-			// Note getSubVector takes an initial index and the number of
-			// entries
-			// i.e. the interface is a bit different to getSubMatrix
-			RB_rhs_N = RB_rhs_N.add(RB_F_q_vector[q_f].getSubVector(0, N)
-					.mapMultiply(eval_theta_q_f(q_f)));
-		}
-
-		// Solve the linear system
-		DecompositionSolver solver = new LUDecompositionImpl(RB_system_matrix_N)
-				.getSolver();
-		RB_solution = solver.solve(RB_rhs_N);
-
-		// Evaluate the dual norm of the residual for RB_solution_vector
-		double epsilon_N = compute_residual_dual_norm(N);
-
-		// Get lower bound for coercivity constant
-		double alpha_LB = get_SCM_lower_bound();
-
-		// If SCM lower bound is negative
-		if (alpha_LB <= 0) { // Get an upper bound instead
-			alpha_LB = get_SCM_upper_bound();
-		}
-
-		// Store (absolute) error bound
-		double abs_error_bound = epsilon_N / residual_scaling_denom(alpha_LB);
-
-		// Compute the norm of RB_solution
-		double RB_solution_norm = RB_solution.getNorm();
-
-		// Now compute the outputs and associated errors
-		RealVector RB_output_vector_N = new ArrayRealVector(N);
-		for (int i = 0; i < get_n_outputs(); i++) {
-			RB_outputs[i] = 0.;
-
-			for (int q_l = 0; q_l < get_Q_l(i); q_l++) {
-				RB_output_vector_N = RB_output_vectors[i][q_l].getSubVector(0,
-						N);
-				RB_outputs[i] += eval_theta_q_l(i, q_l)
-						* RB_solution.dotProduct(RB_output_vector_N);
-			}
-			RB_output_error_bounds[i] = compute_output_dual_norm(i)
-					* abs_error_bound;
-		}
-
-		return (return_rel_error_bound ? abs_error_bound / RB_solution_norm
-				: abs_error_bound);
-	}
-
-	public double get_dt() {
-		return 0.;
-	}
-
-	public int get_K() {
-		return 1;
-	}
-
-	public float[][][] get_truth_sol() {
-		int N = RB_solution.getDimension();
-		float[][][] truth_sol = new float[get_mfield()][1][calN];
-		for (int ifn = 0; ifn < get_mfield(); ifn++) {
-			double tmpval;
-			for (int i = 0; i < calN; i++) {
-				tmpval = 0;
-				for (int j = 0; j < N; j++)
-					tmpval += Z_vector[ifn][j][i] * get_soln_coeff(j);
-				truth_sol[ifn][0][i] = (float) tmpval;
-			}
-		}
-		return truth_sol;
-	}
-
-	public void set_sweep_sol(double[][][] _sweep_sol) {
-		RB_sweep_solution = _sweep_sol;
-	}
-
-	public float[][][] get_sweep_truth_sol() {
-		int N = RB_sweep_solution[0][0].length;
-		int numSweep = RB_sweep_solution.length;
-		float[][][] truth_sol = new float[get_mfield()][1][calN * numSweep];
-		for (int ifn = 0; ifn < get_mfield(); ifn++) {
-			double tmpval;
-			for (int iSweep = 0; iSweep < numSweep; iSweep++)
-				for (int i = 0; i < calN; i++) {
-					tmpval = 0;
-					for (int j = 0; j < N; j++)
-						tmpval += Z_vector[ifn][j][i]
-								* RB_sweep_solution[iSweep][0][j];
-					truth_sol[ifn][0][iSweep * calN + i] = (float) tmpval;
+			for (int q_a = 0; q_a < get_Q_a(); q_a++) {
+				for (int i = 0; i < N; i++) {
+					double delta = 2.;
+					residual_norm_sq += get_soln_coeff(i) * delta
+							* eval_theta_q_f(q_f) * eval_theta_q_a(q_a)
+							* Fq_Aq_representor_norms[q_f][q_a][i];
 				}
-		}
-		return truth_sol;
-	}
-
-	/**
-	 * @return the SCM lower bound for current_parameters
-	 */
-	public double get_SCM_lower_bound() {
-		if (mRbScmSystem != null) {
-			mRbScmSystem.setCurrentParameters(getCurrentParameters());
-			return mRbScmSystem.get_SCM_LB();
-		} else {
-			return get_SCM_from_AffineFunction();
-		}
-	}
-
-	/**
-	 * @return the SCM upper bound for current_parameters
-	 */
-	double get_SCM_upper_bound() {
-
-		if (mRbScmSystem != null) {
-			mRbScmSystem.setCurrentParameters(getCurrentParameters());
-			return mRbScmSystem.get_SCM_UB();
-		} else {
-			return get_SCM_from_AffineFunction();
-		}
-	}
-
-	/**
-	 * A private helper function to get the SCM from AffineFunctions in the case
-	 * that SCM_TYPE = NONE
-	 */
-	protected double get_SCM_from_AffineFunction() {
-		// we assume that an SCM LB function has been specified
-		// in AffineFunctions.jar
-		Method meth;
-
-		try {
-			Class<?> partypes[] = new Class[1];
-			partypes[0] = double[].class;
-
-			meth = mAffineFnsClass.getMethod("get_SCM_LB", partypes);
-		} catch (NoSuchMethodException nsme) {
-			throw new RuntimeException("getMethod for get_SCM_LB failed", nsme);
-		}
-
-		Double SCM_val;
-		try {
-			Object arglist[] = new Object[1];
-			arglist[0] = current_parameters.getArray();
-
-			Object SCM_obj = meth.invoke(mTheta, arglist);
-			SCM_val = (Double) SCM_obj;
-		} catch (IllegalAccessException iae) {
-			throw new RuntimeException(iae);
-		} catch (InvocationTargetException ite) {
-			throw new RuntimeException(ite.getCause());
-		}
-
-		return SCM_val.doubleValue();
-	}
-
-	/**
-	 * @return coefficient i of RB_solution from the most recent RB_solve.
-	 */
-	double get_soln_coeff(int i) {
-		return RB_solution.getEntry(i);
-	}
-
-	public double[][] get_RBsolution() {
-		double[][] RBsol = new double[1][];
-		RBsol[0] = RB_solution.toArray();
-		return RBsol;
-	}
-
-	/**
-	 * @return The number of basis functions in the system.
-	 */
-	public int get_n_basis_functions() {
-		return n_bfs;
-	}
-
-	public void set_n_basis_functions(int _N) {
-		n_bfs = _N;
-	}
-
-	// Return calN
-	public int get_calN() {
-		return calN;
-	}
-
-	// Set calN
-	public void set_calN(int _calN) {
-		calN = _calN;
-	}
-
-	/**
-	 * @return Q_f, the number of term in the affine expansion of the right-hand
-	 *         side
-	 */
-	public int get_Q_f() {
-		return mQ_f;
-	}
-
-	/**
-	 * @return the number of output functionals
-	 */
-	public int get_n_outputs() {
-		return mN_outputs;
-	}
-
-	/**
-	 * Set the Q_f variable from the mTheta object.
-	 */
-	public void read_in_Q_f() {
-		Method meth;
-
-		try {
-			// Get a reference to get_n_F_functions, which does not
-			// take any arguments
-			meth = mAffineFnsClass.getMethod("get_n_F_functions",
-					(Class<?>[]) null);
-		} catch (NoSuchMethodException nsme) {
-			throw new RuntimeException(
-					"getMethod for get_n_F_functions failed", nsme);
-		}
-
-		Integer Q_f;
-		try {
-			Object Q_f_obj = meth.invoke(mTheta, (Object[]) null);
-			Q_f = (Integer) Q_f_obj;
-		} catch (IllegalAccessException iae) {
-			throw new RuntimeException(iae);
-		} catch (InvocationTargetException ite) {
-			throw new RuntimeException(ite.getCause());
-		}
-
-		mQ_f = Q_f.intValue();
-	}
-
-	/**
-	 * Set the n_outputs variable from the mTheta object.
-	 */
-	public void read_in_n_outputs() {
-		Method meth;
-
-		try {
-			// Get a reference to get_n_L_functions, which does not
-			// take any arguments
-			meth = mAffineFnsClass
-					.getMethod("get_n_outputs", (Class<?>[]) null);
-		} catch (NoSuchMethodException nsme) {
-			throw new RuntimeException("getMethod for get_n_outputs failed",
-					nsme);
-		}
-
-		Integer n_outputs;
-		try {
-			Object n_outputs_obj = meth.invoke(mTheta, (Object[]) null);
-			n_outputs = (Integer) n_outputs_obj;
-		} catch (IllegalAccessException iae) {
-			throw new RuntimeException(iae);
-		} catch (InvocationTargetException ite) {
-			throw new RuntimeException(ite.getCause());
-		}
-
-		mN_outputs = n_outputs.intValue();
-	}
-
-	/**
-	 * @param output_index
-	 *            The index of the output we are interested in
-	 * @return the number of terms in the affine expansion of the specified
-	 *         output
-	 */
-	protected int get_Q_l(int output_index) {
-		Method meth;
-
-		try {
-			// Get a reference to get_Q_l, which takes an int argument
-			Class<?> partypes[] = new Class[1];
-			partypes[0] = Integer.TYPE;
-			meth = mAffineFnsClass.getMethod("get_Q_l", partypes);
-		} catch (NoSuchMethodException nsme) {
-			throw new RuntimeException("getMethod for get_Q_l failed", nsme);
-		}
-
-		Integer Q_l;
-		try {
-			Object arglist[] = new Object[1];
-			arglist[0] = new Integer(output_index);
-			Object Q_l_obj = meth.invoke(mTheta, arglist);
-			Q_l = (Integer) Q_l_obj;
-		} catch (IllegalAccessException iae) {
-			throw new RuntimeException(iae);
-		} catch (InvocationTargetException ite) {
-			throw new RuntimeException(ite.getCause());
-		}
-
-		return Q_l.intValue();
-	}
-
-	public void read_in_Q_uL() {
-		Method meth;
-
-		boolean noQ_uLdefined = false;
-		try {
-			// Get a reference to get_n_A_functions, which does not
-			// take any arguments
-			meth = mAffineFnsClass.getMethod("get_n_uL_functions",
-					(Class<?>[]) null);
-		} catch (NoSuchMethodException nsme) {
-			// throw new
-			// RuntimeException("getMethod for get_n_uL_functions failed",
-			// nsme);
-			noQ_uLdefined = true;
-			meth = null;
-		}
-
-		if (noQ_uLdefined)
-			mQ_uL = 0;
-		else {
-			Integer Q_uL;
-			try {
-				Object Q_uL_obj = meth.invoke(mTheta, (Object[]) null);
-				Q_uL = (Integer) Q_uL_obj;
-			} catch (IllegalAccessException iae) {
-				throw new RuntimeException(iae);
-			} catch (InvocationTargetException ite) {
-				throw new RuntimeException(ite.getCause());
 			}
-
-			mQ_uL = Q_uL.intValue();
 		}
-	}
 
-	public int get_Q_uL() {
-		return mQ_uL;
+		q = 0;
+		for (int q_a1 = 0; q_a1 < get_Q_a(); q_a1++) {
+			for (int q_a2 = q_a1; q_a2 < get_Q_a(); q_a2++) {
+				double delta = (q_a1 == q_a2) ? 1. : 2.;
+
+				for (int i = 0; i < N; i++) {
+					for (int j = 0; j < N; j++) {
+						residual_norm_sq += get_soln_coeff(i)
+								* get_soln_coeff(j) * delta
+								* eval_theta_q_a(q_a1) * eval_theta_q_a(q_a2)
+								* Aq_Aq_representor_norms[q][i][j];
+					}
+				}
+
+				q++;
+			}
+		}
+
+		if (residual_norm_sq < 0.) {
+			// Sometimes this is negative due to rounding error,
+			// but error is on the order of 1.e-10, so shouldn't
+			// affect error bound much...
+			residual_norm_sq = Math.abs(residual_norm_sq);
+		}
+
+		return Math.sqrt(residual_norm_sq);
 	}
 
 	/**
@@ -628,6 +345,199 @@ public class RBSystem extends RBBase {
 		return theta_val.doubleValue();
 	}
 
+	// Return calN
+	public int get_calN() {
+		return calN;
+	}
+
+	public double get_dt() {
+		return 0.;
+	}
+
+	public int get_K() {
+		return 1;
+	}
+
+	public int get_mfield() {
+		return mfield;
+	}
+
+	public int get_N() {
+		return current_N;
+	}
+
+	/**
+	 * @return The number of basis functions in the system.
+	 */
+	public int get_n_basis_functions() {
+		return n_bfs;
+	}
+
+	/**
+	 * @return the number of output functionals
+	 */
+	public int get_n_outputs() {
+		return mN_outputs;
+	}
+
+	public int get_nt() {
+		return 1;
+	}
+
+	/**
+	 * @return Q_f, the number of term in the affine expansion of the right-hand
+	 *         side
+	 */
+	public int get_Q_f() {
+		return mQ_f;
+	}
+
+	/**
+	 * @param output_index
+	 *            The index of the output we are interested in
+	 * @return the number of terms in the affine expansion of the specified
+	 *         output
+	 */
+	protected int get_Q_l(int output_index) {
+		Method meth;
+
+		try {
+			// Get a reference to get_Q_l, which takes an int argument
+			Class<?> partypes[] = new Class[1];
+			partypes[0] = Integer.TYPE;
+			meth = mAffineFnsClass.getMethod("get_Q_l", partypes);
+		} catch (NoSuchMethodException nsme) {
+			throw new RuntimeException("getMethod for get_Q_l failed", nsme);
+		}
+
+		Integer Q_l;
+		try {
+			Object arglist[] = new Object[1];
+			arglist[0] = new Integer(output_index);
+			Object Q_l_obj = meth.invoke(mTheta, arglist);
+			Q_l = (Integer) Q_l_obj;
+		} catch (IllegalAccessException iae) {
+			throw new RuntimeException(iae);
+		} catch (InvocationTargetException ite) {
+			throw new RuntimeException(ite.getCause());
+		}
+
+		return Q_l.intValue();
+	}
+
+	public int get_Q_uL() {
+		return mQ_uL;
+	}
+
+	public double get_RB_output(int n_output, boolean Rpart) {
+		return RB_outputs[n_output];
+	}
+
+	public double get_RB_output_error_bound(int n_output, boolean Rpart) {
+		return RB_output_error_bounds[n_output];
+	}
+
+	public double[][] get_RBsolution() {
+		double[][] RBsol = new double[1][];
+		RBsol[0] = RB_solution.toArray();
+		return RBsol;
+	}
+
+	/**
+	 * A private helper function to get the SCM from AffineFunctions in the case
+	 * that SCM_TYPE = NONE
+	 */
+	protected double get_SCM_from_AffineFunction() {
+		// we assume that an SCM LB function has been specified
+		// in AffineFunctions.jar
+		Method meth;
+
+		try {
+			Class<?> partypes[] = new Class[1];
+			partypes[0] = double[].class;
+
+			meth = mAffineFnsClass.getMethod("get_SCM_LB", partypes);
+		} catch (NoSuchMethodException nsme) {
+			throw new RuntimeException("getMethod for get_SCM_LB failed", nsme);
+		}
+
+		Double SCM_val;
+		try {
+			Object arglist[] = new Object[1];
+			arglist[0] = current_parameters.getArray();
+
+			Object SCM_obj = meth.invoke(mTheta, arglist);
+			SCM_val = (Double) SCM_obj;
+		} catch (IllegalAccessException iae) {
+			throw new RuntimeException(iae);
+		} catch (InvocationTargetException ite) {
+			throw new RuntimeException(ite.getCause());
+		}
+
+		return SCM_val.doubleValue();
+	}
+
+	/**
+	 * @return the SCM lower bound for current_parameters
+	 */
+	public double get_SCM_lower_bound() {
+		if (mRbScmSystem != null) {
+			mRbScmSystem.setCurrentParameters(getCurrentParameters());
+			return mRbScmSystem.get_SCM_LB();
+		} else {
+			return get_SCM_from_AffineFunction();
+		}
+	}
+
+	/**
+	 * @return the SCM upper bound for current_parameters
+	 */
+	double get_SCM_upper_bound() {
+
+		if (mRbScmSystem != null) {
+			mRbScmSystem.setCurrentParameters(getCurrentParameters());
+			return mRbScmSystem.get_SCM_UB();
+		} else {
+			return get_SCM_from_AffineFunction();
+		}
+	}
+
+	/**
+	 * @return coefficient i of RB_solution from the most recent RB_solve.
+	 */
+	double get_soln_coeff(int i) {
+		return RB_solution.getEntry(i);
+	}
+
+	public float[][][] get_sweep_truth_sol() {
+		int N = RB_sweep_solution[0][0].length;
+		int numSweep = RB_sweep_solution.length;
+		float[][][] truth_sol = new float[get_mfield()][1][calN * numSweep];
+		for (int ifn = 0; ifn < get_mfield(); ifn++) {
+			double tmpval;
+			for (int iSweep = 0; iSweep < numSweep; iSweep++)
+				for (int i = 0; i < calN; i++) {
+					tmpval = 0;
+					for (int j = 0; j < N; j++)
+						tmpval += Z_vector[ifn][j][i]
+								* RB_sweep_solution[iSweep][0][j];
+					truth_sol[ifn][0][iSweep * calN + i] = (float) tmpval;
+				}
+		}
+		return truth_sol;
+	}
+
+	/**
+	 * Returns a float array of transformation data for each node.
+	 * 
+	 * Only to be called for models who have a parameterized geometry.
+	 * 
+	 * The get_local_transformation method of the AffineFunctions class is
+	 * called (using the current parameter \mu) and the linear transform
+	 * function returned.
+	 * 
+	 * @return
+	 */
 	public float[][] get_tranformation_data() {
 		Method meth = null;
 		boolean isOK = true;
@@ -660,6 +570,10 @@ public class RBSystem extends RBBase {
 				throw new RuntimeException(ite.getCause());
 			}
 		} else {
+			/*
+			 * Return a fake transformation vector if method invocation went
+			 * wrong. (Should better throw an exception here?)
+			 */
 			T_vector = new float[1][12];
 			T_vector[0][0] = 1f;
 			T_vector[0][1] = 0f;
@@ -679,57 +593,48 @@ public class RBSystem extends RBBase {
 	}
 
 	/**
-	 * @param parameters_filename
-	 *            The name of the file to parse Parse the input file to
-	 *            initialize this RBSystem.
-	 * @param isAssetFile
-	 *            indicates whether the file we're reading from is in Android's
-	 *            asset directory
-	 * @throws IOException 
+	 * Constructs the true solution from the most recent RB reduced solution
+	 * using the full Z data and current coefficients.
+	 * 
+	 * The second dimension stands for real and complex data, so
+	 * sol[field_nr][1] is the complex part of field field_nr.
+	 * 
+	 * @see ComplexRBSystem for an overridden version of this method.
+	 * 
+	 * @return a float array with the true solution, with entries
+	 *         [field_nr][0][node_nr]
 	 */
-	public void parse_parameters_file(AModelManager m) throws InconsistentStateException, IOException {
-
-		Log.d(DEBUG_TAG, "Entered parse_parameters_file, filename = "
-				+ Const.parameters_filename);
-
-//		GetPot infile = m.getParamFileGetPot();
-		GetPot infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
-
-		Log.d(DEBUG_TAG, "Created GetPot object");
-
-		int n_parameters = infile.call("n_parameters", 1);
-		Log.d(DEBUG_TAG, "n_parameters = " + n_parameters);
-
-		min_parameter = new Parameter(n_parameters);
-		max_parameter = new Parameter(n_parameters);
-		for (int i = 0; i < n_parameters; i++) {
-			// Read in the min/max for the i^th parameter
-			String min_string = new String("mu" + i + "_min");
-			double mu_i_min = infile.call(min_string, 0.);
-			min_parameter.setEntry(i, mu_i_min);
-
-			String max_string = new String("mu" + i + "_max");
-			double mu_i_max = infile.call(max_string, 0.);
-			max_parameter.setEntry(i, mu_i_max);
+	public float[][][] get_truth_sol() {
+		int N = RB_solution.getDimension();
+		float[][][] truth_sol = new float[get_mfield()][1][calN];
+		/*
+		 * Assign solutions of each field
+		 */
+		for (int ifn = 0; ifn < get_mfield(); ifn++) {
+			double tmpval;
+			/*
+			 * i is the node number of the grid
+			 */
+			for (int i = 0; i < calN; i++) {
+				tmpval = 0;
+				/*
+				 * j is the current RB dimension (with coeffs)
+				 */
+				for (int j = 0; j < N; j++)
+					tmpval += Z_vector[ifn][j][i] * get_soln_coeff(j);
+				truth_sol[ifn][0][i] = (float) tmpval;
+			}
 		}
+		return truth_sol;
+	}
 
-		Log.d(DEBUG_TAG, "RBBase parameters from " + Const.parameters_filename + ":");
-		for (int i = 0; i < n_parameters; i++) {
-			Log.d(DEBUG_TAG, "Parameter " + i + ": Min = " + getParameterMin(i)
-					+ ", Max = " + getParameterMax(i));
-		}
-
-		mfield = infile.call("n_field", 1);
-		Log.d(DEBUG_TAG, "n_field = " + mfield);
-
-		int return_rel_error_bound_in = infile
-				.call("return_rel_error_bound", 1);
-		return_rel_error_bound = (return_rel_error_bound_in != 0);
-
-		Log.d(DEBUG_TAG, "RBSystem parameters from " + Const.parameters_filename
-				+ ":");
-		Log.d(DEBUG_TAG, "return a relative error bound from RB_solve? "
-				+ return_rel_error_bound);
+	/**
+	 * Resize the vectors that store solution data and output data.
+	 */
+	protected void initialize_data_vectors() {
+		// Also, resize RB_outputs and RB_output_error_error_bounds arrays
+		RB_outputs = new double[get_n_outputs()];
+		RB_output_error_bounds = new double[get_n_outputs()];
 	}
 
 	/**
@@ -737,9 +642,7 @@ public class RBSystem extends RBBase {
 	 *            The URL of the directory containing the Offline data Read in
 	 *            the Offline data to initialize this RBSystem.
 	 */
-	public void read_offline_data(AModelManager m)// String directory_name,
-													// boolean isAssetFile)
-			throws IOException {
+	public void loadOfflineData(AModelManager m) throws IOException {
 
 		{
 			BufferedReader reader = m.getBufReader("n_bfs.dat");
@@ -932,7 +835,7 @@ public class RBSystem extends RBBase {
 		 * 
 		 * reader.close(); reader = null; }
 		 */
-		
+
 		MathObjectReader mr = m.getMathObjReader();
 
 		// Read in Aq_Aq representor norm data
@@ -945,10 +848,15 @@ public class RBSystem extends RBBase {
 			String file;
 			for (int i = 0; i < get_Q_a(); i++) {
 				for (int j = i; j < get_Q_a(); j++) {
-					file = "Aq_Aq_"
-							+ String.format("%03d", i) + "_"
+					file = "Aq_Aq_" + String.format("%03d", i) + "_"
 							+ String.format("%03d", j) + "_norms.bin";
-					Aq_Aq_representor_norms[count] = mr.readMatrixData(m.getInStream(file),n_bfs,n_bfs);
+					InputStream in = m.getInStream(file);
+					try {
+						Aq_Aq_representor_norms[count] = mr
+								.readRawDoubleMatrix(in, n_bfs, n_bfs);
+					} finally {
+						in.close();
+					}
 					count++;
 				}
 			}
@@ -973,9 +881,15 @@ public class RBSystem extends RBBase {
 		{
 			if (get_Q_uL() > 0) {
 				uL_vector = new float[get_Q_uL()][];
+				InputStream in;
 				for (int q_uL = 0; q_uL < get_Q_uL(); q_uL++) {
-					uL_vector[q_uL] = mr.readFloatArray(m.getInStream("uL_"
-							+ String.format("%03d", q_uL) + ".bin"), get_calN());
+					in = m.getInStream("uL_" + String.format("%03d", q_uL)
+							+ ".bin");
+					try {
+						uL_vector[q_uL] = mr.readRawFloatVector(in, get_calN());
+					} finally {
+						in.close();
+					}
 				}
 			}
 			Log.d(DEBUG_TAG, "Finished reading uL.dat");
@@ -986,12 +900,17 @@ public class RBSystem extends RBBase {
 			int mf = get_mfield();
 			if (mf > 0) {
 				Z_vector = new float[mf][n_bfs][];
-//				BinaryReader dis;
+				InputStream in;
 				for (int imf = 0; imf < mf; imf++)
 					for (int inbfs = 0; inbfs < n_bfs; inbfs++) {
-						Z_vector[imf][inbfs] = mr.readFloatArray(m.getInStream("Z_"
-								+ String.format("%03d", imf) + "_"
-								+ String.format("%03d", inbfs) + ".bin"), calN);
+						in = m.getInStream("Z_" + String.format("%03d", imf)
+								+ "_" + String.format("%03d", inbfs) + ".bin");
+						try {
+							Z_vector[imf][inbfs] = mr.readRawFloatVector(in,
+									calN);
+						} finally {
+							in.close();
+						}
 					}
 			}
 
@@ -1001,90 +920,234 @@ public class RBSystem extends RBBase {
 		initialize_data_vectors();
 	}
 
+	/**
+	 * @param parameters_filename
+	 *            The name of the file to parse Parse the input file to
+	 *            initialize this RBSystem.
+	 * @param isAssetFile
+	 *            indicates whether the file we're reading from is in Android's
+	 *            asset directory
+	 * @throws IOException
+	 */
+	public void parse_parameters_file(AModelManager m)
+			throws InconsistentStateException, IOException {
+
+		Log.d(DEBUG_TAG, "Entered parse_parameters_file, filename = "
+				+ Const.parameters_filename);
+
+		// GetPot infile = m.getParamFileGetPot();
+		GetPot infile = new GetPot(m.getInStream(Const.parameters_filename),
+				Const.parameters_filename);
+
+		Log.d(DEBUG_TAG, "Created GetPot object");
+
+		int n_parameters = infile.call("n_parameters", 1);
+		Log.d(DEBUG_TAG, "n_parameters = " + n_parameters);
+
+		min_parameter = new Parameter(n_parameters);
+		max_parameter = new Parameter(n_parameters);
+		for (int i = 0; i < n_parameters; i++) {
+			// Read in the min/max for the i^th parameter
+			String min_string = new String("mu" + i + "_min");
+			double mu_i_min = infile.call(min_string, 0.);
+			min_parameter.setEntry(i, mu_i_min);
+
+			String max_string = new String("mu" + i + "_max");
+			double mu_i_max = infile.call(max_string, 0.);
+			max_parameter.setEntry(i, mu_i_max);
+		}
+
+		Log.d(DEBUG_TAG, "RBBase parameters from " + Const.parameters_filename
+				+ ":");
+		for (int i = 0; i < n_parameters; i++) {
+			Log.d(DEBUG_TAG, "Parameter " + i + ": Min = " + getParameterMin(i)
+					+ ", Max = " + getParameterMax(i));
+		}
+
+		mfield = infile.call("n_field", 1);
+		Log.d(DEBUG_TAG, "n_field = " + mfield);
+
+		int return_rel_error_bound_in = infile
+				.call("return_rel_error_bound", 1);
+		return_rel_error_bound = (return_rel_error_bound_in != 0);
+
+		Log.d(DEBUG_TAG, "RBSystem parameters from "
+				+ Const.parameters_filename + ":");
+		Log.d(DEBUG_TAG, "return a relative error bound from RB_solve? "
+				+ return_rel_error_bound);
+	}
+
 	// PROTECTED FUNCTIONS
 
 	/**
-	 * Compute the dual norm of the residual for the solution saved in
-	 * RB_solution_vector.
+	 * Perform online solve with the N RB basis functions, for the set of
+	 * parameters in current_params, where 1 <= N <= RB_size.
 	 */
-	protected double compute_residual_dual_norm(int N) {
+	public double RB_solve(int N) {
 
-		// Use the stored representor inner product values
-		// to evaluate the residual norm
-		double residual_norm_sq = 0.;
+		current_N = N;
 
-		int q = 0;
-		for (int q_f1 = 0; q_f1 < get_Q_f(); q_f1++) {
-			for (int q_f2 = q_f1; q_f2 < get_Q_f(); q_f2++) {
-				double delta = (q_f1 == q_f2) ? 1. : 2.;
-				residual_norm_sq += delta * eval_theta_q_f(q_f1)
-						* eval_theta_q_f(q_f2) * Fq_representor_norms[q];
-
-				q++;
-			}
+		if (N > get_n_basis_functions()) {
+			throw new RuntimeException(
+					"ERROR: N cannot be larger than the number "
+							+ "of basis functions in RB_solve");
 		}
+		if (N == 0) {
+			throw new RuntimeException(
+					"ERROR: N must be greater than 0 in RB_solve");
+		}
+
+		// Assemble the RB system
+		RealMatrix RB_system_matrix_N = new Array2DRowRealMatrix(N, N);
+
+		for (int q_a = 0; q_a < get_Q_a(); q_a++) {
+			RB_system_matrix_N = RB_system_matrix_N.add(RB_A_q_vector[q_a]
+					.getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(
+							eval_theta_q_a(q_a)));
+		}
+
+		// Assemble the RB rhs
+		RealVector RB_rhs_N = new ArrayRealVector(N);
 
 		for (int q_f = 0; q_f < get_Q_f(); q_f++) {
-			for (int q_a = 0; q_a < get_Q_a(); q_a++) {
-				for (int i = 0; i < N; i++) {
-					double delta = 2.;
-					residual_norm_sq += get_soln_coeff(i) * delta
-							* eval_theta_q_f(q_f) * eval_theta_q_a(q_a)
-							* Fq_Aq_representor_norms[q_f][q_a][i];
-				}
+			// Note getSubVector takes an initial index and the number of
+			// entries
+			// i.e. the interface is a bit different to getSubMatrix
+			RB_rhs_N = RB_rhs_N.add(RB_F_q_vector[q_f].getSubVector(0, N)
+					.mapMultiply(eval_theta_q_f(q_f)));
+		}
+
+		// Solve the linear system
+		DecompositionSolver solver = new LUDecompositionImpl(RB_system_matrix_N)
+				.getSolver();
+		RB_solution = solver.solve(RB_rhs_N);
+
+		// Evaluate the dual norm of the residual for RB_solution_vector
+		double epsilon_N = compute_residual_dual_norm(N);
+
+		// Get lower bound for coercivity constant
+		double alpha_LB = get_SCM_lower_bound();
+
+		// If SCM lower bound is negative
+		if (alpha_LB <= 0) { // Get an upper bound instead
+			alpha_LB = get_SCM_upper_bound();
+		}
+
+		// Store (absolute) error bound
+		double abs_error_bound = epsilon_N / residual_scaling_denom(alpha_LB);
+
+		// Compute the norm of RB_solution
+		double RB_solution_norm = RB_solution.getNorm();
+
+		// Now compute the outputs and associated errors
+		RealVector RB_output_vector_N = new ArrayRealVector(N);
+		for (int i = 0; i < get_n_outputs(); i++) {
+			RB_outputs[i] = 0.;
+
+			for (int q_l = 0; q_l < get_Q_l(i); q_l++) {
+				RB_output_vector_N = RB_output_vectors[i][q_l].getSubVector(0,
+						N);
+				RB_outputs[i] += eval_theta_q_l(i, q_l)
+						* RB_solution.dotProduct(RB_output_vector_N);
 			}
+			RB_output_error_bounds[i] = compute_output_dual_norm(i)
+					* abs_error_bound;
 		}
 
-		q = 0;
-		for (int q_a1 = 0; q_a1 < get_Q_a(); q_a1++) {
-			for (int q_a2 = q_a1; q_a2 < get_Q_a(); q_a2++) {
-				double delta = (q_a1 == q_a2) ? 1. : 2.;
-
-				for (int i = 0; i < N; i++) {
-					for (int j = 0; j < N; j++) {
-						residual_norm_sq += get_soln_coeff(i)
-								* get_soln_coeff(j) * delta
-								* eval_theta_q_a(q_a1) * eval_theta_q_a(q_a2)
-								* Aq_Aq_representor_norms[q][i][j];
-					}
-				}
-
-				q++;
-			}
-		}
-
-		if (residual_norm_sq < 0.) {
-			// Sometimes this is negative due to rounding error,
-			// but error is on the order of 1.e-10, so shouldn't
-			// affect error bound much...
-			residual_norm_sq = Math.abs(residual_norm_sq);
-		}
-
-		return Math.sqrt(residual_norm_sq);
+		return (return_rel_error_bound ? abs_error_bound / RB_solution_norm
+				: abs_error_bound);
 	}
 
 	/**
-	 * Compute the dual norm of the i^th output function at the current
-	 * parameter value
+	 * Set the n_outputs variable from the mTheta object.
 	 */
-	protected double compute_output_dual_norm(int i) {
+	public void read_in_n_outputs() {
+		Method meth;
 
-		// Use the stored representor inner product values
-		// to evaluate the output dual norm
-		double output_norm_sq = 0.;
-
-		int q = 0;
-		for (int q_l1 = 0; q_l1 < get_Q_l(i); q_l1++) {
-			for (int q_l2 = q_l1; q_l2 < get_Q_l(i); q_l2++) {
-				double delta = (q_l1 == q_l2) ? 1. : 2.;
-				output_norm_sq += delta * eval_theta_q_l(i, q_l1)
-						* eval_theta_q_l(i, q_l2) * output_dual_norms[i][q];
-
-				q++;
-			}
+		try {
+			// Get a reference to get_n_L_functions, which does not
+			// take any arguments
+			meth = mAffineFnsClass
+					.getMethod("get_n_outputs", (Class<?>[]) null);
+		} catch (NoSuchMethodException nsme) {
+			throw new RuntimeException("getMethod for get_n_outputs failed",
+					nsme);
 		}
 
-		return Math.sqrt(output_norm_sq);
+		Integer n_outputs;
+		try {
+			Object n_outputs_obj = meth.invoke(mTheta, (Object[]) null);
+			n_outputs = (Integer) n_outputs_obj;
+		} catch (IllegalAccessException iae) {
+			throw new RuntimeException(iae);
+		} catch (InvocationTargetException ite) {
+			throw new RuntimeException(ite.getCause());
+		}
+
+		mN_outputs = n_outputs.intValue();
+	}
+
+	/**
+	 * Set the Q_f variable from the mTheta object.
+	 */
+	public void read_in_Q_f() {
+		Method meth;
+
+		try {
+			// Get a reference to get_n_F_functions, which does not
+			// take any arguments
+			meth = mAffineFnsClass.getMethod("get_n_F_functions",
+					(Class<?>[]) null);
+		} catch (NoSuchMethodException nsme) {
+			throw new RuntimeException(
+					"getMethod for get_n_F_functions failed", nsme);
+		}
+
+		Integer Q_f;
+		try {
+			Object Q_f_obj = meth.invoke(mTheta, (Object[]) null);
+			Q_f = (Integer) Q_f_obj;
+		} catch (IllegalAccessException iae) {
+			throw new RuntimeException(iae);
+		} catch (InvocationTargetException ite) {
+			throw new RuntimeException(ite.getCause());
+		}
+
+		mQ_f = Q_f.intValue();
+	}
+
+	public void read_in_Q_uL() {
+		Method meth;
+
+		boolean noQ_uLdefined = false;
+		try {
+			// Get a reference to get_n_A_functions, which does not
+			// take any arguments
+			meth = mAffineFnsClass.getMethod("get_n_uL_functions",
+					(Class<?>[]) null);
+		} catch (NoSuchMethodException nsme) {
+			// throw new
+			// RuntimeException("getMethod for get_n_uL_functions failed",
+			// nsme);
+			noQ_uLdefined = true;
+			meth = null;
+		}
+
+		if (noQ_uLdefined)
+			mQ_uL = 0;
+		else {
+			Integer Q_uL;
+			try {
+				Object Q_uL_obj = meth.invoke(mTheta, (Object[]) null);
+				Q_uL = (Integer) Q_uL_obj;
+			} catch (IllegalAccessException iae) {
+				throw new RuntimeException(iae);
+			} catch (InvocationTargetException ite) {
+				throw new RuntimeException(ite.getCause());
+			}
+
+			mQ_uL = Q_uL.intValue();
+		}
 	}
 
 	/**
@@ -1096,33 +1159,24 @@ public class RBSystem extends RBBase {
 		return Math.sqrt(alpha_LB);
 	}
 
+	// Set calN
+	public void set_calN(int _calN) {
+		calN = _calN;
+	}
+
+	public void set_n_basis_functions(int _N) {
+		n_bfs = _N;
+	}
+
+	public void set_sweep_sol(double[][][] _sweep_sol) {
+		RB_sweep_solution = _sweep_sol;
+	}
+
 	/**
-	 * Resize the vectors that store solution data and output data.
+	 * Set the primary SCM
 	 */
-	protected void initialize_data_vectors() {
-		// Also, resize RB_outputs and RB_output_error_error_bounds arrays
-		RB_outputs = new double[get_n_outputs()];
-		RB_output_error_bounds = new double[get_n_outputs()];
-	}
-
-	public int get_nt() {
-		return 1;
-	}
-
-	public int get_N() {
-		return current_N;
-	}
-
-	public int get_mfield() {
-		return mfield;
-	}
-
-	public double get_RB_output(int n_output, boolean Rpart) {
-		return RB_outputs[n_output];
-	}
-
-	public double get_RB_output_error_bound(int n_output, boolean Rpart) {
-		return RB_output_error_bounds[n_output];
+	public void setPrimarySCM(RBSCMSystem scm_system) {
+		mRbScmSystem = scm_system;
 	}
 
 }
