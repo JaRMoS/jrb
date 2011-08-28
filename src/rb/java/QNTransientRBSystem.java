@@ -1,4 +1,5 @@
 package rb.java;
+
 //    rbAPPmit: An Android front-end for the Certified Reduced Basis Method
 //    Copyright (C) 2010 David J. Knezevic and Phuong Huynh
 //
@@ -16,8 +17,6 @@ package rb.java;
 //
 //    You should have received a copy of the GNU General Public License
 //    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
-
-
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -90,38 +89,30 @@ public class QNTransientRBSystem extends TransientRBSystem {
 		tau_prod_k = 1.;
 
 		if (N > getNBF()) {
-			throw new RuntimeException(
-					"ERROR: N cannot be larger than the number "
-							+ "of basis functions in RB_solve");
+			throw new RuntimeException("ERROR: N cannot be larger than the number "
+					+ "of basis functions in RB_solve");
 		}
 		if (N == 0) {
-			throw new RuntimeException(
-					"ERROR: N must be greater than 0 in RB_solve");
+			throw new RuntimeException("ERROR: N must be greater than 0 in RB_solve");
 		}
 
 		double dt = get_dt();
 
 		// First assemble the mass matrix
 		RealMatrix RB_mass_matrix_N = new Array2DRowRealMatrix(N, N);
-		for (int q_m = 0; q_m < get_Q_m(); q_m++) {
-			RB_mass_matrix_N = RB_mass_matrix_N.add(RB_M_q_vector[q_m]
-					.getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(
-							eval_theta_q_m(q_m)));
+		for (int q_m = 0; q_m < getQm(); q_m++) {
+			RB_mass_matrix_N = RB_mass_matrix_N.add(RB_M_q_vector[q_m].getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(eval_theta_q_m(q_m)));
 		}
 
 		RealMatrix RB_RHS_Aq_matrix = new Array2DRowRealMatrix(N, N);
 
-		RealMatrix Base_RB_LHS_matrix = RB_mass_matrix_N
-				.scalarMultiply(1. / dt);
+		RealMatrix Base_RB_LHS_matrix = RB_mass_matrix_N.scalarMultiply(1. / dt);
 
-		for (int q_a = 0; q_a < get_Q_a(); q_a++) {
+		for (int q_a = 0; q_a < getQa(); q_a++) {
 			double cached_theta_q_a = eval_theta_q_a(q_a);
-			Base_RB_LHS_matrix = Base_RB_LHS_matrix.add(RB_A_q_vector[q_a]
-					.getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(
-							get_euler_theta() * cached_theta_q_a));
-			RB_RHS_Aq_matrix = RB_RHS_Aq_matrix.add(RB_A_q_vector[q_a]
-					.getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(
-							-cached_theta_q_a));
+			Base_RB_LHS_matrix = Base_RB_LHS_matrix.add(RB_A_q_vector[q_a].getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(get_euler_theta()
+					* cached_theta_q_a));
+			RB_RHS_Aq_matrix = RB_RHS_Aq_matrix.add(RB_A_q_vector[q_a].getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(-cached_theta_q_a));
 		}
 
 		// Set system time level to 0
@@ -140,13 +131,12 @@ public class QNTransientRBSystem extends TransientRBSystem {
 		error_bound_all_k[_k] = Math.sqrt(error_bound_sum);
 
 		// Compute the outputs and associated error bounds at _k=0
-		for (int i = 0; i < get_n_outputs(); i++) {
+		for (int i = 0; i < getNumOutputs(); i++) {
 			RB_outputs_all_k[i][_k] = 0.;
 			RB_output_error_bounds_all_k[i][_k] = 0.;
-			for (int q_l = 0; q_l < get_Q_l(i); q_l++) {
+			for (int q_l = 0; q_l < getQl(i); q_l++) {
 				RB_outputs_all_k[i][_k] += eval_theta_q_l(i, q_l)
-						* (RB_output_vectors[i][q_l].getSubVector(0, N)
-								.dotProduct(RB_solution));
+						* (RB_output_vectors[i][q_l].getSubVector(0, N).dotProduct(RB_solution));
 			}
 			RB_output_error_bounds_all_k[i][_k] = compute_output_dual_norm(i)
 					* error_bound_all_k[_k];
@@ -172,9 +162,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 			for (int l = 0; l < n_newton_steps; ++l) {
 				// Get u_euler_theta = euler_theta*RB_u_bar +
 				// (1-euler_theta)*RB_u_old
-				RealVector RB_u_euler_theta = RB_u_bar.mapMultiply(
-						get_euler_theta()).add(
-						RB_u_old.mapMultiply(1. - get_euler_theta()));
+				RealVector RB_u_euler_theta = RB_u_bar.mapMultiply(get_euler_theta()).add(RB_u_old.mapMultiply(1. - get_euler_theta()));
 
 				// Assemble the left-hand side for the RB linear system
 				RealMatrix RB_LHS_matrix = Base_RB_LHS_matrix.copy();
@@ -198,16 +186,14 @@ public class QNTransientRBSystem extends TransientRBSystem {
 				// First add forcing terms
 				RealVector RB_rhs = new ArrayRealVector(N);
 
-				for (int q_f = 0; q_f < get_Q_f(); q_f++) {
-					RB_rhs = RB_rhs.add(RB_F_q_vector[q_f].getSubVector(0, N)
-							.mapMultiply(eval_theta_q_f(q_f)));
+				for (int q_f = 0; q_f < getQf(); q_f++) {
+					RB_rhs = RB_rhs.add(RB_F_q_vector[q_f].getSubVector(0, N).mapMultiply(eval_theta_q_f(q_f)));
 				}
 
 				// Now add -1./dt * M * (RB_u_bar - RB_u_old)
-				RB_rhs = RB_rhs.add(RB_mass_matrix_N.operate(RB_u_bar)
-						.mapMultiply(-1. / dt));
-				RB_rhs = RB_rhs.add(RB_mass_matrix_N.operate(RB_u_old)
-						.mapMultiply(1. / dt));
+				RB_rhs = RB_rhs.add(RB_mass_matrix_N.operate(RB_u_bar).mapMultiply(-1.
+						/ dt));
+				RB_rhs = RB_rhs.add(RB_mass_matrix_N.operate(RB_u_old).mapMultiply(1. / dt));
 
 				// Now add the Aq stuff
 				RB_rhs = RB_rhs.add(RB_RHS_Aq_matrix.operate(RB_u_euler_theta));
@@ -217,8 +203,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 					double new_entry = RB_rhs.getEntry(i);
 
 					for (int j = 0; j < N; j++) {
-						double RB_u_euler_theta_j = RB_u_euler_theta
-								.getEntry(j);
+						double RB_u_euler_theta_j = RB_u_euler_theta.getEntry(j);
 
 						for (int n = 0; n < N; n++) {
 							new_entry -= cached_theta_c
@@ -230,8 +215,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 					RB_rhs.setEntry(i, new_entry);
 				}
 
-				DecompositionSolver solver = new LUDecompositionImpl(
-						RB_LHS_matrix).getSolver();
+				DecompositionSolver solver = new LUDecompositionImpl(RB_LHS_matrix).getSolver();
 				RB_delta_u = solver.solve(RB_rhs);
 
 				// update the Newton iterate
@@ -246,8 +230,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 
 				if ((l == (n_newton_steps - 1))
 						&& (RB_delta_u_norm > nonlinear_tolerance)) {
-					throw new RuntimeException(
-							"RB Newton loop did not converge");
+					throw new RuntimeException("RB Newton loop did not converge");
 				}
 			}
 
@@ -256,8 +239,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 			old_RB_solution = RB_u_old;
 			RB_temporal_solution_data[_k] = RB_u_bar; // should use copy here!
 
-			double rho_LB = (mRbScmSystem == null) ? get_nominal_rho_LB()
-					: get_SCM_lower_bound();
+			double rho_LB = (mRbScmSystem == null) ? get_nominal_rho_LB() : get_SCM_lower_bound();
 
 			// Evaluate the dual norm of the residual for RB_solution_vector
 			double epsilon_N = compute_residual_dual_norm(N);
@@ -270,13 +252,12 @@ public class QNTransientRBSystem extends TransientRBSystem {
 					/ residual_scaling_denom(rho_LB));
 
 			// Now compute the outputs and associated error bounds
-			for (int i = 0; i < get_n_outputs(); i++) {
+			for (int i = 0; i < getNumOutputs(); i++) {
 				RB_outputs_all_k[i][_k] = 0.;
 				RB_output_error_bounds_all_k[i][_k] = 0.;
-				for (int q_l = 0; q_l < get_Q_l(i); q_l++) {
+				for (int q_l = 0; q_l < getQl(i); q_l++) {
 					RB_outputs_all_k[i][_k] += eval_theta_q_l(i, q_l)
-							* (RB_output_vectors[i][q_l].getSubVector(0, N)
-									.dotProduct(RB_solution));
+							* (RB_output_vectors[i][q_l].getSubVector(0, N).dotProduct(RB_solution));
 				}
 				RB_output_error_bounds_all_k[i][_k] = compute_output_dual_norm(i)
 						* error_bound_all_k[_k];
@@ -288,8 +269,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 		// Now compute the L2 norm of the RB solution at time-level _K
 		// to normalize the error bound
 		// We reuse RB_rhs here
-		double final_RB_L2_norm = Math.sqrt(RB_mass_matrix_N.operate(
-				RB_solution).dotProduct(RB_solution));
+		double final_RB_L2_norm = Math.sqrt(RB_mass_matrix_N.operate(RB_solution).dotProduct(RB_solution));
 
 		return (return_rel_error_bound ? error_bound_all_k[_K]
 				/ final_RB_L2_norm : error_bound_all_k[_K]);
@@ -368,9 +348,9 @@ public class QNTransientRBSystem extends TransientRBSystem {
 		Double theta_val;
 		try {
 			Object arglist[] = new Object[1];
-			arglist[0] = current_parameters.getArray();
+			arglist[0] = getParams().getCurrent();
 
-			Object theta_obj = meth.invoke(mTheta, arglist);
+			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
 			theta_val = (Double) theta_obj;
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
@@ -394,21 +374,18 @@ public class QNTransientRBSystem extends TransientRBSystem {
 		double residual_norm_sq = 0.;
 
 		// Use TransientRBSystem to compute all the linear terms
-		residual_norm_sq += Math.pow(
-				super.uncached_compute_residual_dual_norm(N), 2.);
+		residual_norm_sq += Math.pow(super.uncached_compute_residual_dual_norm(N), 2.);
 
 		// Now just need to add the terms involving the nonlinearity
-		RealVector RB_u_euler_theta = RB_solution
-				.mapMultiply(get_euler_theta()).add(
-						old_RB_solution.mapMultiply(1. - get_euler_theta()));
-		RealVector mass_coeffs = RB_solution.subtract(old_RB_solution)
-				.mapMultiply(-1. / dt);
+		RealVector RB_u_euler_theta = RB_solution.mapMultiply(get_euler_theta()).add(old_RB_solution.mapMultiply(1. - get_euler_theta()));
+		RealVector mass_coeffs = RB_solution.subtract(old_RB_solution).mapMultiply(-1.
+				/ dt);
 
 		// Pre-compute eval_theta_c()
 		double cached_theta_c = eval_theta_c();
 
 		// All residual terms can be treated as positive quantities...
-		for (int q_f = 0; q_f < get_Q_f(); q_f++) {
+		for (int q_f = 0; q_f < getQf(); q_f++) {
 			double cached_theta_q_f = eval_theta_q_f(q_f);
 			for (int n1 = 0; n1 < N; n1++) {
 				for (int j1 = 0; j1 < N; j1++) {
@@ -420,7 +397,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 			}
 		}
 
-		for (int q_m = 0; q_m < get_Q_m(); q_m++) {
+		for (int q_m = 0; q_m < getQm(); q_m++) {
 			double cached_theta_q_m = eval_theta_q_m(q_m);
 			for (int i = 0; i < N; i++) {
 				for (int n1 = 0; n1 < N; n1++) {
@@ -435,7 +412,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 			}
 		}
 
-		for (int q_a = 0; q_a < get_Q_a(); q_a++) {
+		for (int q_a = 0; q_a < getQa(); q_a++) {
 			double cached_theta_q_a = eval_theta_q_a(q_a);
 			for (int i = 0; i < N; i++) {
 				for (int n1 = 0; n1 < N; n1++) {
@@ -458,8 +435,8 @@ public class QNTransientRBSystem extends TransientRBSystem {
 				for (int n2 = n1; n2 < N; n2++) {
 					int init_j2_index = (n2 == n1) ? j1 : 0;
 					for (int j2 = init_j2_index; j2 < N; j2++) {
-						double RB_u_euler_theta_2 = RB_u_euler_theta
-								.getEntry(n2) * RB_u_euler_theta.getEntry(j2);
+						double RB_u_euler_theta_2 = RB_u_euler_theta.getEntry(n2)
+								* RB_u_euler_theta.getEntry(j2);
 
 						double delta = ((n2 == n1) && (j2 == j1)) ? 1. : 2.;
 
@@ -506,9 +483,9 @@ public class QNTransientRBSystem extends TransientRBSystem {
 	 * linear function of parameter 0.
 	 */
 	public double get_nominal_rho_LB() {
-		double mu_min = getParameterMin(0);
-		double mu_max = getParameterMax(0);
-		double current_mu = getCurrentParameters().getEntry(0);
+		double mu_min = getParams().getMinValue(0);
+		double mu_max = getParams().getMaxValue(0);
+		double current_mu = getParams().getCurrent()[0];
 		return (nominal_rho_max * (mu_max - current_mu) + nominal_rho_min
 				* (current_mu - mu_min))
 				/ (mu_max - mu_min);
@@ -528,22 +505,17 @@ public class QNTransientRBSystem extends TransientRBSystem {
 
 			// Create a parameter vector in which the current time-level
 			// is appended to current_parameters.
-			try {
-				Parameter params = new Parameter(get_n_params() + 1);
-				for (int i = 0; i < get_n_params(); i++)
-					params.setEntry(i, getCurrentParameters().getEntry(i));
-				params.setEntry(params.getNEntries() - 1, _k);
+			int np = getParams().getNumParams();
+			double[] params = new double[np + 1];
+			for (int i = 0; i < np; i++)
+				params[i] = getParams().getCurrent()[i];
+			params[np] = _k;
 
-				// Set the parameter
-				qnScmSystem.setCurrentParameters(params);
-			} catch (InconsistentStateException ise) {
-				Log.e(DEBUG_TAG, ise.getMessage());
-			}
+			// Set the parameter
+			qnScmSystem.getParams().setCurrent(params);
 
 			// Also, construct a vector storing the RB coefficients
-			RealVector RB_u_euler_theta = RB_solution.mapMultiply(
-					get_euler_theta()).add(
-					old_RB_solution.mapMultiply(1. - get_euler_theta()));
+			RealVector RB_u_euler_theta = RB_solution.mapMultiply(get_euler_theta()).add(old_RB_solution.mapMultiply(1. - get_euler_theta()));
 
 			// Pass params and RB_u_euler_theta to the associated SCM system
 			qnScmSystem.set_current_RB_coeffs(RB_u_euler_theta);
@@ -562,8 +534,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 	public void readConfigurationRBAppMIT(GetPot infile) {
 		super.readConfigurationRBAppMIT(infile);
 
-		double nonlinear_tolerance_in = infile.call("nonlinear_tolerance",
-				1.e-8);
+		double nonlinear_tolerance_in = infile.call("nonlinear_tolerance", 1.e-8);
 		set_nonlinear_tolerance(nonlinear_tolerance_in);
 
 		int n_newton_steps_in = infile.call("n_newton_steps", 15);
@@ -589,9 +560,9 @@ public class QNTransientRBSystem extends TransientRBSystem {
 	 * the nonlinear problem.
 	 */
 	@Override
-	public void loadOfflineData(AModelManager m) throws IOException {
+	public void loadOfflineData_rbappmit(AModelManager m) throws IOException {
 
-		super.loadOfflineData(m);
+		super.loadOfflineData_rbappmit(m);
 
 		int n_bfs = getNBF();
 
@@ -617,8 +588,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 			for (int i = 0; i < n_bfs; i++) {
 				for (int j = 0; j < n_bfs; j++) {
 					for (int l = 0; l < n_bfs; l++) {
-						RB_trilinear_form[i][j][l] = Double
-								.parseDouble(tokens[count]);
+						RB_trilinear_form[i][j][l] = Double.parseDouble(tokens[count]);
 						count++;
 					}
 				}
@@ -639,15 +609,14 @@ public class QNTransientRBSystem extends TransientRBSystem {
 			}
 
 			// Declare the array
-			Fq_C_representor_norms = new double[get_Q_f()][n_bfs][n_bfs];
+			Fq_C_representor_norms = new double[getQf()][n_bfs][n_bfs];
 
 			// Fill it
 			int count = 0;
-			for (int q_f = 0; q_f < get_Q_f(); q_f++)
+			for (int q_f = 0; q_f < getQf(); q_f++)
 				for (int i = 0; i < n_bfs; i++) {
 					for (int j = 0; j < n_bfs; j++) {
-						Fq_C_representor_norms[q_f][i][j] = Double
-								.parseDouble(tokens[count]);
+						Fq_C_representor_norms[q_f][i][j] = Double.parseDouble(tokens[count]);
 						count++;
 					}
 				}
@@ -666,16 +635,15 @@ public class QNTransientRBSystem extends TransientRBSystem {
 			}
 
 			// Declare the array
-			Mq_C_representor_norms = new double[get_Q_m()][n_bfs][n_bfs][n_bfs];
+			Mq_C_representor_norms = new double[getQm()][n_bfs][n_bfs][n_bfs];
 
 			// Fill it
 			int count = 0;
-			for (int q_m = 0; q_m < get_Q_m(); q_m++)
+			for (int q_m = 0; q_m < getQm(); q_m++)
 				for (int i = 0; i < n_bfs; i++)
 					for (int j = 0; j < n_bfs; j++) {
 						for (int k = 0; k < n_bfs; k++) {
-							Mq_C_representor_norms[q_m][i][j][k] = Double
-									.parseDouble(tokens[count]);
+							Mq_C_representor_norms[q_m][i][j][k] = Double.parseDouble(tokens[count]);
 							count++;
 						}
 					}
@@ -692,16 +660,15 @@ public class QNTransientRBSystem extends TransientRBSystem {
 			reader = null;
 
 			// Declare the array
-			Aq_C_representor_norms = new double[get_Q_a()][n_bfs][n_bfs][n_bfs];
+			Aq_C_representor_norms = new double[getQa()][n_bfs][n_bfs][n_bfs];
 
 			// Fill it
 			int count = 0;
-			for (int q_a = 0; q_a < get_Q_a(); q_a++) {
+			for (int q_a = 0; q_a < getQa(); q_a++) {
 				for (int i = 0; i < n_bfs; i++) {
 					for (int n1 = 0; n1 < n_bfs; n1++) {
 						for (int j1 = 0; j1 < n_bfs; j1++) {
-							Aq_C_representor_norms[q_a][i][n1][j1] = Double
-									.parseDouble(tokens[count]);
+							Aq_C_representor_norms[q_a][i][n1][j1] = Double.parseDouble(tokens[count]);
 							count++;
 						}
 					}
@@ -727,8 +694,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 				for (int i = 0; i < n_bfs; i++) {
 					for (int n1 = 0; n1 < n_bfs; n1++) {
 						for (int j1 = 0; j1 < n_bfs; j1++) {
-							C_C_representor_norms[ii][i][n1][j1] = Double
-									.parseDouble(tokens[count]);
+							C_C_representor_norms[ii][i][n1][j1] = Double.parseDouble(tokens[count]);
 							count++;
 						}
 					}

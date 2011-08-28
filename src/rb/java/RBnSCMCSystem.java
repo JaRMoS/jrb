@@ -1,4 +1,5 @@
 package rb.java;
+
 //    rbAPPmit: An Android front-end for the Certified Reduced Basis Method
 //    Copyright (C) 2010 David J. Knezevic and Phuong Huynh
 //
@@ -16,8 +17,6 @@ package rb.java;
 //
 //    You should have received a copy of the GNU General Public License
 //    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
-
-
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -54,8 +53,8 @@ public class RBnSCMCSystem extends RBSCMSystem {
 	private double[] B_max;
 	private int n_mubar;
 	private int[] n_muhat;
-	private Vector<Parameter> mu_bar;
-	private Vector<Parameter>[] mu_hat;
+	private Vector<double[]> mu_bar;
+	private Vector<double[]>[] mu_hat;
 	private double[] beta_bar;
 	private double[][] beta_hat;
 	private double[][][] zval;
@@ -66,8 +65,8 @@ public class RBnSCMCSystem extends RBSCMSystem {
 	 * @throws InconsistentStateException
 	 */
 	@SuppressWarnings("unchecked")
-	public void loadOfflineData(AModelManager m)
-			throws IOException, InconsistentStateException {
+	public void loadOfflineData(AModelManager m) throws IOException,
+			InconsistentStateException {
 
 		BufferedReader reader = m.getBufReader("SCMdata.dat");
 
@@ -76,8 +75,8 @@ public class RBnSCMCSystem extends RBSCMSystem {
 
 		int count = 0;
 
-		B_min = new double[get_Q_a()];
-		B_max = new double[get_Q_a()];
+		B_min = new double[getQa()];
+		B_max = new double[getQa()];
 		for (int i = 0; i < B_min.length; i++) {
 			B_max[i] = Double.parseDouble(tokens[count]);
 			B_min[i] = -B_max[i];
@@ -87,11 +86,12 @@ public class RBnSCMCSystem extends RBSCMSystem {
 		n_mubar = Integer.parseInt(tokens[count]);
 		count++;
 
-		mu_bar = new Vector<Parameter>(0);
+		int np = getParams().getNumParams();
+		mu_bar = new Vector<double[]>(0);
 		for (int i = 0; i < n_mubar; i++) {
-			mu_bar.add(new Parameter(get_n_params()));
-			for (int j = 0; j < get_n_params(); j++) {
-				mu_bar.get(i).setEntry(j, Double.parseDouble(tokens[count]));
+			mu_bar.add(new double[np]);
+			for (int j = 0; j < np; j++) {
+				mu_bar.get(i)[j] = Double.parseDouble(tokens[count]);
 				count++;
 			}
 		}
@@ -102,7 +102,7 @@ public class RBnSCMCSystem extends RBSCMSystem {
 			count++;
 		}
 
-		mu_hat = (Vector<Parameter>[]) new Vector<?>[n_mubar];
+		mu_hat = (Vector<double[]>[]) new Vector<?>[n_mubar];
 		n_muhat = new int[n_mubar];
 		beta_hat = new double[n_mubar][];
 		zval = new double[n_mubar][][];
@@ -110,14 +110,13 @@ public class RBnSCMCSystem extends RBSCMSystem {
 			n_muhat[i] = Integer.parseInt(tokens[count]);
 			count++;
 			beta_hat[i] = new double[n_muhat[i]];
-			zval[i] = new double[n_muhat[i]][get_Q_a() * 2];
+			zval[i] = new double[n_muhat[i]][getQa() * 2];
 
-			mu_hat[i] = new Vector<Parameter>(0);
+			mu_hat[i] = new Vector<double[]>(0);
 			for (int j = 0; j < n_muhat[i]; j++) {
-				mu_hat[i].add(new Parameter(get_n_params()));
-				for (int k = 0; k < get_n_params(); k++) {
-					mu_hat[i].get(j).setEntry(k,
-							Double.parseDouble(tokens[count]));
+				mu_hat[i].add(new double[np]);
+				for (int k = 0; k < np; k++) {
+					mu_hat[i].get(j)[k] = Double.parseDouble(tokens[count]);
 					count++;
 				}
 			}
@@ -127,7 +126,7 @@ public class RBnSCMCSystem extends RBSCMSystem {
 				count++;
 			}
 
-			for (int k = 0; k < get_Q_a() * 2; k++)
+			for (int k = 0; k < getQa() * 2; k++)
 				for (int j = 0; j < n_muhat[i]; j++) {
 					zval[i][j][k] = Double.parseDouble(tokens[count]);
 					count++;
@@ -157,22 +156,22 @@ public class RBnSCMCSystem extends RBSCMSystem {
 			Collection<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
 
 			// Add bounding box constraints for the get_Q_a() variables
-			for (int q = 0; q < get_Q_a(); q++) {
-				double[] index = new double[get_Q_a() * 2];
+			for (int q = 0; q < getQa(); q++) {
+				double[] index = new double[getQa() * 2];
 				index[q] = 1.;
 
-				constraints.add(new LinearConstraint(index, Relationship.GEQ,
-						B_min[q] / beta_bar[imubar]));
-				constraints.add(new LinearConstraint(index, Relationship.LEQ,
-						B_max[q] / beta_bar[imubar]));
+				constraints.add(new LinearConstraint(index, Relationship.GEQ, B_min[q]
+						/ beta_bar[imubar]));
+				constraints.add(new LinearConstraint(index, Relationship.LEQ, B_max[q]
+						/ beta_bar[imubar]));
 
 				index[q] = 0.;
-				index[q + get_Q_a()] = 1.;
+				index[q + getQa()] = 1.;
 
-				constraints.add(new LinearConstraint(index, Relationship.GEQ,
-						B_min[q] / beta_bar[imubar]));
-				constraints.add(new LinearConstraint(index, Relationship.LEQ,
-						B_max[q] / beta_bar[imubar]));
+				constraints.add(new LinearConstraint(index, Relationship.GEQ, B_min[q]
+						/ beta_bar[imubar]));
+				constraints.add(new LinearConstraint(index, Relationship.LEQ, B_max[q]
+						/ beta_bar[imubar]));
 			}
 
 			// Save the current_parameters since we'll change them in the loop
@@ -182,19 +181,18 @@ public class RBnSCMCSystem extends RBSCMSystem {
 			// Add the constraint rows
 			if (n_muhat[imubar] > 0) {
 				for (int imuhat = 0; imuhat < n_muhat[imubar]; imuhat++) {
-					current_parameters = mu_hat[imubar].get(imuhat);
+					getParams().setCurrent(mu_hat[imubar].get(imuhat));
 
-					double[] constraint_row = new double[get_Q_a() * 2];
-					for (int q = 0; q < get_Q_a(); q++) {
+					double[] constraint_row = new double[getQa() * 2];
+					for (int q = 0; q < getQa(); q++) {
 						Complex theta_q_a = complex_eval_theta_q_a(q);
 						constraint_row[q] = theta_q_a.getReal()
 								* beta_bar[imubar];
-						constraint_row[q + get_Q_a()] = theta_q_a
-								.getImaginary() * beta_bar[imubar];
+						constraint_row[q + getQa()] = theta_q_a.getImaginary()
+								* beta_bar[imubar];
 					}
 
-					constraints.add(new LinearConstraint(constraint_row,
-							Relationship.GEQ, beta_hat[imubar][imuhat]));
+					constraints.add(new LinearConstraint(constraint_row, Relationship.GEQ, beta_hat[imubar][imuhat]));
 				}
 			}
 
@@ -203,32 +201,28 @@ public class RBnSCMCSystem extends RBSCMSystem {
 			reload_current_parameters();
 
 			// Create objective function object
-			double[] objectiveFn = new double[get_Q_a() * 2];
-			for (int q = 0; q < get_Q_a(); q++) {
+			double[] objectiveFn = new double[getQa() * 2];
+			for (int q = 0; q < getQa(); q++) {
 				Complex theta_q_a = complex_eval_theta_q_a(q);
 				objectiveFn[q] = theta_q_a.getReal() * beta_bar[imubar];
-				objectiveFn[q + get_Q_a()] = theta_q_a.getImaginary()
+				objectiveFn[q + getQa()] = theta_q_a.getImaginary()
 						* beta_bar[imubar];
 			}
-			LinearObjectiveFunction f = new LinearObjectiveFunction(
-					objectiveFn, 0.);
+			LinearObjectiveFunction f = new LinearObjectiveFunction(objectiveFn, 0.);
 
 			try {
 				SimplexSolver solver = new SimplexSolver(1e-6);
-				RealPointValuePair opt_pair = solver.optimize(f, constraints,
-						GoalType.MINIMIZE, false);
+				RealPointValuePair opt_pair = solver.optimize(f, constraints, GoalType.MINIMIZE, false);
 				min_Jlocal_obj[icount] = opt_pair.getValue();
 			} catch (OptimizationException e) {
 				Log.e("RBSCMSYSTEM_TAG", "Optimal solution not found");
 				e.printStackTrace();
 			} catch (Exception e) {
-				Log.e("RBSCMSYSTEM_TAG",
-						"Exception occurred during SCM_LB calculation");
+				Log.e("RBSCMSYSTEM_TAG", "Exception occurred during SCM_LB calculation");
 				e.printStackTrace();
 			}
 
-			min_J_obj = min_J_obj > min_Jlocal_obj[icount] ? min_J_obj
-					: min_Jlocal_obj[icount];
+			min_J_obj = min_J_obj > min_Jlocal_obj[icount] ? min_J_obj : min_Jlocal_obj[icount];
 			icount++;
 		}
 		return min_J_obj;
@@ -256,23 +250,20 @@ public class RBnSCMCSystem extends RBSCMSystem {
 
 	}
 
-	private List<Integer> getSorted_CJ_Indices(Vector<Parameter> C_J) {
+	private List<Integer> getSorted_CJ_Indices(Vector<double[]> C_J) {
 
 		int J = C_J.size();
 
-		LinkedHashMap<Double, Integer> dist_from_mu = new LinkedHashMap<Double, Integer>(
-				J);
+		LinkedHashMap<Double, Integer> dist_from_mu = new LinkedHashMap<Double, Integer>(J);
 
 		for (int j = 0; j < J; j++) {
 			double dist = param_dist(get_current_parameters(), C_J.get(j));
 			dist_from_mu.put(dist, j);
 		}
 
-		List<Map.Entry<Double, Integer>> list = new LinkedList<Map.Entry<Double, Integer>>(
-				dist_from_mu.entrySet());
-		Collections.sort(list, new Comparator<Map.Entry<Double, Integer>>() {
-			public int compare(Map.Entry<Double, Integer> o1,
-					Map.Entry<Double, Integer> o2) {
+		List<Map.Entry<Double, Integer>> list = new LinkedList<Map.Entry<Double, Integer>>(dist_from_mu.entrySet());
+		Collections.sort(list, new Comparator<Map.Entry<Double, Integer>>(){
+			public int compare(Map.Entry<Double, Integer> o1, Map.Entry<Double, Integer> o2) {
 				return o1.getKey().compareTo(o2.getKey());
 				/*
 				 * return ((Comparable<?>) ((Map.Entry<Double,Integer>)
@@ -284,10 +275,7 @@ public class RBnSCMCSystem extends RBSCMSystem {
 
 		// Create a sorted list of values to return
 		List<Integer> result = new LinkedList<Integer>();
-		for (Iterator<Entry<Double, Integer>> it = list.iterator(); it
-				.hasNext();) {
-			Map.Entry<Double, Integer> entry = (Map.Entry<Double, Integer>) it
-					.next();
+		for (Map.Entry<Double, Integer> entry : list) {
 			result.add(entry.getValue());
 		}
 

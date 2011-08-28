@@ -56,7 +56,7 @@ public class RBSCMSystem extends RBBase {
 	/**
 	 * The Greedily selected parameters.
 	 */
-	private Vector<Parameter> C_J;
+	private Vector<double[]> C_J;
 
 	/**
 	 * The values of the stability factor at the greedily selected parameters.
@@ -73,7 +73,7 @@ public class RBSCMSystem extends RBBase {
 	 * A private Parameter used to temporarily store current_parameters during
 	 * the SCM calculation
 	 */
-	private Parameter saved_parameters;
+	private double[] saved_parameters;
 
 	/**
 	 * @return the SCM lower bound for the current parameters.
@@ -87,8 +87,8 @@ public class RBSCMSystem extends RBBase {
 			Collection<LinearConstraint> constraints = new ArrayList<LinearConstraint>();
 
 			// Add bounding box constraints for the get_Q_a() variables
-			for (int q = 0; q < get_Q_a(); q++) {
-				double[] index = new double[get_Q_a()];
+			for (int q = 0; q < getQa(); q++) {
+				double[] index = new double[getQa()];
 				index[q] = 1.;
 
 				constraints.add(new LinearConstraint(index, Relationship.GEQ,
@@ -109,15 +109,12 @@ public class RBSCMSystem extends RBBase {
 			int count = 1;
 
 			if (n_rows > 0) {
-				for (Iterator<Integer> it = sortedIndices.iterator(); it
-						.hasNext();) {
-					Integer mu_index = (Integer) it.next();
-
+				for (Integer mu_index : sortedIndices) {
 					get_current_parameters_from_C_J(mu_index);
 					// current_parameters = C_J.get(mu_index);
 
-					double[] constraint_row = new double[get_Q_a()];
-					for (int q = 0; q < get_Q_a(); q++) {
+					double[] constraint_row = new double[getQa()];
+					for (int q = 0; q < getQa(); q++) {
 						constraint_row[q] = eval_theta_q_a(q);
 					}
 
@@ -128,7 +125,6 @@ public class RBSCMSystem extends RBBase {
 						break;
 
 					count++;
-
 				}
 			}
 
@@ -137,8 +133,8 @@ public class RBSCMSystem extends RBBase {
 			reload_current_parameters();
 
 			// Create objective function object
-			double[] objectiveFn = new double[get_Q_a()];
-			for (int q = 0; q < get_Q_a(); q++) {
+			double[] objectiveFn = new double[getQa()];
+			for (int q = 0; q < getQa(); q++) {
 				objectiveFn[q] = eval_theta_q_a(q);
 			}
 			LinearObjectiveFunction f = new LinearObjectiveFunction(
@@ -178,12 +174,12 @@ public class RBSCMSystem extends RBBase {
 		for (Iterator<Integer> it = sortedIndices.iterator(); it.hasNext();) {
 			Integer mu_index = (Integer) it.next();
 
-			current_parameters = C_J.get(mu_index);
+			get_current_parameters_from_C_J(mu_index);
 
 			double[] UB_vector = SCM_UB_vectors[mu_index];
 
 			double J_obj = 0.;
-			for (int q = 0; q < get_Q_a(); q++) {
+			for (int q = 0; q < getQa(); q++) {
 				J_obj += eval_theta_q_a(q) * UB_vector[q];
 			}
 
@@ -203,12 +199,12 @@ public class RBSCMSystem extends RBBase {
 	/**
 	 * @return Euclidean distance between two parameters
 	 */
-	public static double param_dist(Parameter mu_1, Parameter mu_2) {
+	public static double param_dist(double[] mu_1, double[] mu_2) {
 		// Default distance is Euclidean norm
 		double sum = 0.;
 
-		for (int i = 0; i < mu_1.getNEntries(); i++) {
-			sum += Math.pow(mu_1.getEntry(i) - mu_2.getEntry(i), 2.);
+		for (int i = 0; i < mu_1.length; i++) {
+			sum += Math.pow(mu_1[i] - mu_2[i], 2.);
 		}
 
 		return Math.sqrt(sum);
@@ -218,35 +214,33 @@ public class RBSCMSystem extends RBBase {
 	 * Load the current_parameters from the set C_J.
 	 */
 	protected void get_current_parameters_from_C_J(int index) {
-		current_parameters = C_J.get(index);
+		getParams().setCurrent(C_J.get(index));
 	}
 
 	/**
 	 * Save current_parameters in saved_parameters.
 	 */
 	protected void save_current_parameters() {
-		saved_parameters = current_parameters.clone();
+		saved_parameters = getParams().getCurrent().clone();
 	}
 
 	/**
 	 * Reload from saved_parameters
 	 */
 	protected void reload_current_parameters() {
-
-		// Just point the current_parameters reference to
-		// saved_parameters. No need to clone in this case.
-		current_parameters = saved_parameters;
+		getParams().setCurrent(saved_parameters);
 	}
 
 	/**
 	 * @return the current parameters
 	 */
-	public Parameter get_current_parameters() {
-		return current_parameters;
+	public double[] get_current_parameters() {
+		return getParams().getCurrent();
 	}
 
+	@Override
 	protected void readConfigurationJRB(AModelManager m) {
-		// TODO: read stuff!
+		super.readConfigurationJRB(m);
 	}
 	
 	/**
@@ -254,33 +248,16 @@ public class RBSCMSystem extends RBBase {
 	 * @param m
 	 * @return
 	 */
+	@Override
 	protected void readConfigurationRBAppMIT(GetPot infile) {
-
+		super.readConfigurationRBAppMIT(infile);
+		
 		// int n_SCM_parameters = infile.call("n_SCM_parameters",1);
 		int n_SCM_parameters = infile.call("n_SCM_parameters",
 				infile.call("n_parameters", 1));
 		Log.d(DEBUG_TAG, "n_parameters = " + n_SCM_parameters);
 
 		SCM_M = infile.call("SCM_M", 0);
-
-		min_parameter = new Parameter(n_SCM_parameters);
-		max_parameter = new Parameter(n_SCM_parameters);
-		for (int i = 0; i < n_SCM_parameters; i++) {
-			// Read in the min/max for the i^th parameter
-			String min_string = new String("mu" + i + "_min");
-			double mu_i_min = infile.call(min_string, 0.);
-			min_parameter.setEntry(i, mu_i_min);
-
-			String max_string = new String("mu" + i + "_max");
-			double mu_i_max = infile.call(max_string, 0.);
-			max_parameter.setEntry(i, mu_i_max);
-		}
-
-		Log.d(DEBUG_TAG, "RBBase parameters from " + Const.parameters_filename + ":");
-		for (int i = 0; i < n_SCM_parameters; i++) {
-			Log.d(DEBUG_TAG, "Parameter " + i + ": Min = " + getParameterMin(i)
-					+ ", Max = " + getParameterMax(i));
-		}
 
 		Log.d(DEBUG_TAG, "RBSCMSystem parameters from " + Const.parameters_filename
 				+ ":");
@@ -306,7 +283,7 @@ public class RBSCMSystem extends RBBase {
 			String[] tokens = line.split(" ");
 			reader.close(); reader = null;
 
-			B_min = new double[get_Q_a()];
+			B_min = new double[getQa()];
 			for (int i = 0; i < B_min.length; i++) {
 				B_min[i] = Double.parseDouble(tokens[i]);
 			}
@@ -321,7 +298,7 @@ public class RBSCMSystem extends RBBase {
 			String line = reader.readLine();
 			String[] tokens = line.split(" ");
 
-			B_max = new double[get_Q_a()];
+			B_max = new double[getQa()];
 			for (int i = 0; i < B_max.length; i++) {
 				B_max[i] = Double.parseDouble(tokens[i]);
 			}
@@ -361,7 +338,7 @@ public class RBSCMSystem extends RBBase {
 		{
 			BufferedReader reader = m.getBufReader("C_J.dat");
 
-			C_J = new Vector<Parameter>(0);
+			C_J = new Vector<double[]>(0);
 			if (C_J_stability_vector != null) {
 
 				String line = reader.readLine();
@@ -369,11 +346,11 @@ public class RBSCMSystem extends RBBase {
 				String[] tokens = line.split(" ");
 
 				int count = 0;
+				int np = getParams().getNumParams();
 				for (int i = 0; i < C_J_stability_vector.length; i++) {
-					C_J.add(new Parameter(get_n_params()));
-					for (int j = 0; j < get_n_params(); j++) {
-						C_J.get(i).setEntry(j,
-								Double.parseDouble(tokens[count]));
+					C_J.add(new double[np]);
+					for (int j = 0; j < np; j++) {
+						C_J.get(i)[j] = Double.parseDouble(tokens[count]);
 						count++;
 					}
 				}
@@ -394,9 +371,9 @@ public class RBSCMSystem extends RBBase {
 
 				int count = 0;
 				// Resize SCM_UB_vectors based on C_J_stability_vector and Q_a
-				SCM_UB_vectors = new double[C_J_stability_vector.length][get_Q_a()];
+				SCM_UB_vectors = new double[C_J_stability_vector.length][getQa()];
 				for (int i = 0; i < SCM_UB_vectors.length; i++) {
-					for (int j = 0; j < get_Q_a(); j++) {
+					for (int j = 0; j < getQa(); j++) {
 						SCM_UB_vectors[i][j] = Double
 								.parseDouble(tokens[count]);
 						count++;

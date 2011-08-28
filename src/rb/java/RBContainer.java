@@ -2,6 +2,7 @@ package rb.java;
 
 import java.io.IOException;
 
+import rb.java.affinefcn.IAffineFunctions;
 import rmcommon.Log;
 import rmcommon.Parameters;
 import rmcommon.io.AModelManager;
@@ -39,11 +40,7 @@ public class RBContainer {
 	 * The second RBSCMSystem object, needed in some time-dependent problems
 	 */
 	public RBSCMSystem mSecondRbScmSystem = null;
-
-	/**
-	 * Labels for the parameters
-	 */
-	public String[] paramLabels;
+	
 	/**
 	 * A short problem description. Though not noticed where it ist used, yet.
 	 */
@@ -76,37 +73,14 @@ public class RBContainer {
 		Log.d(DEBUG_TAG, "Loaded AffineFunctions class");
 
 		if (mRbSystem != null) {
-			mRbSystem.mAffineFnsClass = af;
-			mRbSystem.mTheta = mRbSystem.mAffineFnsClass.newInstance();
-
-			// Set Q_a, Q_f and n_outputs from the loaded class
-			mRbSystem.read_in_Q_a();
-			Log.d(DEBUG_TAG, "Q_a = " + mRbSystem.get_Q_a());
-
-			mRbSystem.read_in_Q_f();
-			Log.d(DEBUG_TAG, "Q_f = " + mRbSystem.get_Q_f());
-
-			mRbSystem.read_in_n_outputs();
-			Log.d(DEBUG_TAG, "n_outputs = " + mRbSystem.get_n_outputs());
-
-			mRbSystem.read_in_Q_uL();
-
-			if (fSystemType == SystemType.LINEAR_UNSTEADY
-					|| fSystemType == SystemType.QN_UNSTEADY) {
-				TransientRBSystem trans_rb = (TransientRBSystem) mRbSystem;
-				trans_rb.read_in_Q_m();
-				Log.d(DEBUG_TAG, "Q_m = " + trans_rb.get_Q_m());
-			}
+			mRbSystem.mAffineFnsClass = (Class<IAffineFunctions>) af;
+			mRbSystem.affineFunctionsInstance = mRbSystem.mAffineFnsClass.newInstance();
 		}
 
 		if (mRbScmSystem != null) {
-			mRbScmSystem.mAffineFnsClass = af;
-			mRbScmSystem.mTheta = mRbSystem.mAffineFnsClass.newInstance();
-
-			// set Q_a
-			mRbScmSystem.read_in_Q_a();
+			mRbScmSystem.mAffineFnsClass = (Class<IAffineFunctions>) af;
+			mRbScmSystem.affineFunctionsInstance = mRbSystem.mAffineFnsClass.newInstance();
 		}
-
 	}
 
 	/**
@@ -196,10 +170,7 @@ public class RBContainer {
 
 				// Attach AffineFunctions class also to this system
 				mSecondRbScmSystem.mAffineFnsClass = mRbScmSystem.mAffineFnsClass;
-				mSecondRbScmSystem.mTheta = mRbSystem.mAffineFnsClass.newInstance();
-
-				// set Q_a
-				mSecondRbScmSystem.read_in_Q_a();
+				mSecondRbScmSystem.affineFunctionsInstance = mRbSystem.mAffineFnsClass.newInstance();
 			}
 		}
 		return true;
@@ -207,14 +178,6 @@ public class RBContainer {
 
 	private void readSystemDescriptionsJRB(AModelManager m) {
 		problemTitle = m.getModelXMLTagValue("description.name");
-
-		Parameters p = m.getParameters();
-		int params = p.getParamNumber();
-		// TODO: remove paramLabels field and access Parameters object for names
-		paramLabels = new String[params];
-		for (int i = 0; i < params; i++) {
-			paramLabels[i] = p.getParams().get(i).label;
-		}
 
 		// TODO: Dont know where this value is used
 		descriptionURL = m.getModelXMLTagValue("description.infohtml");
@@ -238,19 +201,6 @@ public class RBContainer {
 		}
 
 		problemTitle = infile.call("title", "RB Online");
-		int parameter_number = infile.call("n_parameters", 0);
-		paramLabels = new String[parameter_number];
-		for (int n = 0; n < parameter_number; n++) {
-			paramLabels[n] = infile.call("param" + Integer.toString(n)
-					+ "_label", "DEFAULT");
-
-			// If DEFAULT was read in, then replace with a default
-			// mu label
-			if (paramLabels[n] == "DEFAULT") {
-				paramLabels[n] = "\u00B5" + (n + 1);
-			}
-		}
-
 		descriptionURL = infile.call("descriptionURL", "");
 
 		String SystemTypeEnum_in = infile.call("system_type", "NONE");

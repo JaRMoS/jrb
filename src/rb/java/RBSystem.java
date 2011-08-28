@@ -1,23 +1,5 @@
 package rb.java;
 
-//    rbAPPmit: An Android front-end for the Certified Reduced Basis Method
-//    Copyright (C) 2010 David J. Knezevic and Phuong Huynh
-//
-//    This file is part of rbAPPmit
-//
-//    rbAPPmit is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    rbAPPmit is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,15 +13,23 @@ import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 
+import rb.java.affinefcn.IWithuL;
 import rmcommon.Log;
 import rmcommon.io.AModelManager;
 import rmcommon.io.MathObjectReader;
 
-// This class provides the Online stage for
-// the reduced basis method for elliptic
-// steady state problems.
-// This class is modeled on RBSystem from rbOOmit
-
+/**
+ * This class provides the Online stage for the reduced basis method for
+ * elliptic steady state problems.
+ * 
+ * This class is modeled on RBSystem from rbOOmit
+ * 
+ * Changes by
+ * 
+ * @author Daniel Wirtz
+ * @date Aug 28, 2011
+ * 
+ */
 public class RBSystem extends RBBase {
 
 	// Logging tag
@@ -47,18 +37,25 @@ public class RBSystem extends RBBase {
 
 	// PUBLIC MEMBER VARIABLES
 
-	
-
 	protected double[][][] Aq_Aq_representor_norms;
 
+	/*
+	 * The number of nodes. TODO: This value should be obtainable via a
+	 * reference to the system's GeometryData object after it has been loaded..
+	 */
 	private int calN;
 
 	// current N
 	protected int current_N;
 
-	protected double[][][] Fq_Aq_representor_norms;
+	// The number of output functionals
+	private int fNumOutputs;
+	// The affine function expansion size for all outputs
+	private int[] Ql_values;
 
 	// PRIVATE MEMBER VARIABLES
+
+	protected double[][][] Fq_Aq_representor_norms;
 
 	/**
 	 * Arrays storing the residual representor inner products to be used in
@@ -68,19 +65,19 @@ public class RBSystem extends RBBase {
 	protected double[] Fq_representor_norms;
 
 	/* The number of fields: 0 means no visualization */
-	private int mfield;
-
-	/**
-	 * The number of output functionals
-	 */
-	private int mN_outputs;
+	private int fNumFields;
 
 	/**
 	 * The number of terms in the affine expansion of the rhs
 	 */
-	private int mQ_f;
+	private int fQf;
 
-	private int mQ_uL;
+	/**
+	 * The number of uL functions.
+	 * 
+	 * Zero per default.
+	 */
+	private int fQuL = 0;
 
 	/**
 	 * A reference to the SCM system.
@@ -178,8 +175,8 @@ public class RBSystem extends RBBase {
 		double output_norm_sq = 0.;
 
 		int q = 0;
-		for (int q_l1 = 0; q_l1 < get_Q_l(i); q_l1++) {
-			for (int q_l2 = q_l1; q_l2 < get_Q_l(i); q_l2++) {
+		for (int q_l1 = 0; q_l1 < getQl(i); q_l1++) {
+			for (int q_l2 = q_l1; q_l2 < getQl(i); q_l2++) {
 				double delta = (q_l1 == q_l2) ? 1. : 2.;
 				output_norm_sq += delta * eval_theta_q_l(i, q_l1)
 						* eval_theta_q_l(i, q_l2) * output_dual_norms[i][q];
@@ -202,8 +199,8 @@ public class RBSystem extends RBBase {
 		double residual_norm_sq = 0.;
 
 		int q = 0;
-		for (int q_f1 = 0; q_f1 < get_Q_f(); q_f1++) {
-			for (int q_f2 = q_f1; q_f2 < get_Q_f(); q_f2++) {
+		for (int q_f1 = 0; q_f1 < getQf(); q_f1++) {
+			for (int q_f2 = q_f1; q_f2 < getQf(); q_f2++) {
 				double delta = (q_f1 == q_f2) ? 1. : 2.;
 				residual_norm_sq += delta * eval_theta_q_f(q_f1)
 						* eval_theta_q_f(q_f2) * Fq_representor_norms[q];
@@ -212,8 +209,8 @@ public class RBSystem extends RBBase {
 			}
 		}
 
-		for (int q_f = 0; q_f < get_Q_f(); q_f++) {
-			for (int q_a = 0; q_a < get_Q_a(); q_a++) {
+		for (int q_f = 0; q_f < getQf(); q_f++) {
+			for (int q_a = 0; q_a < getQa(); q_a++) {
 				for (int i = 0; i < N; i++) {
 					double delta = 2.;
 					residual_norm_sq += get_soln_coeff(i) * delta
@@ -224,8 +221,8 @@ public class RBSystem extends RBBase {
 		}
 
 		q = 0;
-		for (int q_a1 = 0; q_a1 < get_Q_a(); q_a1++) {
-			for (int q_a2 = q_a1; q_a2 < get_Q_a(); q_a2++) {
+		for (int q_a1 = 0; q_a1 < getQa(); q_a1++) {
+			for (int q_a2 = q_a1; q_a2 < getQa(); q_a2++) {
 				double delta = (q_a1 == q_a2) ? 1. : 2.;
 
 				for (int i = 0; i < N; i++) {
@@ -274,9 +271,9 @@ public class RBSystem extends RBBase {
 		try {
 			Object arglist[] = new Object[2];
 			arglist[0] = new Integer(q);
-			arglist[1] = current_parameters.getArray();
+			arglist[1] = getParams().getCurrent();
 
-			Object theta_obj = meth.invoke(mTheta, arglist);
+			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
 			theta_val = (Double) theta_obj;
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
@@ -312,9 +309,9 @@ public class RBSystem extends RBBase {
 			Object arglist[] = new Object[3];
 			arglist[0] = new Integer(n);
 			arglist[1] = new Integer(q_l);
-			arglist[2] = current_parameters.getArray();
+			arglist[2] = getParams().getCurrent();
 
-			Object theta_obj = meth.invoke(mTheta, arglist);
+			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
 			theta_val = (Double) theta_obj;
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
@@ -330,34 +327,26 @@ public class RBSystem extends RBBase {
 		return calN;
 	}
 
-	public double get_dt() {
-		return 0.;
-	}
+//	public double get_dt() {
+//		return 0.;
+//	}
 
 	public int get_K() {
 		return 1;
 	}
 
-	public int get_mfield() {
-		return mfield;
+	/**
+	 * Number of output value fields.
+	 * 
+	 * Zero for no visualization.
+	 * @return The number of output fields
+	 */
+	public int getNumFields() {
+		return fNumFields;
 	}
 
 	public int get_N() {
 		return current_N;
-	}
-
-	/**
-	 * @return The number of basis functions in the system.
-	 */
-	public int getNBF() {
-		return n_bfs;
-	}
-
-	/**
-	 * @return the number of output functionals
-	 */
-	public int get_n_outputs() {
-		return mN_outputs;
 	}
 
 	public int get_nt() {
@@ -365,48 +354,31 @@ public class RBSystem extends RBBase {
 	}
 
 	/**
+	 * TODO: if all affine_functions implement the IAffineFunctions interface,
+	 * just call the getQf method of the local instance.
+	 * 
 	 * @return Q_f, the number of term in the affine expansion of the right-hand
 	 *         side
 	 */
-	public int get_Q_f() {
-		return mQ_f;
+	public int getQf() {
+		return fQf;
 	}
 
 	/**
+	 * TODO: if all affine_functions implement the IAffineFunctions interface,
+	 * just call the getQl method of the local instance.
+	 * 
 	 * @param output_index
 	 *            The index of the output we are interested in
 	 * @return the number of terms in the affine expansion of the specified
 	 *         output
 	 */
-	protected int get_Q_l(int output_index) {
-		Method meth;
-
-		try {
-			// Get a reference to get_Q_l, which takes an int argument
-			Class<?> partypes[] = new Class[1];
-			partypes[0] = Integer.TYPE;
-			meth = mAffineFnsClass.getMethod("get_Q_l", partypes);
-		} catch (NoSuchMethodException nsme) {
-			throw new RuntimeException("getMethod for get_Q_l failed", nsme);
-		}
-
-		Integer Q_l;
-		try {
-			Object arglist[] = new Object[1];
-			arglist[0] = new Integer(output_index);
-			Object Q_l_obj = meth.invoke(mTheta, arglist);
-			Q_l = (Integer) Q_l_obj;
-		} catch (IllegalAccessException iae) {
-			throw new RuntimeException(iae);
-		} catch (InvocationTargetException ite) {
-			throw new RuntimeException(ite.getCause());
-		}
-
-		return Q_l.intValue();
+	protected int getQl(int output_index) {
+		return Ql_values[output_index];
 	}
 
-	public int get_Q_uL() {
-		return mQ_uL;
+	public int getQuL() {
+		return fQuL;
 	}
 
 	public double get_RB_output(int n_output, boolean Rpart) {
@@ -444,9 +416,9 @@ public class RBSystem extends RBBase {
 		Double SCM_val;
 		try {
 			Object arglist[] = new Object[1];
-			arglist[0] = current_parameters.getArray();
+			arglist[0] = getParams().getCurrent();
 
-			Object SCM_obj = meth.invoke(mTheta, arglist);
+			Object SCM_obj = meth.invoke(affineFunctionsInstance, arglist);
 			SCM_val = (Double) SCM_obj;
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
@@ -462,7 +434,7 @@ public class RBSystem extends RBBase {
 	 */
 	public double get_SCM_lower_bound() {
 		if (mRbScmSystem != null) {
-			mRbScmSystem.setCurrentParameters(getCurrentParameters());
+			mRbScmSystem.setParams(getParams());
 			return mRbScmSystem.get_SCM_LB();
 		} else {
 			return get_SCM_from_AffineFunction();
@@ -475,7 +447,7 @@ public class RBSystem extends RBBase {
 	double get_SCM_upper_bound() {
 
 		if (mRbScmSystem != null) {
-			mRbScmSystem.setCurrentParameters(getCurrentParameters());
+			mRbScmSystem.setParams(getParams());
 			return mRbScmSystem.get_SCM_UB();
 		} else {
 			return get_SCM_from_AffineFunction();
@@ -492,8 +464,8 @@ public class RBSystem extends RBBase {
 	public float[][][] get_sweep_truth_sol() {
 		int N = RB_sweep_solution[0][0].length;
 		int numSweep = RB_sweep_solution.length;
-		float[][][] truth_sol = new float[get_mfield()][1][calN * numSweep];
-		for (int ifn = 0; ifn < get_mfield(); ifn++) {
+		float[][][] truth_sol = new float[getNumFields()][1][calN * numSweep];
+		for (int ifn = 0; ifn < getNumFields(); ifn++) {
 			double tmpval;
 			for (int iSweep = 0; iSweep < numSweep; iSweep++)
 				for (int i = 0; i < calN; i++) {
@@ -528,8 +500,7 @@ public class RBSystem extends RBBase {
 			Class<?> partypes[] = new Class[1];
 			partypes[0] = double[].class;
 
-			meth = mAffineFnsClass.getMethod("get_local_transformation",
-					partypes);
+			meth = mAffineFnsClass.getMethod("get_local_transformation", partypes);
 		} catch (NoSuchMethodException nsme) {
 			// throw new RuntimeException("getMethod for evaluateF failed",
 			// nsme);
@@ -540,9 +511,9 @@ public class RBSystem extends RBBase {
 		if (isOK) {
 			try {
 				Object arglist[] = new Object[1];
-				arglist[0] = current_parameters.getArray();
+				arglist[0] = getParams().getCurrent();
 
-				Object theta_obj = meth.invoke(mTheta, arglist);
+				Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
 				T_vector = (float[][]) theta_obj;
 			} catch (IllegalAccessException iae) {
 				throw new RuntimeException(iae);
@@ -586,11 +557,11 @@ public class RBSystem extends RBBase {
 	 */
 	public float[][][] get_truth_sol() {
 		int N = RB_solution.getDimension();
-		float[][][] truth_sol = new float[get_mfield()][1][calN];
+		float[][][] truth_sol = new float[getNumFields()][1][calN];
 		/*
 		 * Assign solutions of each field
 		 */
-		for (int ifn = 0; ifn < get_mfield(); ifn++) {
+		for (int ifn = 0; ifn < getNumFields(); ifn++) {
 			double tmpval;
 			/*
 			 * i is the node number of the grid
@@ -609,20 +580,160 @@ public class RBSystem extends RBBase {
 	}
 
 	/**
+	 * @return The number of basis functions in the system.
+	 */
+	public int getNBF() {
+		return n_bfs;
+	}
+
+	/**
+	 * @return the number of output functionals
+	 */
+	public int getNumOutputs() {
+		return fNumOutputs;
+	}
+
+	/**
 	 * Resize the vectors that store solution data and output data.
 	 */
 	protected void initialize_data_vectors() {
 		// Also, resize RB_outputs and RB_output_error_error_bounds arrays
-		RB_outputs = new double[get_n_outputs()];
-		RB_output_error_bounds = new double[get_n_outputs()];
+		RB_outputs = new double[getNumOutputs()];
+		RB_output_error_bounds = new double[getNumOutputs()];
 	}
 
 	/**
-	 * @param directory_name
-	 *            The URL of the directory containing the Offline data Read in
-	 *            the Offline data to initialize this RBSystem.
+	 * Loads the offline data for the RBSystem
+	 * 
+	 * @param m
+	 * @throws IOException
 	 */
-	public void loadOfflineData(AModelManager m) throws IOException {
+	public final void loadOfflineData(AModelManager m) throws IOException {
+		if ("rbappmit".equals(m.getModelType())) {
+			loadOfflineData_rbappmit(m);
+		} else {
+			loadOfflineDataJRB(m);
+		}
+		initialize_data_vectors();
+	}
+
+	protected void loadOfflineDataJRB(AModelManager m) throws IOException {
+
+		MathObjectReader mr = m.getMathObjReader();
+		String filename;
+
+		/*
+		 * Get output dual norms
+		 */
+		RB_output_vectors = new RealVector[fNumOutputs][];
+		output_dual_norms = new double[fNumOutputs][];
+		for (int i = 0; i < fNumOutputs; i++) {
+			filename = "output_" + String.format("%03d", i) + "_dual_norms.bin";
+
+			output_dual_norms[i] = mr.readRawDoubleVector(m.getInStream(filename));
+			// int Q_l_hat = getQl(i) * (getQl(i) + 1) / 2;
+			// output_dual_norms[i] = new double[Q_l_hat];
+			// for (int q = 0; q < Q_l_hat; q++) {
+			// output_dual_norms[i][q] =
+			// Double.parseDouble(dual_norms_tokens[q]);
+			// }
+
+			RB_output_vectors[i] = new RealVector[Ql_values[i]];
+			for (int q_l = 0; q_l < Ql_values[i]; q_l++) {
+				filename = "output_" + String.format("%03d", i) + "_"
+						+ String.format("%03d", q_l) + ".bin";
+
+				RB_output_vectors[i][q_l] = mr.readVector(m.getInStream(filename));
+			}
+		}
+		Log.d(DEBUG_TAG, "Finished reading output data");
+
+		/*
+		 * Read in the F_q vectors
+		 */
+		RB_F_q_vector = new RealVector[fQf];
+		for (int q_f = 0; q_f < fQf; q_f++) {
+			filename = "RB_F_" + String.format("%03d", q_f) + ".bin";
+			RB_F_q_vector[q_f] = mr.readVector(m.getInStream(filename));
+		}
+		Log.d(DEBUG_TAG, "Finished reading RB_F_q data");
+
+		/*
+		 * Read in the A_q matrices
+		 */
+		RB_A_q_vector = new RealMatrix[getQa()];
+		for (int q_a = 0; q_a < getQa(); q_a++) {
+			filename = "RB_A_" + String.format("%03d", q_a) + ".bin";
+			RB_A_q_vector[q_a] = mr.readMatrix(m.getInStream(filename));
+		}
+		Log.d(DEBUG_TAG, "Finished reading RB_A_q data");
+
+		/*
+		 * Read in F_q representor norm data Contains the upper triangular
+		 * entries of the pairwise norm matrix
+		 */
+		Fq_representor_norms = mr.readRawDoubleVector(m.getInStream("Fq_norms.bin"));
+
+		// Read in Fq_Aq representor norm data
+
+		// Declare the array
+		Fq_Aq_representor_norms = new double[fQf][getQa()][n_bfs];
+		for (int q_a = 0; q_a < getQa(); q_a++) {
+			for (int q_f = 0; q_f < fQf; q_f++) {
+				filename = "Fq_Aq_" + String.format("%03d", q_f) + "_"
+						+ String.format("%03d", q_a) + ".bin";
+				Fq_Aq_representor_norms[q_f][q_a] = mr.readRawDoubleVector(m.getInStream(filename));
+			}
+		}
+		Log.d(DEBUG_TAG, "Finished reading Fq_Aq_norms.dat");
+
+		/*
+		 * Read in Aq_Aq representor norm data
+		 */
+		int triuQa = getQa() * (getQa() + 1) / 2;
+		Aq_Aq_representor_norms = new double[triuQa][][];
+		for (int i = 0; i < getQa(); i++) {
+			for (int j = 0; j < getQa() - i; j++) {
+				filename = "Aq_Aq_" + String.format("%03d", i) + "_"
+						+ String.format("%03d", j) + "_norms.bin";
+				Aq_Aq_representor_norms[j + getQa() * i] = mr.readRawDoubleMatrix(m.getInStream(filename));
+			}
+		}
+		Log.d(DEBUG_TAG, "Finished reading Aq_Aq_norms.dat");
+
+		/*
+		 * Reading uL data, if some is present
+		 */
+		if (fQuL > 0) {
+			uL_vector = new float[fQuL][];
+			for (int q_uL = 0; q_uL < fQuL; q_uL++) {
+				filename = "uL_" + String.format("%03d", q_uL) + ".bin";
+				uL_vector[q_uL] = mr.readRawFloatVector(m.getInStream(filename));
+			}
+			Log.d(DEBUG_TAG, "Finished reading uL.dat");
+		}
+
+		/*
+		 *  Read in Z data
+		 */
+		if (fNumFields > 0) {
+			Z_vector = new float[fNumFields][n_bfs][];
+			for (int imf = 0; imf < fNumFields; imf++)
+				for (int inbfs = 0; inbfs < n_bfs; inbfs++) {
+					filename = "Z_" + String.format("%03d", imf) + "_"
+							+ String.format("%03d", inbfs) + ".bin";
+					Z_vector[imf][inbfs] = mr.readRawFloatVector(m.getInStream(filename));
+				}
+			Log.d(DEBUG_TAG, "Finished reading Z data");
+		}
+	}
+
+	/**
+	 * 
+	 * @param m
+	 * @throws IOException
+	 */
+	protected void loadOfflineData_rbappmit(AModelManager m) throws IOException {
 
 		{
 			BufferedReader reader = m.getBufReader("n_bfs.dat");
@@ -635,14 +746,27 @@ public class RBSystem extends RBBase {
 			Log.d(DEBUG_TAG, "Finished reading n_bfs.dat");
 		}
 
+		{
+			if (getNumFields() > 0) {
+				BufferedReader reader = m.getBufReader("calN.dat");
+
+				String line = reader.readLine();
+
+				calN = Integer.parseInt(line);
+				reader.close();
+				reader = null;
+			}
+			Log.d(DEBUG_TAG, "Finished reading calN.dat");
+		}
+
 		// Read in output data
-		if (get_n_outputs() > 0) {
+		if (getNumOutputs() > 0) {
 			// Get output dual norms
 			{
-				RB_output_vectors = new RealVector[get_n_outputs()][];
-				output_dual_norms = new double[get_n_outputs()][];
+				RB_output_vectors = new RealVector[getNumOutputs()][];
+				output_dual_norms = new double[getNumOutputs()][];
 				String[] dual_norms_tokens;
-				for (int i = 0; i < get_n_outputs(); i++) {
+				for (int i = 0; i < getNumOutputs(); i++) {
 					{
 						BufferedReader reader = m.getBufReader("output_"
 								+ String.format("%03d", i) + "_dual_norms.dat");
@@ -654,17 +778,16 @@ public class RBSystem extends RBBase {
 					}
 
 					{
-						int Q_l_hat = get_Q_l(i) * (get_Q_l(i) + 1) / 2;
+						int Q_l_hat = getQl(i) * (getQl(i) + 1) / 2;
 						output_dual_norms[i] = new double[Q_l_hat];
 						for (int q = 0; q < Q_l_hat; q++) {
-							output_dual_norms[i][q] = Double
-									.parseDouble(dual_norms_tokens[q]);
+							output_dual_norms[i][q] = Double.parseDouble(dual_norms_tokens[q]);
 						}
 					}
 
-					RB_output_vectors[i] = new RealVector[get_Q_l(i)];
+					RB_output_vectors[i] = new RealVector[getQl(i)];
 					String[] output_i_tokens;
-					for (int q_l = 0; q_l < get_Q_l(i); q_l++) {
+					for (int q_l = 0; q_l < getQl(i); q_l++) {
 						// Now read in the RB output vectors
 						{
 							BufferedReader reader_i = m.getBufReader("output_"
@@ -678,8 +801,7 @@ public class RBSystem extends RBBase {
 
 						RB_output_vectors[i][q_l] = new ArrayRealVector(n_bfs);
 						for (int j = 0; j < n_bfs; j++) {
-							RB_output_vectors[i][q_l].setEntry(j,
-									Double.parseDouble(output_i_tokens[j]));
+							RB_output_vectors[i][q_l].setEntry(j, Double.parseDouble(output_i_tokens[j]));
 						}
 
 					}
@@ -691,9 +813,9 @@ public class RBSystem extends RBBase {
 
 		// Read in the F_q vectors
 		{
-			RB_F_q_vector = new RealVector[get_Q_f()];
+			RB_F_q_vector = new RealVector[getQf()];
 			String[] tokens;
-			for (int q_f = 0; q_f < get_Q_f(); q_f++) {
+			for (int q_f = 0; q_f < getQf(); q_f++) {
 				{
 					BufferedReader reader = m.getBufReader("RB_F_"
 							+ String.format("%03d", q_f) + ".dat");
@@ -708,8 +830,7 @@ public class RBSystem extends RBBase {
 
 				// Fill the vector
 				for (int i = 0; i < n_bfs; i++) {
-					RB_F_q_vector[q_f].setEntry(i,
-							Double.parseDouble(tokens[i]));
+					RB_F_q_vector[q_f].setEntry(i, Double.parseDouble(tokens[i]));
 				}
 
 			}
@@ -718,9 +839,9 @@ public class RBSystem extends RBBase {
 
 		// Read in the A_q matrices
 		{
-			RB_A_q_vector = new RealMatrix[get_Q_a()];
+			RB_A_q_vector = new RealMatrix[getQa()];
 			String[] tokens;
-			for (int q_a = 0; q_a < get_Q_a(); q_a++) {
+			for (int q_a = 0; q_a < getQa(); q_a++) {
 				{
 					BufferedReader reader = m.getBufReader("RB_A_"
 							+ String.format("%03d", q_a) + ".dat");
@@ -737,8 +858,7 @@ public class RBSystem extends RBBase {
 				int count = 0;
 				for (int i = 0; i < n_bfs; i++)
 					for (int j = 0; j < n_bfs; j++) {
-						RB_A_q_vector[q_a].setEntry(i, j,
-								Double.parseDouble(tokens[count]));
+						RB_A_q_vector[q_a].setEntry(i, j, Double.parseDouble(tokens[count]));
 						count++;
 					}
 
@@ -756,7 +876,7 @@ public class RBSystem extends RBBase {
 			String[] tokens = line.split(" ");
 
 			// Declare the array
-			int Q_f_hat = get_Q_f() * (get_Q_f() + 1) / 2;
+			int Q_f_hat = getQf() * (getQf() + 1) / 2;
 			Fq_representor_norms = new double[Q_f_hat];
 
 			// Fill it
@@ -776,64 +896,37 @@ public class RBSystem extends RBBase {
 			String[] tokens = line.split(" ");
 
 			// Declare the array
-			Fq_Aq_representor_norms = new double[get_Q_f()][get_Q_a()][n_bfs];
+			Fq_Aq_representor_norms = new double[getQf()][getQa()][n_bfs];
 
 			// Fill it
 			int count = 0;
-			for (int q_f = 0; q_f < get_Q_f(); q_f++)
-				for (int q_a = 0; q_a < get_Q_a(); q_a++)
+			for (int q_f = 0; q_f < getQf(); q_f++)
+				for (int q_a = 0; q_a < getQa(); q_a++)
 					for (int i = 0; i < n_bfs; i++) {
-						Fq_Aq_representor_norms[q_f][q_a][i] = Double
-								.parseDouble(tokens[count]);
+						Fq_Aq_representor_norms[q_f][q_a][i] = Double.parseDouble(tokens[count]);
 						count++;
 					}
 
 			Log.d(DEBUG_TAG, "Finished reading Fq_Aq_norms.dat");
 		}
 
-		/*
-		 * // Read in Aq_Aq representor norm data { InputStreamReader isr;
-		 * String dataString = directory_name + "/Aq_Aq_norms.dat";
-		 * 
-		 * if(!isAssetFile) { HttpGet request = new HttpGet(dataString);
-		 * HttpResponse response = client.execute(request); isr = new
-		 * InputStreamReader(response.getEntity() .getContent()); } else { //
-		 * Read from assets isr = new InputStreamReader(
-		 * context.getAssets().open(dataString)); } BufferedReader
-		 * BufferedReader reader = new BufferedReader(isr,buffer_size);
-		 * 
-		 * String String line = reader.readLine(); String[] tokens =
-		 * line.split(" ");
-		 * 
-		 * // Declare the array int Q_a_hat = get_Q_a() * (get_Q_a() + 1) / 2;
-		 * Aq_Aq_representor_norms = new double[Q_a_hat][n_bfs][n_bfs];
-		 * 
-		 * // Fill it int count = 0; for (int i = 0; i < Q_a_hat; i++) for (int
-		 * j = 0; j < n_bfs; j++) for (int l = 0; l < n_bfs; l++) {
-		 * Aq_Aq_representor_norms[i][j][l] = Double
-		 * .parseDouble(tokens[count]); count++; }
-		 * 
-		 * reader.close(); reader = null; }
-		 */
-
 		MathObjectReader mr = m.getMathObjReader();
 
 		// Read in Aq_Aq representor norm data
 		{
 			// Declare the array
-			int Q_a_hat = get_Q_a() * (get_Q_a() + 1) / 2;
+			int Q_a_hat = getQa() * (getQa() + 1) / 2;
 			Aq_Aq_representor_norms = new double[Q_a_hat][][];
 
 			int count = 0;
 			String file;
-			for (int i = 0; i < get_Q_a(); i++) {
-				for (int j = i; j < get_Q_a(); j++) {
+			for (int i = 0; i < getQa(); i++) {
+				for (int j = i; j < getQa(); j++) {
 					file = "Aq_Aq_" + String.format("%03d", i) + "_"
 							+ String.format("%03d", j) + "_norms.bin";
 					InputStream in = m.getInStream(file);
 					try {
-						Aq_Aq_representor_norms[count] = mr
-								.readRawDoubleMatrix(in, n_bfs, n_bfs);
+						Aq_Aq_representor_norms[count] = mr.readRawDoubleMatrix(in, n_bfs, n_bfs);
 					} finally {
 						in.close();
 					}
@@ -843,26 +936,12 @@ public class RBSystem extends RBBase {
 			Log.d(DEBUG_TAG, "Finished reading Aq_Aq_norms.dat");
 		}
 
-		// Read calN number
-		{
-			if (get_mfield() > 0) {
-				BufferedReader reader = m.getBufReader("calN.dat");
-
-				String line = reader.readLine();
-
-				calN = Integer.parseInt(line);
-				reader.close();
-				reader = null;
-			}
-			Log.d(DEBUG_TAG, "Finished reading calN.dat");
-		}
-
 		// Reading uL data
 		{
-			if (get_Q_uL() > 0) {
-				uL_vector = new float[get_Q_uL()][];
+			if (getQuL() > 0) {
+				uL_vector = new float[getQuL()][];
 				InputStream in;
-				for (int q_uL = 0; q_uL < get_Q_uL(); q_uL++) {
+				for (int q_uL = 0; q_uL < getQuL(); q_uL++) {
 					in = m.getInStream("uL_" + String.format("%03d", q_uL)
 							+ ".bin");
 					try {
@@ -877,7 +956,7 @@ public class RBSystem extends RBBase {
 
 		// Read in Z data
 		{
-			int mf = get_mfield();
+			int mf = getNumFields();
 			if (mf > 0) {
 				Z_vector = new float[mf][n_bfs][];
 				InputStream in;
@@ -886,8 +965,7 @@ public class RBSystem extends RBBase {
 						in = m.getInStream("Z_" + String.format("%03d", imf)
 								+ "_" + String.format("%03d", inbfs) + ".bin");
 						try {
-							Z_vector[imf][inbfs] = mr.readRawFloatVector(in,
-									calN);
+							Z_vector[imf][inbfs] = mr.readRawFloatVector(in, calN);
 						} finally {
 							in.close();
 						}
@@ -897,51 +975,6 @@ public class RBSystem extends RBBase {
 			Log.d(DEBUG_TAG, "Finished reading Z.dat");
 		}
 
-		initialize_data_vectors();
-	}
-
-	protected void readConfigurationJRB(AModelManager m) {
-		// TODO: read stuff!
-	}
-	
-	protected void readConfigurationRBAppMIT(GetPot infile) {
-		Log.d(DEBUG_TAG, "Entered parse_parameters_file, filename = "
-				+ Const.parameters_filename);
-
-		int n_parameters = infile.call("n_parameters", 1);
-		Log.d(DEBUG_TAG, "n_parameters = " + n_parameters);
-
-		min_parameter = new Parameter(n_parameters);
-		max_parameter = new Parameter(n_parameters);
-		for (int i = 0; i < n_parameters; i++) {
-			// Read in the min/max for the i^th parameter
-			String min_string = new String("mu" + i + "_min");
-			double mu_i_min = infile.call(min_string, 0.);
-			min_parameter.setEntry(i, mu_i_min);
-
-			String max_string = new String("mu" + i + "_max");
-			double mu_i_max = infile.call(max_string, 0.);
-			max_parameter.setEntry(i, mu_i_max);
-		}
-
-		Log.d(DEBUG_TAG, "RBBase parameters from " + Const.parameters_filename
-				+ ":");
-		for (int i = 0; i < n_parameters; i++) {
-			Log.d(DEBUG_TAG, "Parameter " + i + ": Min = " + getParameterMin(i)
-					+ ", Max = " + getParameterMax(i));
-		}
-
-		mfield = infile.call("n_field", 1);
-		Log.d(DEBUG_TAG, "n_field = " + mfield);
-
-		int return_rel_error_bound_in = infile
-				.call("return_rel_error_bound", 1);
-		return_rel_error_bound = (return_rel_error_bound_in != 0);
-
-		Log.d(DEBUG_TAG, "RBSystem parameters from "
-				+ Const.parameters_filename + ":");
-		Log.d(DEBUG_TAG, "return a relative error bound from RB_solve? "
-				+ return_rel_error_bound);
 	}
 
 	/**
@@ -953,38 +986,32 @@ public class RBSystem extends RBBase {
 		current_N = N;
 
 		if (N > getNBF()) {
-			throw new RuntimeException(
-					"ERROR: N cannot be larger than the number "
-							+ "of basis functions in RB_solve");
+			throw new RuntimeException("ERROR: N cannot be larger than the number "
+					+ "of basis functions in RB_solve");
 		}
 		if (N == 0) {
-			throw new RuntimeException(
-					"ERROR: N must be greater than 0 in RB_solve");
+			throw new RuntimeException("ERROR: N must be greater than 0 in RB_solve");
 		}
 
 		// Assemble the RB system
 		RealMatrix RB_system_matrix_N = new Array2DRowRealMatrix(N, N);
 
-		for (int q_a = 0; q_a < get_Q_a(); q_a++) {
-			RB_system_matrix_N = RB_system_matrix_N.add(RB_A_q_vector[q_a]
-					.getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(
-							eval_theta_q_a(q_a)));
+		for (int q_a = 0; q_a < getQa(); q_a++) {
+			RB_system_matrix_N = RB_system_matrix_N.add(RB_A_q_vector[q_a].getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(eval_theta_q_a(q_a)));
 		}
 
 		// Assemble the RB rhs
 		RealVector RB_rhs_N = new ArrayRealVector(N);
 
-		for (int q_f = 0; q_f < get_Q_f(); q_f++) {
+		for (int q_f = 0; q_f < getQf(); q_f++) {
 			// Note getSubVector takes an initial index and the number of
 			// entries
 			// i.e. the interface is a bit different to getSubMatrix
-			RB_rhs_N = RB_rhs_N.add(RB_F_q_vector[q_f].getSubVector(0, N)
-					.mapMultiply(eval_theta_q_f(q_f)));
+			RB_rhs_N = RB_rhs_N.add(RB_F_q_vector[q_f].getSubVector(0, N).mapMultiply(eval_theta_q_f(q_f)));
 		}
 
 		// Solve the linear system
-		DecompositionSolver solver = new LUDecompositionImpl(RB_system_matrix_N)
-				.getSolver();
+		DecompositionSolver solver = new LUDecompositionImpl(RB_system_matrix_N).getSolver();
 		RB_solution = solver.solve(RB_rhs_N);
 
 		// Evaluate the dual norm of the residual for RB_solution_vector
@@ -1006,12 +1033,11 @@ public class RBSystem extends RBBase {
 
 		// Now compute the outputs and associated errors
 		RealVector RB_output_vector_N = new ArrayRealVector(N);
-		for (int i = 0; i < get_n_outputs(); i++) {
+		for (int i = 0; i < getNumOutputs(); i++) {
 			RB_outputs[i] = 0.;
 
-			for (int q_l = 0; q_l < get_Q_l(i); q_l++) {
-				RB_output_vector_N = RB_output_vectors[i][q_l].getSubVector(0,
-						N);
+			for (int q_l = 0; q_l < getQl(i); q_l++) {
+				RB_output_vector_N = RB_output_vectors[i][q_l].getSubVector(0, N);
 				RB_outputs[i] += eval_theta_q_l(i, q_l)
 						* RB_solution.dotProduct(RB_output_vector_N);
 			}
@@ -1019,77 +1045,95 @@ public class RBSystem extends RBBase {
 					* abs_error_bound;
 		}
 
-		return (return_rel_error_bound ? abs_error_bound / RB_solution_norm
-				: abs_error_bound);
+		return (return_rel_error_bound ? abs_error_bound / RB_solution_norm : abs_error_bound);
 	}
 
-	/**
-	 * Set the n_outputs variable from the mTheta object.
-	 */
-	public void read_in_n_outputs() {
-		Method meth;
+	@Override
+	protected void readConfigurationJRB(AModelManager m) {
+		super.readConfigurationJRB(m);
+		// Number of basis functions
+		n_bfs = Integer.parseInt(m.getModelXMLAttribute("num_basisfcn", "rb_model"));
+		// Number of output functionals
+		fNumOutputs = Integer.parseInt(m.getModelXMLAttribute("outputs", "rb_model"));
 
+		Ql_values = affineFunctionsInstance.getQl();
+		fQf = affineFunctionsInstance.getQf();
+
+		fNumFields = Integer.parseInt(m.getModelXMLAttribute("fields", "rb_model"));
+
+		calN = Integer.parseInt(m.getModelXMLTagValue("geometry.nodes"));
+
+		if (affineFunctionsInstance instanceof IWithuL) {
+			fQuL = ((IWithuL) affineFunctionsInstance).getQuL();
+		}
+	}
+
+	@Override
+	protected void readConfigurationRBAppMIT(GetPot infile) {
+		super.readConfigurationRBAppMIT(infile);
+		/*
+		 * Read config values from the input.in file
+		 */
+		Log.d(DEBUG_TAG, "Entered parse_parameters_file, filename = "
+				+ Const.parameters_filename);
+
+		fNumFields = infile.call("n_field", 1);
+		Log.d(DEBUG_TAG, "n_field = " + fNumFields);
+
+		int return_rel_error_bound_in = infile.call("return_rel_error_bound", 1);
+		return_rel_error_bound = (return_rel_error_bound_in != 0);
+
+		Log.d(DEBUG_TAG, "return a relative error bound from RB_solve? "
+				+ return_rel_error_bound);
+
+		/*
+		 * Read output number and affine expansion sizes for output functionals
+		 */
+		Method meth;
 		try {
 			// Get a reference to get_n_L_functions, which does not
 			// take any arguments
-			meth = mAffineFnsClass
-					.getMethod("get_n_outputs", (Class<?>[]) null);
-		} catch (NoSuchMethodException nsme) {
-			throw new RuntimeException("getMethod for get_n_outputs failed",
-					nsme);
-		}
+			meth = mAffineFnsClass.getMethod("get_n_outputs", (Class<?>[]) null);
+			Object n_outputs_obj = meth.invoke(affineFunctionsInstance, (Object[]) null);
+			Integer n_outputs = (Integer) n_outputs_obj;
+			fNumOutputs = n_outputs.intValue();
+			Log.d(DEBUG_TAG, "n_outputs = " + fNumOutputs);
 
-		Integer n_outputs;
-		try {
-			Object n_outputs_obj = meth.invoke(mTheta, (Object[]) null);
-			n_outputs = (Integer) n_outputs_obj;
+			/*
+			 * Read all Ql values into array and be done with it
+			 */
+			Class<?> partypes[] = new Class[1];
+			partypes[0] = Integer.TYPE;
+			meth = mAffineFnsClass.getMethod("get_Q_l", partypes);
+			Ql_values = new int[fNumOutputs];
+			Object arglist[] = new Object[1];
+			for (int i = 0; i < fNumOutputs; i++) {
+				arglist[0] = i;// new Integer(output_index);
+				Ql_values[i] = (Integer) meth.invoke(affineFunctionsInstance, arglist);
+			}
+
+			/*
+			 * Read Qf value
+			 */
+			meth = mAffineFnsClass.getMethod("get_n_F_functions", (Class<?>[]) null);
+			fQf = (Integer) meth.invoke(affineFunctionsInstance, (Object[]) null);
+			Log.d(DEBUG_TAG, "Q_f = " + fQf);
+		} catch (NoSuchMethodException nsme) {
+			throw new RuntimeException("getMethod failed: " + nsme.getMessage(), nsme);
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
 		} catch (InvocationTargetException ite) {
 			throw new RuntimeException(ite.getCause());
 		}
 
-		mN_outputs = n_outputs.intValue();
-	}
-
-	/**
-	 * Set the Q_f variable from the mTheta object.
-	 */
-	public void read_in_Q_f() {
-		Method meth;
-
-		try {
-			// Get a reference to get_n_F_functions, which does not
-			// take any arguments
-			meth = mAffineFnsClass.getMethod("get_n_F_functions",
-					(Class<?>[]) null);
-		} catch (NoSuchMethodException nsme) {
-			throw new RuntimeException(
-					"getMethod for get_n_F_functions failed", nsme);
-		}
-
-		Integer Q_f;
-		try {
-			Object Q_f_obj = meth.invoke(mTheta, (Object[]) null);
-			Q_f = (Integer) Q_f_obj;
-		} catch (IllegalAccessException iae) {
-			throw new RuntimeException(iae);
-		} catch (InvocationTargetException ite) {
-			throw new RuntimeException(ite.getCause());
-		}
-
-		mQ_f = Q_f.intValue();
-	}
-
-	public void read_in_Q_uL() {
-		Method meth;
-
+		/*
+		 * Extra for QuL, as it checks via exception if function is there
+		 */
 		boolean noQ_uLdefined = false;
 		try {
 			// Get a reference to get_n_A_functions, which does not
 			// take any arguments
-			meth = mAffineFnsClass.getMethod("get_n_uL_functions",
-					(Class<?>[]) null);
+			meth = mAffineFnsClass.getMethod("get_n_uL_functions", (Class<?>[]) null);
 		} catch (NoSuchMethodException nsme) {
 			// throw new
 			// RuntimeException("getMethod for get_n_uL_functions failed",
@@ -1099,11 +1143,11 @@ public class RBSystem extends RBBase {
 		}
 
 		if (noQ_uLdefined)
-			mQ_uL = 0;
+			fQuL = 0;
 		else {
 			Integer Q_uL;
 			try {
-				Object Q_uL_obj = meth.invoke(mTheta, (Object[]) null);
+				Object Q_uL_obj = meth.invoke(affineFunctionsInstance, (Object[]) null);
 				Q_uL = (Integer) Q_uL_obj;
 			} catch (IllegalAccessException iae) {
 				throw new RuntimeException(iae);
@@ -1111,7 +1155,7 @@ public class RBSystem extends RBBase {
 				throw new RuntimeException(ite.getCause());
 			}
 
-			mQ_uL = Q_uL.intValue();
+			fQuL = Q_uL.intValue();
 		}
 	}
 

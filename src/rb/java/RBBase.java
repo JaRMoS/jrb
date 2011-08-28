@@ -1,4 +1,5 @@
 package rb.java;
+
 //    rbAPPmit: An Android front-end for the Certified Reduced Basis Method
 //    Copyright (C) 2010 David J. Knezevic and Phuong Huynh
 //
@@ -25,46 +26,48 @@ import org.apache.commons.math.complex.Complex;
 import org.apache.commons.math.linear.ArrayFieldVector;
 import org.apache.commons.math.linear.FieldVector;
 
+import rb.java.affinefcn.IAffineFunctions;
 import rmcommon.Log;
+import rmcommon.Parameters;
 import rmcommon.io.AModelManager;
 
 // 
 // This class is modeled on the RBBase class in rbOOmit
 
 /**
- * Base class for RB and SCM systems, stores
- * the current parameter value, parameter ranges, 
- * as well as other data common to RBSystems and SCMSystems.
- *  
+ * Base class for RB and SCM systems, stores the current parameter value,
+ * parameter ranges, as well as other data common to RBSystems and SCMSystems.
+ * 
  * Changes made by
+ * 
  * @author Daniel Wirtz
  * @date Aug 28, 2011
- *
+ * 
  */
 public abstract class RBBase {
 
 	/**
-	 * Vector storing the current parameters.
+	 * The system's parameters object containing the parameter values and
+	 * descriptions
 	 */
-	public Parameter current_parameters;
+	private Parameters params;
 
+	/**
+	 * 
+	 */
 	public boolean isReal = true;
+
 	/**
 	 * The Class object for the affine functions class.
+	 * 
+	 * Implements the interface import rb.java.affinefcn.IAffineFunctions.
 	 */
-	public Class<?> mAffineFnsClass;
-
-	protected Parameter max_parameter;
-
-	/**
-	 * Parameters that define the corners of \calD.
-	 */
-	protected Parameter min_parameter;
+	public Class<IAffineFunctions> mAffineFnsClass;
 
 	/**
 	 * The number of terms in the affine expansion of the bilinear form
 	 */
-	private int mQ_a;
+	private int fQa;
 
 	/**
 	 * The member object that defines the parameter-dependent functions for the
@@ -72,7 +75,7 @@ public abstract class RBBase {
 	 * to access this object at runtime, hence we use a ClassLoader and
 	 * reflection in order to call the relevant functions.
 	 */
-	public Object mTheta;
+	public IAffineFunctions affineFunctionsInstance;
 
 	public FieldVector<Complex> complex_eval_theta_q_a() {
 		Method meth;
@@ -87,9 +90,8 @@ public abstract class RBBase {
 
 			meth = mAffineFnsClass.getMethod("evaluateA_array", partypes);
 		} catch (NoSuchMethodException nsme) {
-			FieldVector<Complex> c = new ArrayFieldVector<Complex>(mQ_a,
-					new Complex(0d, 0d));
-			for (int i = 0; i < mQ_a; i++)
+			FieldVector<Complex> c = new ArrayFieldVector<Complex>(fQa, new Complex(0d, 0d));
+			for (int i = 0; i < fQa; i++)
 				c.setEntry(i, complex_eval_theta_q_a(i));
 			return c;
 			// throw new RuntimeException("getMethod for evaluateA failed",
@@ -99,18 +101,16 @@ public abstract class RBBase {
 		double[][] theta_val;
 		try {
 			Object arglist[] = new Object[1];
-			arglist[0] = current_parameters.getArray();
-
-			Object theta_obj = meth.invoke(mTheta, arglist);
+			arglist[0] = params.getCurrent();
+			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
 			theta_val = (double[][]) theta_obj;
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
 		} catch (InvocationTargetException ite) {
 			throw new RuntimeException(ite.getCause());
 		}
-		FieldVector<Complex> c = new ArrayFieldVector<Complex>(mQ_a,
-				new Complex(0d, 0d));
-		for (int i = 0; i < mQ_a; i++)
+		FieldVector<Complex> c = new ArrayFieldVector<Complex>(fQa, new Complex(0d, 0d));
+		for (int i = 0; i < fQa; i++)
 			c.setEntry(i, new Complex(theta_val[i][0], theta_val[i][1]));
 
 		return c;
@@ -138,21 +138,20 @@ public abstract class RBBase {
 		try {
 			Object arglist[] = new Object[3];
 			arglist[0] = new Integer(q);
-			arglist[1] = current_parameters.getArray();
+			arglist[1] = params.getCurrent();
 			arglist[2] = true;
 
-			Object theta_obj = meth.invoke(mTheta, arglist);
+			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
 			theta_val_r = (Double) theta_obj;
 
 			arglist[2] = false;
-			theta_val_i = (Double) meth.invoke(mTheta, arglist);
+			theta_val_i = (Double) meth.invoke(affineFunctionsInstance, arglist);
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
 		} catch (InvocationTargetException ite) {
 			throw new RuntimeException(ite.getCause());
 		}
-		Complex c = new Complex(theta_val_r.doubleValue(),
-				theta_val_i.doubleValue());
+		Complex c = new Complex(theta_val_r.doubleValue(), theta_val_i.doubleValue());
 
 		return c;
 	}
@@ -179,21 +178,20 @@ public abstract class RBBase {
 		try {
 			Object arglist[] = new Object[3];
 			arglist[0] = new Integer(q);
-			arglist[1] = current_parameters.getArray();
+			arglist[1] = params.getCurrent();
 			arglist[2] = true;
 
-			Object theta_obj = meth.invoke(mTheta, arglist);
+			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
 			theta_val_r = (Double) theta_obj;
 
 			arglist[2] = false;
-			theta_val_i = (Double) meth.invoke(mTheta, arglist);
+			theta_val_i = (Double) meth.invoke(affineFunctionsInstance, arglist);
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
 		} catch (InvocationTargetException ite) {
 			throw new RuntimeException(ite.getCause());
 		}
-		Complex c = new Complex(theta_val_r.doubleValue(),
-				theta_val_i.doubleValue());
+		Complex c = new Complex(theta_val_r.doubleValue(), theta_val_i.doubleValue());
 
 		return c;
 	}
@@ -222,21 +220,20 @@ public abstract class RBBase {
 			Object arglist[] = new Object[4];
 			arglist[0] = new Integer(n);
 			arglist[1] = new Integer(q);
-			arglist[2] = current_parameters.getArray();
+			arglist[2] = params.getCurrent();
 			arglist[3] = true;
 
-			Object theta_obj = meth.invoke(mTheta, arglist);
+			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
 			theta_val_r = (Double) theta_obj;
 
 			arglist[3] = false;
-			theta_val_i = (Double) meth.invoke(mTheta, arglist);
+			theta_val_i = (Double) meth.invoke(affineFunctionsInstance, arglist);
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
 		} catch (InvocationTargetException ite) {
 			throw new RuntimeException(ite.getCause());
 		}
-		Complex c = new Complex(theta_val_r.doubleValue(),
-				theta_val_i.doubleValue());
+		Complex c = new Complex(theta_val_r.doubleValue(), theta_val_i.doubleValue());
 
 		return c;
 	}
@@ -264,9 +261,9 @@ public abstract class RBBase {
 		try {
 			Object arglist[] = new Object[2];
 			arglist[0] = new Integer(q);
-			arglist[1] = current_parameters.getArray();
+			arglist[1] = params.getCurrent();
 
-			Object theta_obj = meth.invoke(mTheta, arglist);
+			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
 			theta_val = (Double) theta_obj;
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
@@ -278,64 +275,45 @@ public abstract class RBBase {
 	}
 
 	/**
-	 * Get the number of parameters. Value is determined by specifying the
-	 * parameter ranges.
+	 * Returns the system's parameters object
+	 * @return The current parameters
 	 */
-	public int get_n_params() throws InconsistentStateException {
-		int mu_min_size = min_parameter.getNEntries();
-		int mu_max_size = max_parameter.getNEntries();
-
-		if (mu_min_size != mu_max_size) {
-			throw new InconsistentStateException(
-					"Inconsistent Parameter sizes in get_n_params()");
-		} else {
-			return mu_min_size;
-		}
+	public Parameters getParams() {
+		return params;
 	}
-
+	
+	/**
+	 * Only used to set the current parameters object for an SCMSystem, as this also inherits from the RBBase class.
+	 * @param p
+	 */
+	protected void setParams(Parameters p) {
+		params = p;
+	}
+	
 	/**
 	 * @return Q_a, the number of term in the affine expansion of the bilinear
 	 *         form
 	 */
-	public int get_Q_a() {
-		return mQ_a;
+	public int getQa() {
+		return fQa;
 	}
 
 	/**
-	 * @return the current parameters
+	 * @return
 	 */
-	public Parameter getCurrentParameters() {
-		return current_parameters;
-	}
-
-	/**
-	 * Get maximum parameter value for i^th parameter.
-	 */
-	public double getParameterMax(int i) {
-		return max_parameter.getEntry(i);
-	}
-
-	/**
-	 * Get minimum parameter value for i^th parameter.
-	 */
-	public double getParameterMin(int i) {
-		return min_parameter.getEntry(i);
-	}
-
 	public boolean is_custom_mesh_transform() {
 		Method meth;
 
 		try {
 			Class<?> partypes[] = null;
-			meth = mAffineFnsClass.getMethod("is_custom_mesh_transform",
-					partypes);
+			meth = mAffineFnsClass.getMethod("is_custom_mesh_transform", partypes);
 		} catch (NoSuchMethodException nsme) {
 			return false;
 		}
 
 		try {
 			Object arglist[] = null;
-			Object theta_obj = meth.invoke(mTheta, arglist);
+			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
 			boolean val = (Boolean) theta_obj;
 			return val;
 		} catch (IllegalAccessException iae) {
@@ -345,6 +323,11 @@ public abstract class RBBase {
 		}
 	}
 
+	/**
+	 * @param mu
+	 * @param x
+	 * @return
+	 */
 	public float[] mesh_transform(double[] mu, float[] x) {
 		Method meth;
 
@@ -356,10 +339,9 @@ public abstract class RBBase {
 			partypes[0] = double[].class;
 			partypes[1] = float[].class;
 
-			meth =  mAffineFnsClass.getMethod("mesh_transform", partypes);
+			meth = mAffineFnsClass.getMethod("mesh_transform", partypes);
 		} catch (NoSuchMethodException nsme) {
-			throw new RuntimeException("getMethod for mesh_transform failed",
-					nsme);
+			throw new RuntimeException("getMethod for mesh_transform failed", nsme);
 		}
 
 		float[] xt;
@@ -368,7 +350,7 @@ public abstract class RBBase {
 			arglist[0] = mu;
 			arglist[1] = x;
 
-			Object theta_obj = meth.invoke(mTheta, arglist);
+			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
 			xt = (float[]) theta_obj;
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
@@ -379,13 +361,6 @@ public abstract class RBBase {
 		return xt;
 	}
 
-	/**
-	 * Print out the parameters stored in current_parameters.
-	 */
-	public void printCurrentParameters() {
-		Log.d("RBBase", "Current parameters: " + current_parameters.toString());
-	}
-	
 	/**
 	 * 
 	 * @param m
@@ -404,31 +379,43 @@ public abstract class RBBase {
 		} else {
 			readConfigurationJRB(m);
 		}
-		return true;		
+		return true;
 	}
-	
-	protected abstract void readConfigurationJRB(AModelManager m);
-	
-	protected abstract void readConfigurationRBAppMIT(GetPot infile);
 
-	/**
-	 * Set the Q_a variable from the mTheta object.
-	 */
-	public void read_in_Q_a() {
+	protected void readConfigurationJRB(AModelManager m) {
+		fQa = affineFunctionsInstance.getQa();
+		params = m.getParameters();
+	}
+
+	protected void readConfigurationRBAppMIT(GetPot infile) {
+
+		int n_parameters = infile.call("n_parameters", 1);
+		Log.d("RBBase", "n_parameters = " + n_parameters);
+		for (int i = 0; i < n_parameters; i++) {
+			String label = infile.call("param" + Integer.toString(i) + "_label", "mu_"+i);
+			// Read in the min/max for the i^th parameter
+			String min_string = new String("mu" + i + "_min");
+			double mu_i_min = infile.call(min_string, 0.);
+			String max_string = new String("mu" + i + "_max");
+			double mu_i_max = infile.call(max_string, 0.);
+			params.addParam(label, mu_i_min, mu_i_max);
+			Log.d("RBBase", "Parameter " + i + ": Min = " + mu_i_min
+					+ ", Max = " + mu_i_max);
+		}
+
 		Method meth;
 
 		try {
 			// Get a reference to get_n_A_functions, which does not
 			// take any arguments
-			meth = mAffineFnsClass.getMethod("get_n_A_functions", (Class<?>[])null);
+			meth = mAffineFnsClass.getMethod("get_n_A_functions", (Class<?>[]) null);
 		} catch (NoSuchMethodException nsme) {
-			throw new RuntimeException(
-					"getMethod for get_n_A_functions failed", nsme);
+			throw new RuntimeException("getMethod for get_n_A_functions failed", nsme);
 		}
 
 		Integer Q_a;
 		try {
-			Object Q_a_obj = meth.invoke(mTheta, (Object[])null);
+			Object Q_a_obj = meth.invoke(affineFunctionsInstance, (Object[]) null);
 			Q_a = (Integer) Q_a_obj;
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
@@ -436,14 +423,8 @@ public abstract class RBBase {
 			throw new RuntimeException(ite.getCause());
 		}
 
-		mQ_a = Q_a.intValue();
-	}
-
-	/**
-	 * Set the current_parameters member variable
-	 */
-	public void setCurrentParameters(Parameter p) {
-		current_parameters = p;
+		fQa = Q_a.intValue();
+		Log.d("RBBase", "Q_a = " + fQa);
 	}
 
 }

@@ -99,9 +99,9 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 		Double theta_val;
 		try {
 			Object arglist[] = new Object[1];
-			arglist[0] = current_parameters.getArray();
+			arglist[0] = getParams().getCurrent();
 
-			Object theta_obj = meth.invoke(mTheta, arglist);
+			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
 			theta_val = (Double) theta_obj;
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
@@ -116,8 +116,8 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 	 * Override get_Q_a since we have n_bfs extra terms
 	 */
 	@Override
-	public int get_Q_a() {
-		return super.get_Q_a() + get_n_basis_functions();
+	public int getQa() {
+		return super.getQa() + get_n_basis_functions();
 	}
 
 	/**
@@ -149,9 +149,9 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 			try {
 				Object arglist[] = new Object[2];
 				arglist[0] = new Integer(q - get_n_basis_functions());
-				arglist[1] = current_parameters.getArray();
+				arglist[1] = getParams().getCurrent();
 
-				Object theta_obj = meth.invoke(mTheta, arglist);
+				Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
 				theta_val = (Double) theta_obj;
 			} catch (IllegalAccessException iae) {
 				throw new RuntimeException(iae);
