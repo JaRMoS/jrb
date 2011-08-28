@@ -123,15 +123,15 @@ public class ComplexRBSystem extends RBSystem {
 							}
 
 							RB_output_vectors[i][q_l] = new ArrayFieldVector<Complex>(
-									get_n_basis_functions(),
+									getNBF(),
 									new Complex(0d, 0d));
-							for (int j = 0; j < get_n_basis_functions(); j++) {
+							for (int j = 0; j < getNBF(); j++) {
 								RB_output_vectors[i][q_l]
 										.setEntry(
 												j,
 												new Complex(
 														Double.parseDouble(output_i_tokens[j]),
-														Double.parseDouble(output_i_tokens[get_n_basis_functions()
+														Double.parseDouble(output_i_tokens[getNBF()
 																+ j])));
 							}
 						}
@@ -181,14 +181,14 @@ public class ComplexRBSystem extends RBSystem {
 
 				// Set the size of the inner product matrix
 				RB_F_q_vector[q_f] = new ArrayFieldVector<Complex>(
-						get_n_basis_functions(), new Complex(0d, 0d));
+						getNBF(), new Complex(0d, 0d));
 
 				// Fill the vector
-				for (int i = 0; i < get_n_basis_functions(); i++) {
+				for (int i = 0; i < getNBF(); i++) {
 					RB_F_q_vector[q_f].setEntry(
 							i,
 							new Complex(Double.parseDouble(tokens[i]), Double
-									.parseDouble(tokens[get_n_basis_functions()
+									.parseDouble(tokens[getNBF()
 											+ i])));
 				}
 			}
@@ -213,19 +213,19 @@ public class ComplexRBSystem extends RBSystem {
 				// Set the size of the inner product matrix
 				RB_A_q_vector[q_a] = new Array2DRowFieldMatrix<Complex>(
 						(new Complex(0, 0)).getField(),
-						get_n_basis_functions(), get_n_basis_functions());
+						getNBF(), getNBF());
 
 				// Fill the vector
 				int count = 0;
-				for (int i = 0; i < get_n_basis_functions(); i++)
-					for (int j = 0; j < get_n_basis_functions(); j++) {
+				for (int i = 0; i < getNBF(); i++)
+					for (int j = 0; j < getNBF(); j++) {
 						RB_A_q_vector[q_a].setEntry(
 								i,
 								j,
 								new Complex(Double.parseDouble(tokens[count]),
 										Double.parseDouble(tokens[count
-												+ get_n_basis_functions()
-												* get_n_basis_functions()])));
+												+ getNBF()
+												* getNBF()])));
 						count++;
 					}
 			}
@@ -262,19 +262,19 @@ public class ComplexRBSystem extends RBSystem {
 			reader = null;
 
 			// Declare the array
-			Fq_Aq_representor_norms = new Complex[get_Q_f()][get_Q_a()][get_n_basis_functions()];
+			Fq_Aq_representor_norms = new Complex[get_Q_f()][get_Q_a()][getNBF()];
 
-			double[][][] Rdata = new double[get_Q_f()][get_Q_a()][get_n_basis_functions()];
-			double[][][] Idata = new double[get_Q_f()][get_Q_a()][get_n_basis_functions()];
+			double[][][] Rdata = new double[get_Q_f()][get_Q_a()][getNBF()];
+			double[][][] Idata = new double[get_Q_f()][get_Q_a()][getNBF()];
 			// Fill it
 			int count = 0;
 			for (int q_f = 0; q_f < get_Q_f(); q_f++)
 				for (int q_a = 0; q_a < get_Q_a(); q_a++) {
-					for (int i = 0; i < get_n_basis_functions(); i++) {
+					for (int i = 0; i < getNBF(); i++) {
 						Rdata[q_f][q_a][i] = Double.parseDouble(tokens[count]);
 						count++;
 					}
-					for (int i = 0; i < get_n_basis_functions(); i++) {
+					for (int i = 0; i < getNBF(); i++) {
 						Idata[q_f][q_a][i] = Double.parseDouble(tokens[count]);
 						count++;
 					}
@@ -282,7 +282,7 @@ public class ComplexRBSystem extends RBSystem {
 
 			for (int q_f = 0; q_f < get_Q_f(); q_f++)
 				for (int q_a = 0; q_a < get_Q_a(); q_a++)
-					for (int i = 0; i < get_n_basis_functions(); i++)
+					for (int i = 0; i < getNBF(); i++)
 						Fq_Aq_representor_norms[q_f][q_a][i] = new Complex(
 								Rdata[q_f][q_a][i], Idata[q_f][q_a][i]);
 
@@ -294,7 +294,7 @@ public class ComplexRBSystem extends RBSystem {
 		{
 			// Declare the array
 			int Q_a_hat = get_Q_a() * (get_Q_a() + 1) / 2;
-			Aq_Aq_representor_norms = new Complex[Q_a_hat][get_n_basis_functions()][get_n_basis_functions()];
+			Aq_Aq_representor_norms = new Complex[Q_a_hat][getNBF()][getNBF()];
 
 			int count = 0;
 			double[][] Rdata2=null, Idata2=null;
@@ -303,7 +303,7 @@ public class ComplexRBSystem extends RBSystem {
 					String file = "Aq_Aq_" + String.format("%03d", i) + "_"
 							+ String.format("%03d", j) + "_norms.bin";
 
-					int n = get_n_basis_functions();
+					int n = getNBF();
 					InputStream in = m.getInStream(file);
 					try {
 						Rdata2 = mr.readRawDoubleMatrix(in, n, n);
@@ -363,10 +363,10 @@ public class ComplexRBSystem extends RBSystem {
 		// Read in Z data
 		{
 			if (get_mfield() > 0) {
-				Z_vector = new Complex[get_mfield()][get_n_basis_functions()][get_calN()];
+				Z_vector = new Complex[get_mfield()][getNBF()][get_calN()];
 				float[] Rdata3, Idata3;
 				for (int imf = 0; imf < get_mfield(); imf++)
-					for (int inbfs = 0; inbfs < get_n_basis_functions(); inbfs++) {
+					for (int inbfs = 0; inbfs < getNBF(); inbfs++) {
 						InputStream in = m.getInStream("Z_"
 								+ String.format("%03d", imf) + "_"
 								+ String.format("%03d", inbfs) + ".bin");
@@ -400,7 +400,7 @@ public class ComplexRBSystem extends RBSystem {
 
 		theta_a = complex_eval_theta_q_a();
 
-		if (N > get_n_basis_functions()) {
+		if (N > getNBF()) {
 			throw new RuntimeException(
 					"ERROR: N cannot be larger than the number "
 							+ "of basis functions in RB_solve");

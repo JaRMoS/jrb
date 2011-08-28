@@ -3,6 +3,7 @@ package rb.java;
 import java.io.IOException;
 
 import rmcommon.Log;
+import rmcommon.Parameters;
 import rmcommon.io.AModelManager;
 
 /**
@@ -19,20 +20,26 @@ public class RBContainer {
 	static final String DEBUG_TAG = "RBContainer";
 
 	/**
-	 * The System type
+	 * Some url :-)
 	 */
-	public RBEnums.SystemTypeEnum mSystemType;
+	public String descriptionURL;
+	private SCMType fSCMType = SCMType.NONE;
+
+	private SystemType fSystemType = SystemType.NONE;
+	/**
+	 * The main RBSCMSystem object
+	 */
+	public RBSCMSystem mRbScmSystem = null;
+	/**
+	 * The RBSystem object
+	 */
+	public RBSystem mRbSystem = null;
 
 	/**
-	 * The SCM type
+	 * The second RBSCMSystem object, needed in some time-dependent problems
 	 */
-	public RBEnums.SCMTypeEnum mSCMType;
+	public RBSCMSystem mSecondRbScmSystem = null;
 
-	/**
-	 * Descriptive member variables for the problem title, variable names, and
-	 * general info.
-	 */
-	public String problemTitle;
 	/**
 	 * Labels for the parameters
 	 */
@@ -42,187 +49,28 @@ public class RBContainer {
 	 */
 	public String problemDescription;
 	/**
-	 * Some url :-)
+	 * Descriptive member variables for the problem title, variable names, and
+	 * general info.
 	 */
-	public String descriptionURL;
+	public String problemTitle;
 
 	/**
-	 * The RBSystem object
+	 * @return the SCMType
 	 */
-	public RBSystem mRbSystem;
-	/**
-	 * The main RBSCMSystem object
-	 */
-	public RBSCMSystem mRbScmSystem;
-	/**
-	 * The second RBSCMSystem object, needed in some time-dependent problems
-	 */
-	public RBSCMSystem mSecondRbScmSystem;
-
-	/**
-	 * Creates a new RB Container with null values and NONE enum types.
-	 */
-	public RBContainer() {
-		// Initialize the RB system and SCM types to NONE
-		mSystemType = RBEnums.SystemTypeEnum.NONE;
-		mSCMType = RBEnums.SCMTypeEnum.NONE;
-
-		// Set rb.mRbScmSystem and rb.mRbSystem to null initially
-		mRbSystem = null;
-		mRbScmSystem = null;
-
-		// Set the secondary SCM system to null also
-		mSecondRbScmSystem = null;
-	}
-
-	private static RBEnums.SystemTypeEnum getSystemEnumFromString(String s) {
-
-		for (RBEnums.SystemTypeEnum type : RBEnums.SystemTypeEnum.values()) {
-			if (type.toString().equals(s)) {
-				return type;
-			}
-		}
-
-		return RBEnums.SystemTypeEnum.NONE;
-	}
-
-	private void read_system_types_from_input_file(AModelManager m)
-			throws IOException {
-
-		// GetPot infile = m.getParamFileGetPot();
-		GetPot infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
-
-		problemTitle = infile.call("title", "RB Online");
-		int parameter_number = infile.call("n_parameters", 0);
-		paramLabels = new String[parameter_number];
-		for (int n = 0; n < parameter_number; n++) {
-			paramLabels[n] = infile.call("param" + Integer.toString(n)
-					+ "_label", "DEFAULT");
-
-			// If DEFAULT was read in, then replace with a default
-			// mu label
-			if (paramLabels[n] == "DEFAULT") {
-				paramLabels[n] = "\u00B5" + (n + 1);
-			}
-		}
-
-		descriptionURL = infile.call("descriptionURL", "");
-
-		String SystemTypeEnum_in = infile.call("system_type", "NONE");
-		mSystemType = getSystemEnumFromString(SystemTypeEnum_in);
-
-		String SCMTypeEnum_in = infile.call("scm_type", "NONE");
-		mSCMType = getSCMEnumFromString(SCMTypeEnum_in);
-
-		Log.d(DEBUG_TAG, "RB system type = " + mSystemType);
-		Log.d(DEBUG_TAG, "SCM type = " + mSCMType);
+	public SCMType getSCMType() {
+		return fSCMType;
 	}
 
 	/**
-	 * Loads an rb/rbappmit type model using a provided ModelManager.
-	 * 
-	 * @param m
-	 *            The ModelManager instance to use loading the model
-	 * @return true if succeeded, false otherwise
+	 * @return the SystemType
 	 */
-	public boolean loadModel(AModelManager m) {
-
-		try {
-			initialize_systems(m);
-		} catch (InconsistentStateException e) {
-			Log.e(DEBUG_TAG, "Inconsistent state exception occurred when parsing input file: "
-					+ e.getMessage());
-			return false;
-		} catch (IOException e) {
-			Log.e(DEBUG_TAG, "I/O Exception thrown when accessing "
-					+ Const.parameters_filename + ": " + e.getMessage());
-			return false;
-		} catch (Exception e) {
-			Log.e(DEBUG_TAG, "Exception thrown when accessing "
-					+ Const.parameters_filename, e);
-			return false;
-		}
-
-		try {
-			attach_affine_functions(m);
-		} catch (Exception e) {
-			Log.e(DEBUG_TAG, "Exception occurred while attaching affine functions: "
-					+ e.getMessage(), e);
-			return false;
-		}
-
-		// Finally, initialize the RB and SCM systems
-		try {
-			if (mRbSystem != null) {
-				mRbSystem.loadOfflineData(m);
-				Log.d(DEBUG_TAG, "Finished reading offline data for RBSystem.");
-			}
-
-			if (mRbScmSystem != null) {
-				mRbScmSystem.loadOfflineData(m);
-				Log.d(DEBUG_TAG, "Finished reading offline data for RBSCMSystem.");
-			}
-
-		} catch (Exception e) {
-			Log.e(DEBUG_TAG, "Exception occurred while reading offline data: "
-					+ e.getMessage(), e);
-			return false;
-		}
-		return true;
+	public SystemType getSystemType() {
+		return fSystemType;
 	}
 
-	private void initialize_systems(AModelManager m) throws Exception {
+	private void loadAffineFunctions(AModelManager m) throws Exception {
 
-		// First, clear all the systems in case we're doing a new (different)
-		// problem
-		mRbScmSystem = null;
-		mSecondRbScmSystem = null;
-		mRbSystem = null;
-
-		// Find out which type of systems we'll be initializing
-		read_system_types_from_input_file(m);
-
-		// Initialize the SCM systems
-		if (mSCMType == RBEnums.SCMTypeEnum.COERCIVE_ALPHASIGMA) {
-			mRbScmSystem = RBSCMSystem.buildSCMSystem(RBEnums.SCMTypeEnum.COERCIVE);
-			mSecondRbScmSystem = RBSCMSystem.buildSCMSystem(RBEnums.SCMTypeEnum.COERCIVE);
-		} else if (mSCMType == RBEnums.SCMTypeEnum.COERCIVE
-				|| mSCMType == RBEnums.SCMTypeEnum.QN_TRANSIENT_SCM) {
-			mRbScmSystem = RBSCMSystem.buildSCMSystem(mSCMType);
-		} else if (mSCMType == RBEnums.SCMTypeEnum.COMPLEX_NONCOERCIVE) {
-			mRbScmSystem = RBSCMSystem.buildSCMSystem(mSCMType);
-		} else {
-			mRbScmSystem = null;
-		}
-
-		// Read parameters into SCM systems
-		if (mRbScmSystem != null) {
-			mRbScmSystem.parse_parameters_file(m);
-		}
-		if (mSecondRbScmSystem != null) {
-			mSecondRbScmSystem.parse_parameters_file(m);
-		}
-
-		mRbSystem = RBSystem.buildRBSystem(mSystemType);
-		mRbSystem.setPrimarySCM(mRbScmSystem);
-		if (mSystemType == RBEnums.SystemTypeEnum.LINEAR_UNSTEADY) {
-			TransientRBSystem trans_rb = (TransientRBSystem) mRbSystem;
-			trans_rb.setSecondarySCM(mSecondRbScmSystem);
-		}
-
-		// Read parameters into RB systems
-		if (mRbSystem != null) {
-			mRbSystem.parse_parameters_file(m);
-			/*
-			 * if(mRbSystem.get_mfield() > 0) mRbModel = new
-			 * GLObject(RBActivity.this);
-			 */
-		}
-	}
-
-	private void attach_affine_functions(AModelManager m) throws Exception {
-
-		ClassLoader	cl = m.getClassLoader();	
+		ClassLoader cl = m.getClassLoader();
 		Class<?> af = cl.loadClass("AffineFunctions");
 
 		Log.d(DEBUG_TAG, "Loaded AffineFunctions class");
@@ -243,8 +91,8 @@ public class RBContainer {
 
 			mRbSystem.read_in_Q_uL();
 
-			if (mSystemType == RBEnums.SystemTypeEnum.LINEAR_UNSTEADY
-					|| mSystemType == RBEnums.SystemTypeEnum.QN_UNSTEADY) {
+			if (fSystemType == SystemType.LINEAR_UNSTEADY
+					|| fSystemType == SystemType.QN_UNSTEADY) {
 				TransientRBSystem trans_rb = (TransientRBSystem) mRbSystem;
 				trans_rb.read_in_Q_m();
 				Log.d(DEBUG_TAG, "Q_m = " + trans_rb.get_Q_m());
@@ -258,23 +106,162 @@ public class RBContainer {
 			// set Q_a
 			mRbScmSystem.read_in_Q_a();
 		}
-		if (mSecondRbScmSystem != null) {
-			mSecondRbScmSystem.mAffineFnsClass = af;
-			mSecondRbScmSystem.mTheta = mRbSystem.mAffineFnsClass.newInstance();
-
-			// set Q_a
-			mSecondRbScmSystem.read_in_Q_a();
-		}
 
 	}
 
-	private static RBEnums.SCMTypeEnum getSCMEnumFromString(String s) {
+	/**
+	 * Loads an rb/rbappmit type model using a provided ModelManager.
+	 * 
+	 * @param m
+	 *            The ModelManager instance to use loading the model
+	 * @return true if succeeded, false otherwise
+	 */
+	public boolean loadModel(AModelManager m) {
 
-		for (RBEnums.SCMTypeEnum type : RBEnums.SCMTypeEnum.values()) {
-			if (type.toString().equals(s)) return type;
+		// First, clear all the systems in case we're doing a new (different)
+		// problem
+		mRbScmSystem = null;
+		mRbSystem = null;
+
+		// Read system types and misc data into RBContainer
+		if ("rbappmit".equals(m.getModelType())) {
+			if (!readSystemDescriptionsRBAppMit(m)) return false;
+		} else {
+			readSystemDescriptionsJRB(m);
 		}
 
-		return RBEnums.SCMTypeEnum.NONE;
+		// Init the main systems
+		mRbScmSystem = fSCMType.getNewRBSCMSystem();
+		mRbSystem = fSystemType.getNewRBSystem();
+		
+		// Assign SCM system
+		mRbSystem.setPrimarySCM(mRbScmSystem);
+
+		try {
+			loadAffineFunctions(m);
+		} catch (Exception e) {
+			Log.e(DEBUG_TAG, "Exception occurred while attaching affine functions: "
+					+ e.getMessage(), e);
+			return false;
+		}
+
+		// Finally, initialize the RB and SCM systems
+		try {
+			if (mRbSystem != null) {
+				// Read parameters into RB systems
+				if (!mRbSystem.readConfiguration(m)) return false;
+				// Load offline data
+				mRbSystem.loadOfflineData(m);
+				Log.d(DEBUG_TAG, "Finished reading offline data for RBSystem.");
+			}
+
+			if (mRbScmSystem != null) {
+				// Read parameters into SCM systems
+				if (!mRbScmSystem.readConfiguration(m)) return false;
+				mRbScmSystem.loadOfflineData(m);
+				Log.d(DEBUG_TAG, "Finished reading offline data for RBSCMSystem.");
+			}
+
+			/*
+			 * A second SCM system seems not to be used within any of the current demos.
+			 * If needed, uncomment this and one line in the loadSecondSCMSystem method to enable
+			 * its use. Even so, it seems the second SCM system does not get loaded any offline data
+			 * at the current state of the code.
+			 */
+//			loadSecondSCMSystem(m);
+			
+		} catch (Exception e) {
+			Log.e(DEBUG_TAG, "Exception occurred while reading offline data: "
+					+ e.getMessage(), e);
+			return false;
+		}
+		return true;
+	}
+
+	@SuppressWarnings("unused")
+	private boolean loadSecondSCMSystem(AModelManager m) throws InstantiationException, IllegalAccessException {
+		mSecondRbScmSystem = null;
+		if (fSCMType == SCMType.COERCIVE_ALPHASIGMA) {
+			mSecondRbScmSystem = fSCMType.getNewRBSCMSystem();
+
+			if (mSecondRbScmSystem != null) {
+				if (fSystemType == SystemType.LINEAR_UNSTEADY) {
+					/*
+					 * Uncomment this line to restore previous status using an optional second SCM system.
+					 */
+//					((TransientRBSystem) mRbSystem).setSecondarySCM(mSecondRbScmSystem);
+				}
+
+				if (!mSecondRbScmSystem.readConfiguration(m)) return false;
+
+				// Attach AffineFunctions class also to this system
+				mSecondRbScmSystem.mAffineFnsClass = mRbScmSystem.mAffineFnsClass;
+				mSecondRbScmSystem.mTheta = mRbSystem.mAffineFnsClass.newInstance();
+
+				// set Q_a
+				mSecondRbScmSystem.read_in_Q_a();
+			}
+		}
+		return true;
+	}
+
+	private void readSystemDescriptionsJRB(AModelManager m) {
+		problemTitle = m.getModelXMLTagValue("description.name");
+
+		Parameters p = m.getParameters();
+		int params = p.getParamNumber();
+		// TODO: remove paramLabels field and access Parameters object for names
+		paramLabels = new String[params];
+		for (int i = 0; i < params; i++) {
+			paramLabels[i] = p.getParams().get(i).label;
+		}
+
+		// TODO: Dont know where this value is used
+		descriptionURL = m.getModelXMLTagValue("description.infohtml");
+
+		fSystemType = SystemType.parse(m.getModelXMLTagValue("rb_model.systype"));
+		fSCMType = SCMType.parse(m.getModelXMLTagValue("rb_model.scmtype"));
+
+		Log.d(DEBUG_TAG, "RB system type = " + fSystemType);
+		Log.d(DEBUG_TAG, "SCM type = " + fSCMType);
+	}
+
+	private boolean readSystemDescriptionsRBAppMit(AModelManager m) {
+		// GetPot infile = m.getParamFileGetPot();
+		GetPot infile = null;
+		try {
+			infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
+		} catch (IOException e) {
+			Log.e("RBContainer", "Exception loading infile.in", e);
+			e.printStackTrace();
+			return false;
+		}
+
+		problemTitle = infile.call("title", "RB Online");
+		int parameter_number = infile.call("n_parameters", 0);
+		paramLabels = new String[parameter_number];
+		for (int n = 0; n < parameter_number; n++) {
+			paramLabels[n] = infile.call("param" + Integer.toString(n)
+					+ "_label", "DEFAULT");
+
+			// If DEFAULT was read in, then replace with a default
+			// mu label
+			if (paramLabels[n] == "DEFAULT") {
+				paramLabels[n] = "\u00B5" + (n + 1);
+			}
+		}
+
+		descriptionURL = infile.call("descriptionURL", "");
+
+		String SystemTypeEnum_in = infile.call("system_type", "NONE");
+		fSystemType = SystemType.parse(SystemTypeEnum_in);
+
+		String SCMTypeEnum_in = infile.call("scm_type", "NONE");
+		fSCMType = SCMType.parse(SCMTypeEnum_in);
+
+		Log.d(DEBUG_TAG, "RB system type = " + fSystemType);
+		Log.d(DEBUG_TAG, "SCM type = " + fSCMType);
+		return true;
 	}
 
 }

@@ -47,27 +47,7 @@ public class RBSystem extends RBBase {
 
 	// PUBLIC MEMBER VARIABLES
 
-	/**
-	 * Static builder function.
-	 */
-	public static RBSystem buildRBSystem(RBEnums.SystemTypeEnum type) {
-
-		switch (type) {
-		case NONE:
-			return null;
-		case LINEAR_STEADY:
-			return new RBSystem();
-		case LINEAR_COMPLEX_STEADY:
-			return new ComplexRBSystem();
-		case LINEAR_UNSTEADY:
-			return new TransientRBSystem();
-		case QN_UNSTEADY:
-			return new QNTransientRBSystem();
-		default:
-			return null;
-		}
-
-	}
+	
 
 	protected double[][][] Aq_Aq_representor_norms;
 
@@ -369,7 +349,7 @@ public class RBSystem extends RBBase {
 	/**
 	 * @return The number of basis functions in the system.
 	 */
-	public int get_n_basis_functions() {
+	public int getNBF() {
 		return n_bfs;
 	}
 
@@ -920,26 +900,13 @@ public class RBSystem extends RBBase {
 		initialize_data_vectors();
 	}
 
-	/**
-	 * @param parameters_filename
-	 *            The name of the file to parse Parse the input file to
-	 *            initialize this RBSystem.
-	 * @param isAssetFile
-	 *            indicates whether the file we're reading from is in Android's
-	 *            asset directory
-	 * @throws IOException
-	 */
-	public void parse_parameters_file(AModelManager m)
-			throws InconsistentStateException, IOException {
-
+	protected void readConfigurationJRB(AModelManager m) {
+		// TODO: read stuff!
+	}
+	
+	protected void readConfigurationRBAppMIT(GetPot infile) {
 		Log.d(DEBUG_TAG, "Entered parse_parameters_file, filename = "
 				+ Const.parameters_filename);
-
-		// GetPot infile = m.getParamFileGetPot();
-		GetPot infile = new GetPot(m.getInStream(Const.parameters_filename),
-				Const.parameters_filename);
-
-		Log.d(DEBUG_TAG, "Created GetPot object");
 
 		int n_parameters = infile.call("n_parameters", 1);
 		Log.d(DEBUG_TAG, "n_parameters = " + n_parameters);
@@ -977,8 +944,6 @@ public class RBSystem extends RBBase {
 				+ return_rel_error_bound);
 	}
 
-	// PROTECTED FUNCTIONS
-
 	/**
 	 * Perform online solve with the N RB basis functions, for the set of
 	 * parameters in current_params, where 1 <= N <= RB_size.
@@ -987,7 +952,7 @@ public class RBSystem extends RBBase {
 
 		current_N = N;
 
-		if (N > get_n_basis_functions()) {
+		if (N > getNBF()) {
 			throw new RuntimeException(
 					"ERROR: N cannot be larger than the number "
 							+ "of basis functions in RB_solve");

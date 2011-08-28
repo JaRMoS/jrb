@@ -1,23 +1,4 @@
 package rb.java;
-//    rbAPPmit: An Android front-end for the Certified Reduced Basis Method
-//    Copyright (C) 2010 David J. Knezevic and Phuong Huynh
-//
-//    This file is part of rbAPPmit
-//
-//    rbAPPmit is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    rbAPPmit is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
-
-
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -50,6 +31,12 @@ import rmcommon.io.AModelManager;
 // This class is modeled on the RBSCMSystem
 // class in rbOOmit
 
+/**
+ * Changes made by
+ * @author Daniel Wirtz
+ * @date Aug 28, 2011
+ *
+ */
 public class RBSCMSystem extends RBBase {
 
 	// Logging tag
@@ -87,26 +74,6 @@ public class RBSCMSystem extends RBBase {
 	 * the SCM calculation
 	 */
 	private Parameter saved_parameters;
-
-	/**
-	 * Static builder function.
-	 */
-	public static RBSCMSystem buildSCMSystem(RBEnums.SCMTypeEnum type) {
-
-		switch (type) {
-		case NONE:
-			return null;
-		case COERCIVE:
-			return new RBSCMSystem();
-		case QN_TRANSIENT_SCM:
-			return new QNTransientSCMSystem();
-		case COMPLEX_NONCOERCIVE:
-			return new RBnSCMCSystem();
-		default:
-			return null;
-		}
-
-	}
 
 	/**
 	 * @return the SCM lower bound for the current parameters.
@@ -278,16 +245,16 @@ public class RBSCMSystem extends RBBase {
 		return current_parameters;
 	}
 
+	protected void readConfigurationJRB(AModelManager m) {
+		// TODO: read stuff!
+	}
+	
 	/**
-	 * @param parameters_filename
-	 *            The name of the file to parse Parse the input file to
-	 *            initialize this RBSCMSystem.
-	 * @throws IOException 
+	 * 
+	 * @param m
+	 * @return
 	 */
-	public void parse_parameters_file(AModelManager m) throws InconsistentStateException, IOException {
-
-		//GetPot infile = m.getParamFileGetPot();
-		GetPot infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
+	protected void readConfigurationRBAppMIT(GetPot infile) {
 
 		// int n_SCM_parameters = infile.call("n_SCM_parameters",1);
 		int n_SCM_parameters = infile.call("n_SCM_parameters",

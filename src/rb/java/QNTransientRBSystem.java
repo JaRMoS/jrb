@@ -89,7 +89,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 		// Initialize tau_prod_k
 		tau_prod_k = 1.;
 
-		if (N > get_n_basis_functions()) {
+		if (N > getNBF()) {
 			throw new RuntimeException(
 					"ERROR: N cannot be larger than the number "
 							+ "of basis functions in RB_solve");
@@ -555,17 +555,12 @@ public class QNTransientRBSystem extends TransientRBSystem {
 	}
 
 	/**
-	 * @param parameters_filename
-	 *            The name of the file to parse Parse the input file to
-	 *            initialize this RBSystem.
-	 * @throws IOException 
+	 * 
+	 * @see rb.java.TransientRBSystem#readConfiguration(rmcommon.io.AModelManager)
 	 */
 	@Override
-	public void parse_parameters_file(AModelManager m) throws InconsistentStateException, IOException {
-		super.parse_parameters_file(m);
-
-		//GetPot infile = m.getParamFileGetPot();
-		GetPot infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
+	public void readConfigurationRBAppMIT(GetPot infile) {
+		super.readConfigurationRBAppMIT(infile);
 
 		double nonlinear_tolerance_in = infile.call("nonlinear_tolerance",
 				1.e-8);
@@ -598,7 +593,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 
 		super.loadOfflineData(m);
 
-		int n_bfs = get_n_basis_functions();
+		int n_bfs = getNBF();
 
 		// Read in the trlinear form
 

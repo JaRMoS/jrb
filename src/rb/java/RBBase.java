@@ -17,6 +17,7 @@ package rb.java;
 //    You should have received a copy of the GNU General Public License
 //    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -25,17 +26,22 @@ import org.apache.commons.math.linear.ArrayFieldVector;
 import org.apache.commons.math.linear.FieldVector;
 
 import rmcommon.Log;
+import rmcommon.io.AModelManager;
 
-// Base class for RB and SCM systems, stores
-// the current parameter value, parameter ranges,
-// as well as other data common to RBSystems and
-// SCMSystems.
+// 
 // This class is modeled on the RBBase class in rbOOmit
 
-public class RBBase {
-
-	// Logging tag
-	private static final String DEBUG_TAG = "RBBase";
+/**
+ * Base class for RB and SCM systems, stores
+ * the current parameter value, parameter ranges, 
+ * as well as other data common to RBSystems and SCMSystems.
+ *  
+ * Changes made by
+ * @author Daniel Wirtz
+ * @date Aug 28, 2011
+ *
+ */
+public abstract class RBBase {
 
 	/**
 	 * Vector storing the current parameters.
@@ -377,8 +383,33 @@ public class RBBase {
 	 * Print out the parameters stored in current_parameters.
 	 */
 	public void printCurrentParameters() {
-		Log.d(DEBUG_TAG, "Current parameters: " + current_parameters.toString());
+		Log.d("RBBase", "Current parameters: " + current_parameters.toString());
 	}
+	
+	/**
+	 * 
+	 * @param m
+	 * @return
+	 */
+	public final boolean readConfiguration(AModelManager m) {
+		if ("rbappmit".equals(m.getModelType())) {
+			try {
+				GetPot infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
+				Log.d("RBBase", "Created GetPot object");
+				readConfigurationRBAppMIT(infile);
+			} catch (IOException e) {
+				Log.e("RBBase", "Error opening input.in", e);
+				return false;
+			}
+		} else {
+			readConfigurationJRB(m);
+		}
+		return true;		
+	}
+	
+	protected abstract void readConfigurationJRB(AModelManager m);
+	
+	protected abstract void readConfigurationRBAppMIT(GetPot infile);
 
 	/**
 	 * Set the Q_a variable from the mTheta object.

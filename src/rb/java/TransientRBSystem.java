@@ -41,6 +41,12 @@ import rmcommon.io.MathObjectReader;
 // This class is modeled on the TransientRBSystem
 // class in rbOOmit
 
+/**
+ * Changes made by
+ * @author Daniel Wirtz
+ * @date Aug 26, 2011
+ *
+ */
 public class TransientRBSystem extends RBSystem {
 
 	// Logging tag
@@ -114,12 +120,14 @@ public class TransientRBSystem extends RBSystem {
 	// protected float[][][] Z_vector;
 
 	protected double[][][] Mq_Mq_representor_norms;
-	@SuppressWarnings({ "unused" })
-	/**
-	 * A secondary SCM object since we might need a lower bound for the mass
-	 * matrix and the stiffness matrix.
-	 */
-	private RBSCMSystem mSecondRbScmSystem;
+	
+//	@SuppressWarnings({ "unused" })
+//	/**
+//	 * A secondary SCM object since we might need a lower bound for the mass
+//	 * matrix and the stiffness matrix.
+//	 */
+//	private RBSCMSystem mSecondRbScmSystem;
+	
 	/**
 	 * RBSystem has a member RB_solution, we also need old_RB_solution here.
 	 */
@@ -490,11 +498,11 @@ public class TransientRBSystem extends RBSystem {
 		super.loadOfflineData(m);
 
 		// Initialize the residual caching data storage
-		cached_Fq_Aq_vector = new double[get_n_basis_functions()];
-		cached_Aq_Aq_matrix = new double[get_n_basis_functions()][get_n_basis_functions()];
-		cached_Fq_Mq_vector = new double[get_n_basis_functions()];
-		cached_Aq_Mq_matrix = new double[get_n_basis_functions()][get_n_basis_functions()];
-		cached_Mq_Mq_matrix = new double[get_n_basis_functions()][get_n_basis_functions()];
+		cached_Fq_Aq_vector = new double[getNBF()];
+		cached_Aq_Aq_matrix = new double[getNBF()][getNBF()];
+		cached_Fq_Mq_vector = new double[getNBF()];
+		cached_Aq_Mq_matrix = new double[getNBF()][getNBF()];
+		cached_Mq_Mq_matrix = new double[getNBF()][getNBF()];
 
 		{
 			BufferedReader reader = m.getBufReader("RB_L2_matrix.dat");
@@ -502,13 +510,13 @@ public class TransientRBSystem extends RBSystem {
 			String[] tokens = reader.readLine().split(" ");			 
 
 			// Set the size of the inner product matrix
-			RB_L2_matrix = new Array2DRowRealMatrix(get_n_basis_functions(),
-					get_n_basis_functions());
+			RB_L2_matrix = new Array2DRowRealMatrix(getNBF(),
+					getNBF());
 
 			// Fill the matrix
 			int count = 0;
-			for (int i = 0; i < get_n_basis_functions(); i++)
-				for (int j = 0; j < get_n_basis_functions(); j++) {
+			for (int i = 0; i < getNBF(); i++)
+				for (int j = 0; j < getNBF(); j++) {
 					RB_L2_matrix.setEntry(i, j,
 							Double.parseDouble(tokens[count]));
 					count++;
@@ -532,12 +540,12 @@ public class TransientRBSystem extends RBSystem {
 
 				// Set the size of the inner product matrix
 				RB_M_q_vector[q_m] = new Array2DRowRealMatrix(
-						get_n_basis_functions(), get_n_basis_functions());
+						getNBF(), getNBF());
 
 				// Fill the vector
 				int count = 0;
-				for (int i = 0; i < get_n_basis_functions(); i++)
-					for (int j = 0; j < get_n_basis_functions(); j++) {
+				for (int i = 0; i < getNBF(); i++)
+					for (int j = 0; j < getNBF(); j++) {
 						RB_M_q_vector[q_m].setEntry(i, j,
 								Double.parseDouble(tokens[count]));
 						count++;
@@ -555,13 +563,13 @@ public class TransientRBSystem extends RBSystem {
 			String[] tokens = line.split(" ");
 
 			// Declare the array
-			Fq_Mq_representor_norms = new double[get_Q_f()][get_Q_m()][get_n_basis_functions()];
+			Fq_Mq_representor_norms = new double[get_Q_f()][get_Q_m()][getNBF()];
 
 			// Fill it
 			int count = 0;
 			for (int q_f = 0; q_f < get_Q_f(); q_f++)
 				for (int q_m = 0; q_m < get_Q_m(); q_m++)
-					for (int i = 0; i < get_n_basis_functions(); i++) {
+					for (int i = 0; i < getNBF(); i++) {
 						Fq_Mq_representor_norms[q_f][q_m][i] = Double
 								.parseDouble(tokens[count]);
 						count++;
@@ -580,13 +588,13 @@ public class TransientRBSystem extends RBSystem {
 
 			// Declare the array
 			int Q_m_hat = get_Q_m() * (get_Q_m() + 1) / 2;
-			Mq_Mq_representor_norms = new double[Q_m_hat][get_n_basis_functions()][get_n_basis_functions()];
+			Mq_Mq_representor_norms = new double[Q_m_hat][getNBF()][getNBF()];
 
 			// Fill it
 			int count = 0;
 			for (int q = 0; q < Q_m_hat; q++)
-				for (int i = 0; i < get_n_basis_functions(); i++)
-					for (int j = 0; j < get_n_basis_functions(); j++) {
+				for (int i = 0; i < getNBF(); i++)
+					for (int j = 0; j < getNBF(); j++) {
 						Mq_Mq_representor_norms[q][i][j] = Double
 								.parseDouble(tokens[count]);
 						count++;
@@ -604,14 +612,14 @@ public class TransientRBSystem extends RBSystem {
 				String[] tokens = line.split(" ");
 
 				// Declare the array
-				Aq_Mq_representor_norms = new double[get_Q_a()][get_Q_m()][get_n_basis_functions()][get_n_basis_functions()];
+				Aq_Mq_representor_norms = new double[get_Q_a()][get_Q_m()][getNBF()][getNBF()];
 
 				// Fill it
 				int count = 0;
 				for (int q_a = 0; q_a < get_Q_a(); q_a++)
 					for (int q_m = 0; q_m < get_Q_m(); q_m++)
-						for (int i = 0; i < get_n_basis_functions(); i++)
-							for (int j = 0; j < get_n_basis_functions(); j++) {
+						for (int i = 0; i < getNBF(); i++)
+							for (int j = 0; j < getNBF(); j++) {
 								Aq_Mq_representor_norms[q_a][q_m][i][j] = Double
 										.parseDouble(tokens[count]);
 								count++;
@@ -619,7 +627,7 @@ public class TransientRBSystem extends RBSystem {
 				
 			} catch (IOException iae) {
 				// Declare the array
-				Aq_Mq_representor_norms = new double[get_Q_a()][get_Q_m()][get_n_basis_functions()][get_n_basis_functions()];
+				Aq_Mq_representor_norms = new double[get_Q_a()][get_Q_m()][getNBF()][getNBF()];
 
 				MathObjectReader mr = m.getMathObjReader();
 				int count = 0;
@@ -629,7 +637,7 @@ public class TransientRBSystem extends RBSystem {
 								+ String.format("%03d", i) + "_"
 								+ String.format("%03d", j) + "_norms.bin";
 						Aq_Mq_representor_norms[i][j] = mr.readRawDoubleMatrix(m.getInStream(file),
-								get_n_basis_functions(), get_n_basis_functions());
+								getNBF(), getNBF());
 						
 //						for (int k = 0; k < get_n_basis_functions(); k++)
 //							for (int l = 0; l < get_n_basis_functions(); l++)
@@ -694,17 +702,12 @@ public class TransientRBSystem extends RBSystem {
 	}
 
 	/**
-	 * @param parameters_filename
-	 *            The name of the file to parse Parse the input file to
-	 *            initialize this RBSystem.
-	 * @throws IOException 
+	 * 
+	 * @see rb.java.RBSystem#readConfigurationRBAppMIT(rb.java.GetPot)
 	 */
 	@Override
-	public void parse_parameters_file(AModelManager m) throws InconsistentStateException, IOException {
-		super.parse_parameters_file(m);
-
-//		GetPot infile = m.getParamFileGetPot();
-		GetPot infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
+	public void readConfigurationRBAppMIT(GetPot infile) {
+		super.readConfigurationRBAppMIT(infile);
 
 		double dt_in = infile.call("dt", 0.);
 		set_dt(dt_in);
@@ -738,7 +741,6 @@ public class TransientRBSystem extends RBSystem {
 			Log.d(DEBUG_TAG, "Number of timesteps to be plotted"
 					+ n_plotting_steps);
 		}
-
 	}
 
 	/**
@@ -749,7 +751,7 @@ public class TransientRBSystem extends RBSystem {
 	public double RB_solve(int N) {
 		current_N = N;
 
-		if (N > get_n_basis_functions()) {
+		if (N > getNBF()) {
 			throw new RuntimeException(
 					"ERROR: N cannot be larger than the number "
 							+ "of basis functions in RB_solve");
@@ -949,12 +951,12 @@ public class TransientRBSystem extends RBSystem {
 		this._k = k_in;
 	}
 
-	/**
-	 * Set the secondary SCM system
-	 */
-	public void setSecondarySCM(RBSCMSystem second_scm_system) {
-		mSecondRbScmSystem = second_scm_system;
-	}
+//	/**
+//	 * Set the secondary SCM system
+//	 */
+//	public void setSecondarySCM(RBSCMSystem second_scm_system) {
+//		mSecondRbScmSystem = second_scm_system;
+//	}
 
 	/**
 	 * Compute the dual norm of the residual for the solution saved in

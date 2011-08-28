@@ -247,11 +247,8 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 	 * @throws IOException 
 	 */
 	@Override
-	public void parse_parameters_file(AModelManager m) throws InconsistentStateException, IOException {
-		super.parse_parameters_file(m);
-
-		//GetPot infile = m.getParamFileGetPot();
-		GetPot infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
+	protected void readConfigurationRBAppMIT(GetPot infile) {
+		super.readConfigurationRBAppMIT(infile);
 
 		SCM_theta_c_scaling = infile.call("SCM_theta_c_scaling", 1.);
 		Log.d(DEBUG_TAG, "SCM_theta_c_scaling = " + SCM_theta_c_scaling);
