@@ -11,18 +11,22 @@ package rb.java.affinefcn;
  * 
  * @author Daniel Wirtz
  * @date Aug 28, 2011
- *
+ * 
  */
 public interface ITransient {
 
 	/**
 	 * 
 	 * @param i
+	 *            The mass coefficient function i
 	 * @param p
+	 *            The current paramter p
+	 * @param t
+	 *            The time t
 	 * @return
 	 */
-	public double evaluateM(int i, double[] p);
-	
+	public double thetaQm(int i, double[] p, double t);
+
 	/**
 	 * 
 	 * @return

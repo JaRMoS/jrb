@@ -3,6 +3,7 @@ package rb.java;
 import java.io.IOException;
 
 import rb.java.affinefcn.IAffineFunctions;
+import rb.java.affinefcn.rbappmitAffineFunctions;
 import rmcommon.Log;
 import rmcommon.Parameters;
 import rmcommon.io.AModelManager;
@@ -40,7 +41,7 @@ public class RBContainer {
 	 * The second RBSCMSystem object, needed in some time-dependent problems
 	 */
 	public RBSCMSystem mSecondRbScmSystem = null;
-	
+
 	/**
 	 * A short problem description. Though not noticed where it ist used, yet.
 	 */
@@ -65,6 +66,7 @@ public class RBContainer {
 		return fSystemType;
 	}
 
+	@SuppressWarnings("unchecked")
 	private void loadAffineFunctions(AModelManager m) throws Exception {
 
 		ClassLoader cl = m.getClassLoader();
@@ -73,13 +75,27 @@ public class RBContainer {
 		Log.d(DEBUG_TAG, "Loaded AffineFunctions class");
 
 		if (mRbSystem != null) {
-			mRbSystem.mAffineFnsClass = (Class<IAffineFunctions>) af;
-			mRbSystem.affineFunctionsInstance = mRbSystem.mAffineFnsClass.newInstance();
+			mRbSystem.oldAffFcnCl = af;
+			mRbSystem.oldAffFcnObj = af.newInstance();
+			if ("rbappmit".equals(m.getModelType())) {
+				mRbSystem.affineFunctionsClass = IAffineFunctions.class;
+				mRbSystem.affineFunctionsInstance = new rbappmitAffineFunctions(af, af.newInstance());
+			} else {
+				mRbSystem.affineFunctionsClass = (Class<IAffineFunctions>) af;
+				mRbSystem.affineFunctionsInstance = mRbSystem.affineFunctionsClass.newInstance();
+			}
 		}
 
 		if (mRbScmSystem != null) {
-			mRbScmSystem.mAffineFnsClass = (Class<IAffineFunctions>) af;
-			mRbScmSystem.affineFunctionsInstance = mRbSystem.mAffineFnsClass.newInstance();
+			mRbScmSystem.oldAffFcnCl = af;
+			mRbScmSystem.oldAffFcnObj = af.newInstance();
+			if ("rbappmit".equals(m.getModelType())) {
+				mRbScmSystem.affineFunctionsClass = IAffineFunctions.class;
+				mRbScmSystem.affineFunctionsInstance = new rbappmitAffineFunctions(af, af.newInstance());
+			} else {
+				mRbScmSystem.affineFunctionsClass = (Class<IAffineFunctions>) af;
+				mRbScmSystem.affineFunctionsInstance = mRbSystem.affineFunctionsClass.newInstance();
+			}
 		}
 	}
 
@@ -107,11 +123,15 @@ public class RBContainer {
 		// Init the main systems
 		mRbScmSystem = fSCMType.getNewRBSCMSystem();
 		mRbSystem = fSystemType.getNewRBSystem();
-		
+
 		// Assign SCM system
 		mRbSystem.setPrimarySCM(mRbScmSystem);
 
 		try {
+			/*
+			 * Requires the system configurations to be set already for
+			 * backwards compatibility! See rbappmitAffineFunctions class.
+			 */
 			loadAffineFunctions(m);
 		} catch (Exception e) {
 			Log.e(DEBUG_TAG, "Exception occurred while attaching affine functions: "
@@ -119,12 +139,11 @@ public class RBContainer {
 			return false;
 		}
 
-		// Finally, initialize the RB and SCM systems
+		// Finally, load the RB and SCM system offline data
 		try {
 			if (mRbSystem != null) {
 				// Read parameters into RB systems
 				if (!mRbSystem.readConfiguration(m)) return false;
-				// Load offline data
 				mRbSystem.loadOfflineData(m);
 				Log.d(DEBUG_TAG, "Finished reading offline data for RBSystem.");
 			}
@@ -137,13 +156,14 @@ public class RBContainer {
 			}
 
 			/*
-			 * A second SCM system seems not to be used within any of the current demos.
-			 * If needed, uncomment this and one line in the loadSecondSCMSystem method to enable
-			 * its use. Even so, it seems the second SCM system does not get loaded any offline data
-			 * at the current state of the code.
+			 * A second SCM system seems not to be used within any of the
+			 * current demos. If needed, uncomment this and one line in the
+			 * loadSecondSCMSystem method to enable its use. Even so, it seems
+			 * the second SCM system does not get loaded any offline data at the
+			 * current state of the code.
 			 */
-//			loadSecondSCMSystem(m);
-			
+			// loadSecondSCMSystem(m);
+
 		} catch (Exception e) {
 			Log.e(DEBUG_TAG, "Exception occurred while reading offline data: "
 					+ e.getMessage(), e);
@@ -153,7 +173,8 @@ public class RBContainer {
 	}
 
 	@SuppressWarnings("unused")
-	private boolean loadSecondSCMSystem(AModelManager m) throws InstantiationException, IllegalAccessException {
+	private boolean loadSecondSCMSystem(AModelManager m)
+			throws InstantiationException, IllegalAccessException {
 		mSecondRbScmSystem = null;
 		if (fSCMType == SCMType.COERCIVE_ALPHASIGMA) {
 			mSecondRbScmSystem = fSCMType.getNewRBSCMSystem();
@@ -161,16 +182,20 @@ public class RBContainer {
 			if (mSecondRbScmSystem != null) {
 				if (fSystemType == SystemType.LINEAR_UNSTEADY) {
 					/*
-					 * Uncomment this line to restore previous status using an optional second SCM system.
+					 * Uncomment this line to restore previous status using an
+					 * optional second SCM system.
 					 */
-//					((TransientRBSystem) mRbSystem).setSecondarySCM(mSecondRbScmSystem);
+					// ((TransientRBSystem)
+					// mRbSystem).setSecondarySCM(mSecondRbScmSystem);
 				}
 
 				if (!mSecondRbScmSystem.readConfiguration(m)) return false;
 
 				// Attach AffineFunctions class also to this system
-				mSecondRbScmSystem.mAffineFnsClass = mRbScmSystem.mAffineFnsClass;
-				mSecondRbScmSystem.affineFunctionsInstance = mRbSystem.mAffineFnsClass.newInstance();
+				mSecondRbScmSystem.affineFunctionsClass = mRbScmSystem.affineFunctionsClass;
+				mSecondRbScmSystem.oldAffFcnCl = mRbSystem.oldAffFcnCl;
+				mSecondRbScmSystem.affineFunctionsInstance = mRbSystem.affineFunctionsClass.newInstance();
+				mSecondRbScmSystem.oldAffFcnObj = mRbSystem.oldAffFcnObj;
 			}
 		}
 		return true;

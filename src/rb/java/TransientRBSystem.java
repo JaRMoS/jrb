@@ -22,6 +22,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 
 import org.apache.commons.math.linear.Array2DRowRealMatrix;
 import org.apache.commons.math.linear.ArrayRealVector;
@@ -354,38 +355,22 @@ public class TransientRBSystem extends RBSystem {
 	/**
 	 * Evaluate theta_q_m (for the q^th mass matrix term) at the current
 	 * parameter.
+	 * @param i 
+	 * @return 
 	 */
-	public double eval_theta_q_m(int q) {
-		Method meth;
-
-		try {
-			// Get a reference to get_n_M_functions, which does not
-			// take any arguments
-
-			Class<?> partypes[] = new Class[2];
-			partypes[0] = Integer.TYPE;
-			partypes[1] = double[].class;
-
-			meth = mAffineFnsClass.getMethod("evaluateM", partypes);
-		} catch (NoSuchMethodException nsme) {
-			throw new RuntimeException("getMethod for evaluateM failed", nsme);
-		}
-
-		Double theta_val;
-		try {
-			Object arglist[] = new Object[2];
-			arglist[0] = new Integer(q);
-			arglist[1] = getParams().getCurrent();
-
-			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
-			theta_val = (Double) theta_obj;
-		} catch (IllegalAccessException iae) {
-			throw new RuntimeException(iae);
-		} catch (InvocationTargetException ite) {
-			throw new RuntimeException(ite.getCause());
-		}
-
-		return theta_val.doubleValue();
+	public double eval_theta_q_m(int i) {
+		return eval_theta_q_m(i, 0);
+	}
+	
+	/**
+	 * Evaluate theta_q_m (for the q^th mass matrix term) at the current
+	 * parameter.
+	 * @param i 
+	 * @param t 
+	 * @return 
+	 */
+	public double eval_theta_q_m(int i, double t) {
+		return ((ITransient)affineFunctionsInstance).thetaQm(i, getParams().getCurrent(), t);
 	}
 
 	/**
@@ -760,29 +745,7 @@ public class TransientRBSystem extends RBSystem {
 					+ n_plotting_steps);
 		}
 
-		/*
-		 * Read Qm number
-		 */
-		Method meth;
-		try {
-			// Get a reference to get_n_A_functions, which does not
-			// take any arguments
-			meth = mAffineFnsClass.getMethod("get_n_M_functions", (Class<?>[]) null);
-		} catch (NoSuchMethodException nsme) {
-			throw new RuntimeException("getMethod for get_n_M_functions failed", nsme);
-		}
-
-		Integer Q_m;
-		try {
-			Object Q_m_obj = meth.invoke(affineFunctionsInstance, (Object[]) null);
-			Q_m = (Integer) Q_m_obj;
-		} catch (IllegalAccessException iae) {
-			throw new RuntimeException(iae);
-		} catch (InvocationTargetException ite) {
-			throw new RuntimeException(ite.getCause());
-		}
-
-		fQm = Q_m.intValue();
+		fQm = ((ITransient)affineFunctionsInstance).getQm();
 		Log.d(DEBUG_TAG, "Q_m = " + fQm);
 	}
 
@@ -872,6 +835,15 @@ public class TransientRBSystem extends RBSystem {
 			DecompositionSolver solver = new LUDecompositionImpl(RB_LHS_matrix).getSolver();
 			RB_solution_N = solver.solve(RB_rhs_N);
 
+//			double[] sol = RB_solution_N.getData();
+//			String sol_str = "[";
+//			for (int i=0;i<sol.length;i++) {
+//				sol_str += String.format("%1.5e  ", sol[i]);
+//			}
+//			Log.d("TransientRBSystem", "RB_solution at t="
+//					+ String.format("%05f", time_level * get_dt()) + ": "
+//					+ sol_str + "]");
+
 			// Save RB_solution for current time level
 			RB_temporal_solution_data[_k] = RB_solution_N;
 
@@ -900,6 +872,13 @@ public class TransientRBSystem extends RBSystem {
 			}
 		}
 
+		double[] sol = RB_outputs_all_k[0];
+		String sol_str = "[";
+		for (int i=0;i<sol.length;i++) {
+			sol_str += String.format("%1.5e %1.5e\n", sol[i], RB_output_error_bounds_all_k[0][i]);
+		}
+		Log.d("TransientRBSystem", "RB_outputs_all_k: " + sol_str + "]");
+		
 		// Now compute the L2 norm of the RB solution at time-level _K
 		// to normalize the error bound
 		// We reuse RB_rhs here

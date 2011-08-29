@@ -726,14 +726,14 @@ public class ComplexRBSystem extends RBSystem {
 
 		try {
 			Class<?> partypes[] = null;
-			meth = mAffineFnsClass.getMethod("is_derived_output", partypes);
+			meth = oldAffFcnCl.getMethod("is_derived_output", partypes);
 		} catch (NoSuchMethodException nsme) {
 			return false;
 		}
 
 		try {
 			Object arglist[] = null;
-			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
+			Object theta_obj = meth.invoke(oldAffFcnObj, arglist);
 			boolean val = (Boolean) theta_obj;
 			return val;
 		} catch (IllegalAccessException iae) {
@@ -752,7 +752,7 @@ public class ComplexRBSystem extends RBSystem {
 				Class<?> partypes[] = new Class[1];
 				partypes[0] = double[].class;
 
-				meth = mAffineFnsClass
+				meth = oldAffFcnCl
 						.getMethod("cal_derived_output", partypes);
 			} catch (NoSuchMethodException nsme) {
 				throw new RuntimeException(
@@ -771,7 +771,7 @@ public class ComplexRBSystem extends RBSystem {
 
 					arglist[0] = input;
 
-					Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
+					Object theta_obj = meth.invoke(oldAffFcnObj, arglist);
 					double[] output = (double[]) theta_obj;
 					RB_outputs[i] = new Complex(output[0], output[1]);
 					RB_output_error_bounds[i] = new Complex(output[2],

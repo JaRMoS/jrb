@@ -13,6 +13,7 @@ import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 
+import rb.java.affinefcn.IAffineFunctions;
 import rb.java.affinefcn.IWithuL;
 import rmcommon.Log;
 import rmcommon.io.AModelManager;
@@ -180,12 +181,51 @@ public class RBSystem extends RBBase {
 				double delta = (q_l1 == q_l2) ? 1. : 2.;
 				output_norm_sq += delta * eval_theta_q_l(i, q_l1)
 						* eval_theta_q_l(i, q_l2) * output_dual_norms[i][q];
-
 				q++;
 			}
 		}
 
 		return Math.sqrt(output_norm_sq);
+	}
+	
+	/**
+	 * 
+	 * @param i
+	 * @return
+	 */
+	public double eval_theta_q_f(int i) {
+		return eval_theta_q_f(i, 0);
+	}
+	
+	/**
+	 * 
+	 * @param i
+	 * @param t
+	 * @return
+	 */
+	public double eval_theta_q_f(int i, double t) {
+		return affineFunctionsInstance.thetaQf(i, getParams().getCurrent(), t);
+	}
+	
+	/**
+	 * 
+	 * @param k 
+	 * @param i
+	 * @return
+	 */
+	public double eval_theta_q_l(int k, int i) {
+		return eval_theta_q_l(k, i, 0);
+	}
+	
+	/**
+	 * 
+	 * @param k 
+	 * @param i
+	 * @param t
+	 * @return
+	 */
+	public double eval_theta_q_l(int k, int i, double t) {
+		return affineFunctionsInstance.thetaQl(k, i, getParams().getCurrent(), t);
 	}
 
 	/**
@@ -246,80 +286,6 @@ public class RBSystem extends RBBase {
 		}
 
 		return Math.sqrt(residual_norm_sq);
-	}
-
-	/**
-	 * Evaluate theta_q_f (for the q^th rhs function) at the current parameter.
-	 */
-	public double eval_theta_q_f(int q) {
-		Method meth;
-
-		try {
-			// Get a reference to get_n_L_functions, which does not
-			// take any arguments
-
-			Class<?> partypes[] = new Class[2];
-			partypes[0] = Integer.TYPE;
-			partypes[1] = double[].class;
-
-			meth = mAffineFnsClass.getMethod("evaluateF", partypes);
-		} catch (NoSuchMethodException nsme) {
-			throw new RuntimeException("getMethod for evaluateF failed", nsme);
-		}
-
-		Double theta_val;
-		try {
-			Object arglist[] = new Object[2];
-			arglist[0] = new Integer(q);
-			arglist[1] = getParams().getCurrent();
-
-			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
-			theta_val = (Double) theta_obj;
-		} catch (IllegalAccessException iae) {
-			throw new RuntimeException(iae);
-		} catch (InvocationTargetException ite) {
-			throw new RuntimeException(ite.getCause());
-		}
-
-		return theta_val.doubleValue();
-	}
-
-	/**
-	 * Evaluate theta_q_l (for the n^th output) at the current parameter.
-	 */
-	public double eval_theta_q_l(int n, int q_l) {
-		Method meth;
-
-		try {
-			// Get a reference to get_n_L_functions, which does not
-			// take any arguments
-
-			Class<?> partypes[] = new Class[3];
-			partypes[0] = Integer.TYPE;
-			partypes[1] = Integer.TYPE;
-			partypes[2] = double[].class;
-
-			meth = mAffineFnsClass.getMethod("evaluateL", partypes);
-		} catch (NoSuchMethodException nsme) {
-			throw new RuntimeException("getMethod for evaluateL failed", nsme);
-		}
-
-		Double theta_val;
-		try {
-			Object arglist[] = new Object[3];
-			arglist[0] = new Integer(n);
-			arglist[1] = new Integer(q_l);
-			arglist[2] = getParams().getCurrent();
-
-			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
-			theta_val = (Double) theta_obj;
-		} catch (IllegalAccessException iae) {
-			throw new RuntimeException(iae);
-		} catch (InvocationTargetException ite) {
-			throw new RuntimeException(ite.getCause());
-		}
-
-		return theta_val.doubleValue();
 	}
 
 	// Return calN
@@ -408,7 +374,7 @@ public class RBSystem extends RBBase {
 			Class<?> partypes[] = new Class[1];
 			partypes[0] = double[].class;
 
-			meth = mAffineFnsClass.getMethod("get_SCM_LB", partypes);
+			meth = oldAffFcnCl.getMethod("get_SCM_LB", partypes);
 		} catch (NoSuchMethodException nsme) {
 			throw new RuntimeException("getMethod for get_SCM_LB failed", nsme);
 		}
@@ -418,7 +384,7 @@ public class RBSystem extends RBBase {
 			Object arglist[] = new Object[1];
 			arglist[0] = getParams().getCurrent();
 
-			Object SCM_obj = meth.invoke(affineFunctionsInstance, arglist);
+			Object SCM_obj = meth.invoke(oldAffFcnObj, arglist);
 			SCM_val = (Double) SCM_obj;
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
@@ -500,7 +466,7 @@ public class RBSystem extends RBBase {
 			Class<?> partypes[] = new Class[1];
 			partypes[0] = double[].class;
 
-			meth = mAffineFnsClass.getMethod("get_local_transformation", partypes);
+			meth = oldAffFcnCl.getMethod("get_local_transformation", partypes);
 		} catch (NoSuchMethodException nsme) {
 			// throw new RuntimeException("getMethod for evaluateF failed",
 			// nsme);
@@ -513,7 +479,7 @@ public class RBSystem extends RBBase {
 				Object arglist[] = new Object[1];
 				arglist[0] = getParams().getCurrent();
 
-				Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
+				Object theta_obj = meth.invoke(oldAffFcnObj, arglist);
 				T_vector = (float[][]) theta_obj;
 			} catch (IllegalAccessException iae) {
 				throw new RuntimeException(iae);
@@ -1003,7 +969,7 @@ public class RBSystem extends RBBase {
 		// Assemble the RB rhs
 		RealVector RB_rhs_N = new ArrayRealVector(N);
 
-		for (int q_f = 0; q_f < getQf(); q_f++) {
+		for (int q_f = 0; q_f < fQf; q_f++) {
 			// Note getSubVector takes an initial index and the number of
 			// entries
 			// i.e. the interface is a bit different to getSubMatrix
@@ -1053,16 +1019,16 @@ public class RBSystem extends RBBase {
 		super.readConfigurationJRB(m);
 		// Number of basis functions
 		n_bfs = Integer.parseInt(m.getModelXMLAttribute("num_basisfcn", "rb_model"));
-		// Number of output functionals
-		fNumOutputs = Integer.parseInt(m.getModelXMLAttribute("outputs", "rb_model"));
-
-		Ql_values = affineFunctionsInstance.getQl();
-		fQf = affineFunctionsInstance.getQf();
-
+		
 		fNumFields = Integer.parseInt(m.getModelXMLAttribute("fields", "rb_model"));
 
 		calN = Integer.parseInt(m.getModelXMLTagValue("geometry.nodes"));
+		
+		// Number of output functionals
+		fNumOutputs = affineFunctionsInstance.getNumOutputs();
 
+		Ql_values = affineFunctionsInstance.getQl();
+		fQf = affineFunctionsInstance.getQf();
 		if (affineFunctionsInstance instanceof IWithuL) {
 			fQuL = ((IWithuL) affineFunctionsInstance).getQuL();
 		}
@@ -1087,76 +1053,17 @@ public class RBSystem extends RBBase {
 				+ return_rel_error_bound);
 
 		/*
-		 * Read output number and affine expansion sizes for output functionals
+		 * Read values using the new IAffineFunctions wrapper
 		 */
-		Method meth;
-		try {
-			// Get a reference to get_n_L_functions, which does not
-			// take any arguments
-			meth = mAffineFnsClass.getMethod("get_n_outputs", (Class<?>[]) null);
-			Object n_outputs_obj = meth.invoke(affineFunctionsInstance, (Object[]) null);
-			Integer n_outputs = (Integer) n_outputs_obj;
-			fNumOutputs = n_outputs.intValue();
-			Log.d(DEBUG_TAG, "n_outputs = " + fNumOutputs);
-
-			/*
-			 * Read all Ql values into array and be done with it
-			 */
-			Class<?> partypes[] = new Class[1];
-			partypes[0] = Integer.TYPE;
-			meth = mAffineFnsClass.getMethod("get_Q_l", partypes);
-			Ql_values = new int[fNumOutputs];
-			Object arglist[] = new Object[1];
-			for (int i = 0; i < fNumOutputs; i++) {
-				arglist[0] = i;// new Integer(output_index);
-				Ql_values[i] = (Integer) meth.invoke(affineFunctionsInstance, arglist);
-			}
-
-			/*
-			 * Read Qf value
-			 */
-			meth = mAffineFnsClass.getMethod("get_n_F_functions", (Class<?>[]) null);
-			fQf = (Integer) meth.invoke(affineFunctionsInstance, (Object[]) null);
-			Log.d(DEBUG_TAG, "Q_f = " + fQf);
-		} catch (NoSuchMethodException nsme) {
-			throw new RuntimeException("getMethod failed: " + nsme.getMessage(), nsme);
-		} catch (IllegalAccessException iae) {
-			throw new RuntimeException(iae);
-		} catch (InvocationTargetException ite) {
-			throw new RuntimeException(ite.getCause());
+		Ql_values = affineFunctionsInstance.getQl();
+		fQf = affineFunctionsInstance.getQf();
+		Log.d(DEBUG_TAG, "Q_f = " + fQf);
+		if (affineFunctionsInstance instanceof IWithuL) {
+			fQuL = ((IWithuL) affineFunctionsInstance).getQuL();
 		}
-
-		/*
-		 * Extra for QuL, as it checks via exception if function is there
-		 */
-		boolean noQ_uLdefined = false;
-		try {
-			// Get a reference to get_n_A_functions, which does not
-			// take any arguments
-			meth = mAffineFnsClass.getMethod("get_n_uL_functions", (Class<?>[]) null);
-		} catch (NoSuchMethodException nsme) {
-			// throw new
-			// RuntimeException("getMethod for get_n_uL_functions failed",
-			// nsme);
-			noQ_uLdefined = true;
-			meth = null;
-		}
-
-		if (noQ_uLdefined)
-			fQuL = 0;
-		else {
-			Integer Q_uL;
-			try {
-				Object Q_uL_obj = meth.invoke(affineFunctionsInstance, (Object[]) null);
-				Q_uL = (Integer) Q_uL_obj;
-			} catch (IllegalAccessException iae) {
-				throw new RuntimeException(iae);
-			} catch (InvocationTargetException ite) {
-				throw new RuntimeException(ite.getCause());
-			}
-
-			fQuL = Q_uL.intValue();
-		}
+		
+		fNumOutputs = affineFunctionsInstance.getNumOutputs();
+		Log.d(DEBUG_TAG, "n_outputs = " + fNumOutputs);
 	}
 
 	/**

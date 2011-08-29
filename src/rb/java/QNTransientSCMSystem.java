@@ -91,7 +91,7 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 			Class<?> partypes[] = new Class[1];
 			partypes[0] = double[].class;
 
-			meth = mAffineFnsClass.getMethod("evaluateC", partypes);
+			meth = oldAffFcnCl.getMethod("evaluateC", partypes);
 		} catch (NoSuchMethodException nsme) {
 			throw new RuntimeException("getMethod for evaluateC failed", nsme);
 		}
@@ -101,7 +101,7 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 			Object arglist[] = new Object[1];
 			arglist[0] = getParams().getCurrent();
 
-			Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
+			Object theta_obj = meth.invoke(oldAffFcnObj, arglist);
 			theta_val = (Double) theta_obj;
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
@@ -139,7 +139,7 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 				partypes[0] = Integer.TYPE;
 				partypes[1] = double[].class;
 
-				meth = mAffineFnsClass.getMethod("evaluateA", partypes);
+				meth = oldAffFcnCl.getMethod("evaluateA", partypes);
 			} catch (NoSuchMethodException nsme) {
 				throw new RuntimeException("getMethod for evaluateA failed",
 						nsme);
@@ -151,7 +151,7 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 				arglist[0] = new Integer(q - get_n_basis_functions());
 				arglist[1] = getParams().getCurrent();
 
-				Object theta_obj = meth.invoke(affineFunctionsInstance, arglist);
+				Object theta_obj = meth.invoke(oldAffFcnObj, arglist);
 				theta_val = (Double) theta_obj;
 			} catch (IllegalAccessException iae) {
 				throw new RuntimeException(iae);

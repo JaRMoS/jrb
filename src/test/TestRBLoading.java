@@ -30,7 +30,7 @@ public class TestRBLoading {
 		FileModelManager f = new FileModelManager("models");
 		try {
 			for (ModelDescriptor m : f.getModelDescriptors()) {
-				if (("rb".equals(m.type) || "rbappmit".equals(m.type)) && m.modeldir.equals("adv_diff_rb")) {
+				if (("rb".equals(m.type) || "rbappmit".equals(m.type))) {
 					System.out.println("\n----------------- Trying to load model "+m.title+" from folder "+m.modeldir+" -----------------\n");
 					try {
 						f.setModelDir(m.modeldir);
