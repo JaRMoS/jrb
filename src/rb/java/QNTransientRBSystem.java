@@ -33,12 +33,17 @@ import org.apache.commons.math.linear.RealVector;
 import rmcommon.Log;
 import rmcommon.io.AModelManager;
 
-// This class provides the Online reduced
-// basis functionality for quadratically nonlinear
-// time-dependent problems.
-// This class is modeled on the QNTransientRBSystem
-// class in rbOOmit
-
+/**
+ * This class provides the Online reduced basis functionality for quadratically
+ * nonlinear time-dependent problems. This class is modeled on the
+ * QNTransientRBSystem class in rbOOmit
+ * 
+ * Changes made by
+ * 
+ * @author Daniel Wirtz
+ * @date Aug 29, 2011
+ * 
+ */
 public class QNTransientRBSystem extends TransientRBSystem {
 
 	// Logging tag
@@ -78,6 +83,8 @@ public class QNTransientRBSystem extends TransientRBSystem {
 	/**
 	 * Perform online solve for current_params with the N basis functions.
 	 * Overload this to solve the nonlinear RB system using Newton's method.
+	 * 
+	 * TODO: Use the current time information when the theta's are time-dependent, as in TransientRBSystem.
 	 */
 	@Override
 	public double RB_solve(int N) {
@@ -123,23 +130,24 @@ public class QNTransientRBSystem extends TransientRBSystem {
 
 		// and load the _k=0 data
 		RB_solution = RB_u_bar;
-		RB_temporal_solution_data[_k] = RB_u_bar; // Should use .copy() here!
+		RB_temporal_solution_data[timestep] = RB_u_bar; // Should use .copy()
+														// here!
 
 		double error_bound_sum = 0.;
 
 		// Set error bound at _k=0
-		error_bound_all_k[_k] = Math.sqrt(error_bound_sum);
+		error_bound_all_k[timestep] = Math.sqrt(error_bound_sum);
 
 		// Compute the outputs and associated error bounds at _k=0
 		for (int i = 0; i < getNumOutputs(); i++) {
-			RB_outputs_all_k[i][_k] = 0.;
-			RB_output_error_bounds_all_k[i][_k] = 0.;
+			RB_outputs_all_k[i][timestep] = 0.;
+			RB_output_error_bounds_all_k[i][timestep] = 0.;
 			for (int q_l = 0; q_l < getQl(i); q_l++) {
-				RB_outputs_all_k[i][_k] += eval_theta_q_l(i, q_l)
+				RB_outputs_all_k[i][timestep] += eval_theta_q_l(i, q_l, 0)
 						* (RB_output_vectors[i][q_l].getSubVector(0, N).dotProduct(RB_solution));
 			}
-			RB_output_error_bounds_all_k[i][_k] = compute_output_dual_norm(i)
-					* error_bound_all_k[_k];
+			RB_output_error_bounds_all_k[i][timestep] = compute_output_dual_norm(i,0)
+					* error_bound_all_k[timestep];
 		}
 
 		// Initialize a vector to store the solution from the old time-step
@@ -151,8 +159,10 @@ public class QNTransientRBSystem extends TransientRBSystem {
 		// Pre-compute eval_theta_c()
 		double cached_theta_c = eval_theta_c();
 
-		for (int time_level = 1; time_level <= _K; time_level++) {
+		for (int time_level = 1; time_level <= fK; time_level++) {
 
+			double t = time_level * get_dt();
+			
 			set_time_level(time_level); // update the member variable _k
 
 			// Set RB_u_old to be the result of the previous Newton loop
@@ -237,7 +247,8 @@ public class QNTransientRBSystem extends TransientRBSystem {
 			// Load RB_solution into RB_solution_vector for residual computation
 			RB_solution = RB_u_bar;
 			old_RB_solution = RB_u_old;
-			RB_temporal_solution_data[_k] = RB_u_bar; // should use copy here!
+			RB_temporal_solution_data[timestep] = RB_u_bar; // should use copy
+															// here!
 
 			double rho_LB = (mRbScmSystem == null) ? get_nominal_rho_LB() : get_SCM_lower_bound();
 
@@ -248,22 +259,22 @@ public class QNTransientRBSystem extends TransientRBSystem {
 					* Math.pow(epsilon_N, 2.);
 
 			// store error bound at time-level _k
-			error_bound_all_k[_k] = Math.sqrt(error_bound_sum
+			error_bound_all_k[timestep] = Math.sqrt(error_bound_sum
 					/ residual_scaling_denom(rho_LB));
 
 			// Now compute the outputs and associated error bounds
 			for (int i = 0; i < getNumOutputs(); i++) {
-				RB_outputs_all_k[i][_k] = 0.;
-				RB_output_error_bounds_all_k[i][_k] = 0.;
+				RB_outputs_all_k[i][timestep] = 0.;
+				RB_output_error_bounds_all_k[i][timestep] = 0.;
 				for (int q_l = 0; q_l < getQl(i); q_l++) {
-					RB_outputs_all_k[i][_k] += eval_theta_q_l(i, q_l)
+					RB_outputs_all_k[i][timestep] += eval_theta_q_l(i, q_l)
 							* (RB_output_vectors[i][q_l].getSubVector(0, N).dotProduct(RB_solution));
 				}
-				RB_output_error_bounds_all_k[i][_k] = compute_output_dual_norm(i)
-						* error_bound_all_k[_k];
+				RB_output_error_bounds_all_k[i][timestep] = compute_output_dual_norm(i, t)
+						* error_bound_all_k[timestep];
 			}
-			Log.d(DEBUG_TAG, "output = " + RB_outputs_all_k[0][_k] + ", bound="
-					+ RB_output_error_bounds_all_k[0][_k]);
+			Log.d(DEBUG_TAG, "output = " + RB_outputs_all_k[0][timestep]
+					+ ", bound=" + RB_output_error_bounds_all_k[0][timestep]);
 		}
 
 		// Now compute the L2 norm of the RB solution at time-level _K
@@ -271,8 +282,8 @@ public class QNTransientRBSystem extends TransientRBSystem {
 		// We reuse RB_rhs here
 		double final_RB_L2_norm = Math.sqrt(RB_mass_matrix_N.operate(RB_solution).dotProduct(RB_solution));
 
-		return (return_rel_error_bound ? error_bound_all_k[_K]
-				/ final_RB_L2_norm : error_bound_all_k[_K]);
+		return (return_rel_error_bound ? error_bound_all_k[fK]
+				/ final_RB_L2_norm : error_bound_all_k[fK]);
 	}
 
 	/**
@@ -509,7 +520,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 			double[] params = new double[np + 1];
 			for (int i = 0; i < np; i++)
 				params[i] = getParams().getCurrent()[i];
-			params[np] = _k;
+			params[np] = timestep;
 
 			// Set the parameter
 			qnScmSystem.getParams().setCurrent(params);

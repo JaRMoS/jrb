@@ -507,8 +507,8 @@ public class ComplexRBSystem extends RBSystem {
 						.getEntry(j).conjugate()).multiply((RB_solution
 						.getEntry(j))));
 
-			RB_output_error_bounds[i] = new Complex(compute_output_dual_norm(i)
-					* abs_error_bound, compute_output_dual_norm(i)
+			RB_output_error_bounds[i] = new Complex(compute_output_dual_norm(i,0) // Zero means no time used here
+					* abs_error_bound, compute_output_dual_norm(i,0) // Zero means no time used here
 					* abs_error_bound);
 		}
 
@@ -588,8 +588,12 @@ public class ComplexRBSystem extends RBSystem {
 		return Math.sqrt(residual_norm_sq);
 	}
 
+	/**
+	 * @see rb.java.RBSystem#compute_output_dual_norm(int, double)
+	 * TODO: make use of the t variable and change the complex_eval_theta etc
+	 */
 	@Override
-	protected double compute_output_dual_norm(int i) {
+	protected double compute_output_dual_norm(int i, double t) {
 
 		// Use the stored representor inner product values
 		// to evaluate the output dual norm

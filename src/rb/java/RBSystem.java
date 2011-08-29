@@ -13,7 +13,6 @@ import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 
-import rb.java.affinefcn.IAffineFunctions;
 import rb.java.affinefcn.IWithuL;
 import rmcommon.Log;
 import rmcommon.io.AModelManager;
@@ -91,13 +90,6 @@ public class RBSystem extends RBBase {
 	private int n_bfs;
 
 	/**
-	 * The number of time steps we actually plot in the output plotter. This is
-	 * sometimes less than K so that we don't plot the effect of the filter near
-	 * the final time.
-	 */
-	public int n_plotting_steps;
-
-	/**
 	 * This array stores the dual norms for each output. Row n stores the Q_l
 	 * dual norms for the expansion of the n^th output.
 	 */
@@ -169,7 +161,7 @@ public class RBSystem extends RBBase {
 	 * Compute the dual norm of the i^th output function at the current
 	 * parameter value
 	 */
-	protected double compute_output_dual_norm(int i) {
+	protected double compute_output_dual_norm(int i, double t) {
 
 		// Use the stored representor inner product values
 		// to evaluate the output dual norm
@@ -179,8 +171,8 @@ public class RBSystem extends RBBase {
 		for (int q_l1 = 0; q_l1 < getQl(i); q_l1++) {
 			for (int q_l2 = q_l1; q_l2 < getQl(i); q_l2++) {
 				double delta = (q_l1 == q_l2) ? 1. : 2.;
-				output_norm_sq += delta * eval_theta_q_l(i, q_l1)
-						* eval_theta_q_l(i, q_l2) * output_dual_norms[i][q];
+				output_norm_sq += delta * eval_theta_q_l(i, q_l1, t)
+						* eval_theta_q_l(i, q_l2, t) * output_dual_norms[i][q];
 				q++;
 			}
 		}
@@ -1007,7 +999,7 @@ public class RBSystem extends RBBase {
 				RB_outputs[i] += eval_theta_q_l(i, q_l)
 						* RB_solution.dotProduct(RB_output_vector_N);
 			}
-			RB_output_error_bounds[i] = compute_output_dual_norm(i)
+			RB_output_error_bounds[i] = compute_output_dual_norm(i, 0) // Zero is current time, not in RBSystem
 					* abs_error_bound;
 		}
 

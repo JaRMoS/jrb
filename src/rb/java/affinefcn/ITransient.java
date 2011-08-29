@@ -14,6 +14,12 @@ package rb.java.affinefcn;
  * 
  */
 public interface ITransient {
+	
+	/**
+	 * Flag that determines if the theta^m coefficient functions are time dependent.
+	 * @return True if any theta^m_i is time dependent, false otherwise 
+	 */
+	public boolean isTimeDependentM();
 
 	/**
 	 * 

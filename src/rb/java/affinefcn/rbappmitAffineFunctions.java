@@ -7,8 +7,6 @@ package rb.java.affinefcn;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import rmcommon.Log;
-
 /**
  * @author Daniel Wirtz
  * @date Aug 29, 2011
@@ -142,10 +140,10 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#isTimeDependentAF()
+	 * @see rb.java.affinefcn.IAffineFunctions#isTimeDependentA()
 	 */
 	@Override
-	public boolean isTimeDependentAF() {
+	public boolean isTimeDependentA() {
 		// TODO Auto-generated method stub
 		return false;
 	}
@@ -355,6 +353,14 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 		} catch (InvocationTargetException ite) {
 			throw new RuntimeException(ite.getCause());
 		}
+	}
+
+	/**
+	 * @see rb.java.affinefcn.ITransient#isTimeDependentM()
+	 */
+	@Override
+	public boolean isTimeDependentM() {
+		return false;
 	}
 
 }

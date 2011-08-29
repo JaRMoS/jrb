@@ -4,7 +4,8 @@
  */
 package test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
@@ -20,14 +21,38 @@ import rmcommon.io.FileModelManager;
  */
 public class TestRBSolve {
 
+//	/**
+//	 * Tests loading & solving of JRB models (type "rb")
+//	 */
+//	@Test
+//	public void testRBSolveJRB() {
+//		FileModelManager f = new FileModelManager("models");
+//		try {
+//			f.setModelDir("adv_diff_rb");
+//		} catch (ModelManagerException e) {
+//			e.printStackTrace();
+//			fail(e.getMessage());
+//		}
+//		
+//		RBContainer rb = new RBContainer();
+//		assertTrue(rb.loadModel(f));
+//		
+//		// Perform the solve
+//		RBSystem s=rb.mRbSystem;
+////		double[] par = s.getParams().getRandomParam();
+//		double[] par = new double[]{.5, .5};
+//		s.getParams().setCurrent(par);
+//		s.RB_solve(4);
+//	}
+	
 	/**
 	 * Tests loading & solving of JRB models (type "rb")
 	 */
 	@Test
-	public void testRBSolveJRB() {
+	public void testRBSolveJRB_TimeConst() {
 		FileModelManager f = new FileModelManager("models");
 		try {
-			f.setModelDir("adv_diff_rb");
+			f.setModelDir("adv_diff_rb_tc");
 		} catch (ModelManagerException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -44,28 +69,28 @@ public class TestRBSolve {
 		s.RB_solve(4);
 	}
 	
-	/**
-	 * Tests loading & solving of JRB models (type "rb")
-	 */
-	@Test
-	public void testRBSolverbappmit() {
-		FileModelManager f = new FileModelManager("models");
-		try {
-			f.setModelDir("demo8");
-		} catch (ModelManagerException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-		
-		RBContainer rb = new RBContainer();
-		assertTrue(rb.loadModel(f));
-		
-		// Perform the solve
-		RBSystem s=rb.mRbSystem;
-		double[] par = s.getParams().getRandomParam();
-//		double[] par = new double[]{.5, .5};
-		s.getParams().setCurrent(par);
-		s.RB_solve(s.getNBF()/2);
-	}
+//	/**
+//	 * Tests loading & solving of JRB models (type "rb")
+//	 */
+//	@Test
+//	public void testRBSolverbappmit() {
+//		FileModelManager f = new FileModelManager("models");
+//		try {
+//			f.setModelDir("demo8");
+//		} catch (ModelManagerException e) {
+//			e.printStackTrace();
+//			fail(e.getMessage());
+//		}
+//		
+//		RBContainer rb = new RBContainer();
+//		assertTrue(rb.loadModel(f));
+//		
+//		// Perform the solve
+//		RBSystem s=rb.mRbSystem;
+//		double[] par = s.getParams().getRandomParam();
+////		double[] par = new double[]{.5, .5};
+//		s.getParams().setCurrent(par);
+//		s.RB_solve(s.getNBF()/2);
+//	}
 
 }

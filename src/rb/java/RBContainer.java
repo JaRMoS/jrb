@@ -5,7 +5,6 @@ import java.io.IOException;
 import rb.java.affinefcn.IAffineFunctions;
 import rb.java.affinefcn.rbappmitAffineFunctions;
 import rmcommon.Log;
-import rmcommon.Parameters;
 import rmcommon.io.AModelManager;
 
 /**

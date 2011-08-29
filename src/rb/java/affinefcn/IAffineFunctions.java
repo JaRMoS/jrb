@@ -29,9 +29,9 @@ public interface IAffineFunctions {
 	 * to be passed every time anyways, but computations can be made mode
 	 * efficient if the matrices stay identical for all time-steps
 	 * 
-	 * @return Whether \theta^{a,f} are time-dependent or not.
+	 * @return Whether \theta^a are time-dependent or not.
 	 */
-	public boolean isTimeDependentAF();
+	public boolean isTimeDependentA();
 
 	/**
 	 * Returns the size of the affine linear combination for each output
