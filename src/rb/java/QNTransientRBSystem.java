@@ -130,7 +130,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 
 		// and load the _k=0 data
 		RB_solution = RB_u_bar;
-		RB_temporal_solution_data[timestep] = RB_u_bar; // Should use .copy()
+		timestepRBSolutions[timestep] = RB_u_bar; // Should use .copy()
 														// here!
 
 		double error_bound_sum = 0.;
@@ -247,7 +247,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 			// Load RB_solution into RB_solution_vector for residual computation
 			RB_solution = RB_u_bar;
 			old_RB_solution = RB_u_old;
-			RB_temporal_solution_data[timestep] = RB_u_bar; // should use copy
+			timestepRBSolutions[timestep] = RB_u_bar; // should use copy
 															// here!
 
 			double rho_LB = (mRbScmSystem == null) ? get_nominal_rho_LB() : get_SCM_lower_bound();

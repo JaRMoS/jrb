@@ -30,6 +30,7 @@ import org.apache.commons.math.linear.RealVector;
 
 import rb.java.affinefcn.ITransient;
 import rmcommon.Log;
+import rmcommon.geometry.DiscretizationType;
 import rmcommon.io.AModelManager;
 import rmcommon.io.MathObjectReader;
 
@@ -60,7 +61,7 @@ public class TransientRBSystem extends RBSystem {
 	 * Total number of time-steps.
 	 */
 	protected int fK;
-	
+
 	/**
 	 * The number of time steps we actually plot in the output plotter. This is
 	 * sometimes less than K so that we don't plot the effect of the filter near
@@ -74,21 +75,19 @@ public class TransientRBSystem extends RBSystem {
 	 */
 	private boolean apply_temporal_filter_flag;
 
-	protected double[][][][] Aq_Mq_representor_norms;
+	/**
+	 * Vectors storing the residual representor inner products to be used in
+	 * computing the residuals online.
+	 */
+	private double[][][] Fq_Mq_representor_norms;
+	private double[][][][] Aq_Mq_representor_norms;
+	private double[][][] Mq_Mq_representor_norms;
 
 	private double[][] cached_Aq_Aq_matrix;
-
 	private double[][] cached_Aq_Mq_matrix;
-
 	private double[] cached_Fq_Aq_vector;
-
 	private double[] cached_Fq_Mq_vector;
-
-	/**
-	 * Private residual caching data.
-	 */
 	private double cached_Fq_term;
-
 	private double[][] cached_Mq_Mq_matrix;
 
 	/**
@@ -112,21 +111,11 @@ public class TransientRBSystem extends RBSystem {
 	 * The standard deviation of the filter (in terms of time steps).
 	 */
 	private double filter_width;
-	/**
-	 * Vectors storing the residual representor inner products to be used in
-	 * computing the residuals online.
-	 */
-	protected double[][][] Fq_Mq_representor_norms;
 
 	/**
 	 * The number of terms in the affine expansion of the mass matrix
 	 */
 	private int fQm;
-
-	// basis vector
-	// protected float[][][] Z_vector;
-
-	protected double[][][] Mq_Mq_representor_norms;
 
 	// @SuppressWarnings({ "unused" })
 	// /**
@@ -151,7 +140,7 @@ public class TransientRBSystem extends RBSystem {
 	 * The solution coefficients at each time level from the most recent
 	 * RB_solve.
 	 */
-	protected RealVector[] RB_temporal_solution_data;
+	protected RealVector[] timestepRBSolutions;
 
 	/**
 	 * Apply the temporal filter to the outputs
@@ -417,13 +406,14 @@ public class TransientRBSystem extends RBSystem {
 	 * RB_temporal_solution_data[(int)Math.round(Math.floor
 	 * (_k*_K/nt))].getEntry(j); return tmpsol; }
 	 */
-	public int get_nt() {
+	public int getNumTimesteps() {
 		/*
 		 * int nt = Math.round(50000/get_calN()); nt = nt>_K?_K:nt; return nt;
 		 */
-		int nt = (int) Math.round(75000 / get_calN()
+		int nt = (int) Math.round(75000 / getGeometry().nodes
 				/ (1 + 0.4 * (getNumFields() - 1))); // can go up to 150000
-		nt = nt > 25 ? 25 : nt; // cap nt at 25
+		nt = nt > 150 ? 150 : nt; // cap nt at 25
+		// nt = nt > 25 ? 25 : nt; // cap nt at 25
 		return nt > fK ? fK : nt;
 	}
 
@@ -436,30 +426,49 @@ public class TransientRBSystem extends RBSystem {
 	}
 
 	/**
-	 * Get/set the current time-level.
+	 * Gets the current time-level.
+	 * 
+	 * @return The current time step
 	 */
 	public int get_time_level() {
 		return timestep;
 	}
 
-	// return truth solution
-	public float[][][] get_truth_sol() {
-		int N = RB_temporal_solution_data[1].getDimension();
-		int nt = get_nt();
-		float[][][] truth_sol = new float[getNumFields()][1][get_calN() * nt];
-		for (int ifn = 0; ifn < getNumFields(); ifn++) {
+	/**
+	 * return truth solution
+	 * 
+	 * @see rb.java.RBSystem#getFullSolution()
+	 */
+	@Override
+	public float[][][] getFullSolution() {
+		// RB solution size
+		int N = timestepRBSolutions[1].getDimension();
+		// Number of time-steps to show
+		int nt = getNumTimesteps();
+		// Number of nodes that have values
+		int nodes = getGeometry().nodes;
+		if (getGeometry().discrType == DiscretizationType.FV) {
+			nodes = getGeometry().faces;
+		}
+
+		float[][][] truth_sol = new float[getNumFields()][1][nodes * nt];
+
+		for (int fieldNr = 0; fieldNr < getNumFields(); fieldNr++) {
 			double tmpval;
-			for (timestep = 1; timestep <= nt; timestep++)
-				for (int i = 0; i < get_calN(); i++) {
+			for (timestep = 1; timestep <= nt; timestep++) {
+				// Choose equally spaced indices
+				int solidx = (int) Math.round(Math.floor(timestep * fK / nt));
+				for (int nodeNr = 0; nodeNr < nodes; nodeNr++) {
 					tmpval = 0;
-					for (int j = 0; j < N; j++)
-						tmpval += Z_vector[ifn][j][i]
-								* RB_temporal_solution_data[(int) Math.round(Math.floor(timestep
-										* fK / nt))].getEntry(j);
+					for (int j = 0; j < N; j++) {
+						tmpval += Z_vector[fieldNr][j][nodeNr]
+								* timestepRBSolutions[solidx].getEntry(j);
+					}
 					// tmpval +=
 					// Z_vector[ifn][j][i]*RB_temporal_solution_data[_k].getEntry(j);
-					truth_sol[ifn][0][(timestep - 1) * get_calN() + i] = (float) tmpval;
+					truth_sol[fieldNr][0][(timestep - 1) * nodes + nodeNr] = (float) tmpval;
 				}
+			}
 		}
 		return truth_sol;
 	}
@@ -478,7 +487,7 @@ public class TransientRBSystem extends RBSystem {
 		error_bound_all_k = new double[get_K() + 1];
 
 		// Resize the array that stores the solution data at all time levels
-		RB_temporal_solution_data = new RealVector[get_K() + 1];
+		timestepRBSolutions = new RealVector[get_K() + 1];
 	}
 
 	/**
@@ -722,8 +731,9 @@ public class TransientRBSystem extends RBSystem {
 		dt = Double.parseDouble(m.getModelXMLTagValue("rb_model.timeinfo.dt"));
 		euler_theta = Double.parseDouble(m.getModelXMLTagValue("rb_model.timeinfo.euler_theta"));
 		fK = Integer.parseInt(m.getModelXMLTagValue("rb_model.timeinfo.K"));
-		
-		n_plotting_steps = Integer.parseInt(m.getModelXMLTagValue("model.visual.plotSteps", ""+(fK+1)));
+
+		n_plotting_steps = Integer.parseInt(m.getModelXMLTagValue("model.visual.plotSteps", ""
+				+ (fK + 1)));
 	}
 
 	/**
@@ -828,7 +838,7 @@ public class TransientRBSystem extends RBSystem {
 		RealVector RB_rhs_N = new ArrayRealVector(N);
 
 		// Load the initial condition into RB_temporal_solution_data
-		RB_temporal_solution_data[timestep] = RB_solution;
+		timestepRBSolutions[timestep] = RB_solution;
 
 		double error_bound_sum = 0.;
 
@@ -893,7 +903,7 @@ public class TransientRBSystem extends RBSystem {
 
 			// Add forcing terms
 			for (int q_f = 0; q_f < getQf(); q_f++) {
-				RB_rhs_N = RB_rhs_N.add(RB_F_q_vector[q_f].getSubVector(0, N).mapMultiply(eval_theta_q_f(q_f, t)));
+				RB_rhs_N = RB_rhs_N.add(RB_F_q_vector[q_f].getSubVector(0, N).mapMultiply(eval_theta_q_f(q_f, 0)));
 			}
 
 			// Solve the linear system
@@ -910,7 +920,7 @@ public class TransientRBSystem extends RBSystem {
 					+ sol_str + "]");
 
 			// Save RB_solution for current time level
-			RB_temporal_solution_data[timestep] = RB_solution_N;
+			timestepRBSolutions[timestep] = RB_solution_N;
 
 			// Evaluate the dual norm of the residual for RB_solution_vector
 			RB_solution = RB_solution_N;
@@ -956,13 +966,6 @@ public class TransientRBSystem extends RBSystem {
 
 		return (return_rel_error_bound ? error_bound_all_k[fK]
 				/ final_RB_L2_norm : error_bound_all_k[fK]);
-	}
-
-	/**
-	 * Set the Q_a variable from the mTheta object.
-	 */
-	public void read_in_Q_m() {
-
 	}
 
 	// PROTECTED FUNCTIONS

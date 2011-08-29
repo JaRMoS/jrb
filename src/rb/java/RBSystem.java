@@ -15,6 +15,8 @@ import org.apache.commons.math.linear.RealVector;
 
 import rb.java.affinefcn.IWithuL;
 import rmcommon.Log;
+import rmcommon.geometry.DiscretizationType;
+import rmcommon.geometry.GeometryData;
 import rmcommon.io.AModelManager;
 import rmcommon.io.MathObjectReader;
 
@@ -39,19 +41,14 @@ public class RBSystem extends RBBase {
 
 	protected double[][][] Aq_Aq_representor_norms;
 
-	/*
-	 * The number of nodes. TODO: This value should be obtainable via a
-	 * reference to the system's GeometryData object after it has been loaded..
-	 */
-	private int calN;
-
 	// current N
 	protected int current_N;
 
+	/* The number of fields: 0 means no visualization */
+	private int fNumFields;
+	
 	// The number of output functionals
 	private int fNumOutputs;
-	// The affine function expansion size for all outputs
-	private int[] Ql_values;
 
 	// PRIVATE MEMBER VARIABLES
 
@@ -64,9 +61,6 @@ public class RBSystem extends RBBase {
 	 */
 	protected double[] Fq_representor_norms;
 
-	/* The number of fields: 0 means no visualization */
-	private int fNumFields;
-
 	/**
 	 * The number of terms in the affine expansion of the rhs
 	 */
@@ -78,6 +72,8 @@ public class RBSystem extends RBBase {
 	 * Zero per default.
 	 */
 	private int fQuL = 0;
+	
+	private GeometryData fGeo;
 
 	/**
 	 * A reference to the SCM system.
@@ -94,6 +90,9 @@ public class RBSystem extends RBBase {
 	 * dual norms for the expansion of the n^th output.
 	 */
 	public double[][] output_dual_norms;
+
+	// The affine function expansion size for all outputs
+	private int[] Ql_values;
 
 	/**
 	 * Dense matrices for the RB computations.
@@ -156,6 +155,13 @@ public class RBSystem extends RBBase {
 		// Initialize n_bfs to 0
 		n_bfs = 0;
 	}
+	
+	/*
+	 * The system'S geometry data
+	 */
+	public GeometryData getGeometry() {
+		return fGeo;
+	}
 
 	/**
 	 * Compute the dual norm of the i^th output function at the current
@@ -180,46 +186,6 @@ public class RBSystem extends RBBase {
 		return Math.sqrt(output_norm_sq);
 	}
 	
-	/**
-	 * 
-	 * @param i
-	 * @return
-	 */
-	public double eval_theta_q_f(int i) {
-		return eval_theta_q_f(i, 0);
-	}
-	
-	/**
-	 * 
-	 * @param i
-	 * @param t
-	 * @return
-	 */
-	public double eval_theta_q_f(int i, double t) {
-		return affineFunctionsInstance.thetaQf(i, getParams().getCurrent(), t);
-	}
-	
-	/**
-	 * 
-	 * @param k 
-	 * @param i
-	 * @return
-	 */
-	public double eval_theta_q_l(int k, int i) {
-		return eval_theta_q_l(k, i, 0);
-	}
-	
-	/**
-	 * 
-	 * @param k 
-	 * @param i
-	 * @param t
-	 * @return
-	 */
-	public double eval_theta_q_l(int k, int i, double t) {
-		return affineFunctionsInstance.thetaQl(k, i, getParams().getCurrent(), t);
-	}
-
 	/**
 	 * Compute the dual norm of the residual for the solution saved in
 	 * RB_solution_vector.
@@ -279,11 +245,51 @@ public class RBSystem extends RBBase {
 
 		return Math.sqrt(residual_norm_sq);
 	}
-
-	// Return calN
-	public int get_calN() {
-		return calN;
+	
+	/**
+	 * 
+	 * @param i
+	 * @return
+	 */
+	public double eval_theta_q_f(int i) {
+		return eval_theta_q_f(i, 0);
 	}
+	
+	/**
+	 * 
+	 * @param i
+	 * @param t
+	 * @return
+	 */
+	public double eval_theta_q_f(int i, double t) {
+		return affineFunctionsInstance.thetaQf(i, getParams().getCurrent(), t);
+	}
+	
+	/**
+	 * 
+	 * @param k 
+	 * @param i
+	 * @return
+	 */
+	public double eval_theta_q_l(int k, int i) {
+		return eval_theta_q_l(k, i, 0);
+	}
+
+	/**
+	 * 
+	 * @param k 
+	 * @param i
+	 * @param t
+	 * @return
+	 */
+	public double eval_theta_q_l(int k, int i, double t) {
+		return affineFunctionsInstance.thetaQl(k, i, getParams().getCurrent(), t);
+	}
+
+//	// Return fGeo.nodes
+//	public int get_fGeo.nodes() {
+//		return fGeo.nodes;
+//	}
 
 //	public double get_dt() {
 //		return 0.;
@@ -293,50 +299,12 @@ public class RBSystem extends RBBase {
 		return 1;
 	}
 
-	/**
-	 * Number of output value fields.
-	 * 
-	 * Zero for no visualization.
-	 * @return The number of output fields
-	 */
-	public int getNumFields() {
-		return fNumFields;
-	}
-
 	public int get_N() {
 		return current_N;
 	}
 
-	public int get_nt() {
+	public int getNumTimesteps() {
 		return 1;
-	}
-
-	/**
-	 * TODO: if all affine_functions implement the IAffineFunctions interface,
-	 * just call the getQf method of the local instance.
-	 * 
-	 * @return Q_f, the number of term in the affine expansion of the right-hand
-	 *         side
-	 */
-	public int getQf() {
-		return fQf;
-	}
-
-	/**
-	 * TODO: if all affine_functions implement the IAffineFunctions interface,
-	 * just call the getQl method of the local instance.
-	 * 
-	 * @param output_index
-	 *            The index of the output we are interested in
-	 * @return the number of terms in the affine expansion of the specified
-	 *         output
-	 */
-	protected int getQl(int output_index) {
-		return Ql_values[output_index];
-	}
-
-	public int getQuL() {
-		return fQuL;
 	}
 
 	public double get_RB_output(int n_output, boolean Rpart) {
@@ -422,16 +390,16 @@ public class RBSystem extends RBBase {
 	public float[][][] get_sweep_truth_sol() {
 		int N = RB_sweep_solution[0][0].length;
 		int numSweep = RB_sweep_solution.length;
-		float[][][] truth_sol = new float[getNumFields()][1][calN * numSweep];
+		float[][][] truth_sol = new float[getNumFields()][1][fGeo.nodes * numSweep];
 		for (int ifn = 0; ifn < getNumFields(); ifn++) {
 			double tmpval;
 			for (int iSweep = 0; iSweep < numSweep; iSweep++)
-				for (int i = 0; i < calN; i++) {
+				for (int i = 0; i < fGeo.nodes; i++) {
 					tmpval = 0;
 					for (int j = 0; j < N; j++)
 						tmpval += Z_vector[ifn][j][i]
 								* RB_sweep_solution[iSweep][0][j];
-					truth_sol[ifn][0][iSweep * calN + i] = (float) tmpval;
+					truth_sol[ifn][0][iSweep * fGeo.nodes + i] = (float) tmpval;
 				}
 		}
 		return truth_sol;
@@ -513,9 +481,9 @@ public class RBSystem extends RBBase {
 	 * @return a float array with the true solution, with entries
 	 *         [field_nr][0][node_nr]
 	 */
-	public float[][][] get_truth_sol() {
+	public float[][][] getFullSolution() {
 		int N = RB_solution.getDimension();
-		float[][][] truth_sol = new float[getNumFields()][1][calN];
+		float[][][] truth_sol = new float[getNumFields()][1][fGeo.nodes];
 		/*
 		 * Assign solutions of each field
 		 */
@@ -524,7 +492,7 @@ public class RBSystem extends RBBase {
 			/*
 			 * i is the node number of the grid
 			 */
-			for (int i = 0; i < calN; i++) {
+			for (int i = 0; i < fGeo.nodes; i++) {
 				tmpval = 0;
 				/*
 				 * j is the current RB dimension (with coeffs)
@@ -545,10 +513,48 @@ public class RBSystem extends RBBase {
 	}
 
 	/**
+	 * Number of output value fields.
+	 * 
+	 * Zero for no visualization.
+	 * @return The number of output fields
+	 */
+	public int getNumFields() {
+		return fNumFields;
+	}
+
+	/**
 	 * @return the number of output functionals
 	 */
 	public int getNumOutputs() {
 		return fNumOutputs;
+	}
+
+	/**
+	 * TODO: if all affine_functions implement the IAffineFunctions interface,
+	 * just call the getQf method of the local instance.
+	 * 
+	 * @return Q_f, the number of term in the affine expansion of the right-hand
+	 *         side
+	 */
+	public int getQf() {
+		return fQf;
+	}
+
+	/**
+	 * TODO: if all affine_functions implement the IAffineFunctions interface,
+	 * just call the getQl method of the local instance.
+	 * 
+	 * @param output_index
+	 *            The index of the output we are interested in
+	 * @return the number of terms in the affine expansion of the specified
+	 *         output
+	 */
+	protected int getQl(int output_index) {
+		return Ql_values[output_index];
+	}
+
+	public int getQuL() {
+		return fQuL;
 	}
 
 	/**
@@ -567,123 +573,20 @@ public class RBSystem extends RBBase {
 	 * @throws IOException
 	 */
 	public final void loadOfflineData(AModelManager m) throws IOException {
+		/*
+		 *  Load model geometry first as some loading methods require geometry size values
+		 */
+		fGeo = new GeometryData();
+		fGeo.allocateBuffer();
+		fGeo.loadModelGeometry(m);
+		
 		if ("rbappmit".equals(m.getModelType())) {
 			loadOfflineData_rbappmit(m);
 		} else {
 			loadOfflineDataJRB(m);
 		}
+		
 		initialize_data_vectors();
-	}
-
-	protected void loadOfflineDataJRB(AModelManager m) throws IOException {
-
-		MathObjectReader mr = m.getMathObjReader();
-		String filename;
-
-		/*
-		 * Get output dual norms
-		 */
-		RB_output_vectors = new RealVector[fNumOutputs][];
-		output_dual_norms = new double[fNumOutputs][];
-		for (int i = 0; i < fNumOutputs; i++) {
-			filename = "output_" + String.format("%03d", i) + "_dual_norms.bin";
-
-			output_dual_norms[i] = mr.readRawDoubleVector(m.getInStream(filename));
-			// int Q_l_hat = getQl(i) * (getQl(i) + 1) / 2;
-			// output_dual_norms[i] = new double[Q_l_hat];
-			// for (int q = 0; q < Q_l_hat; q++) {
-			// output_dual_norms[i][q] =
-			// Double.parseDouble(dual_norms_tokens[q]);
-			// }
-
-			RB_output_vectors[i] = new RealVector[Ql_values[i]];
-			for (int q_l = 0; q_l < Ql_values[i]; q_l++) {
-				filename = "output_" + String.format("%03d", i) + "_"
-						+ String.format("%03d", q_l) + ".bin";
-
-				RB_output_vectors[i][q_l] = mr.readVector(m.getInStream(filename));
-			}
-		}
-		Log.d(DEBUG_TAG, "Finished reading output data");
-
-		/*
-		 * Read in the F_q vectors
-		 */
-		RB_F_q_vector = new RealVector[fQf];
-		for (int q_f = 0; q_f < fQf; q_f++) {
-			filename = "RB_F_" + String.format("%03d", q_f) + ".bin";
-			RB_F_q_vector[q_f] = mr.readVector(m.getInStream(filename));
-		}
-		Log.d(DEBUG_TAG, "Finished reading RB_F_q data");
-
-		/*
-		 * Read in the A_q matrices
-		 */
-		RB_A_q_vector = new RealMatrix[getQa()];
-		for (int q_a = 0; q_a < getQa(); q_a++) {
-			filename = "RB_A_" + String.format("%03d", q_a) + ".bin";
-			RB_A_q_vector[q_a] = mr.readMatrix(m.getInStream(filename));
-		}
-		Log.d(DEBUG_TAG, "Finished reading RB_A_q data");
-
-		/*
-		 * Read in F_q representor norm data Contains the upper triangular
-		 * entries of the pairwise norm matrix
-		 */
-		Fq_representor_norms = mr.readRawDoubleVector(m.getInStream("Fq_norms.bin"));
-
-		// Read in Fq_Aq representor norm data
-
-		// Declare the array
-		Fq_Aq_representor_norms = new double[fQf][getQa()][n_bfs];
-		for (int q_a = 0; q_a < getQa(); q_a++) {
-			for (int q_f = 0; q_f < fQf; q_f++) {
-				filename = "Fq_Aq_" + String.format("%03d", q_f) + "_"
-						+ String.format("%03d", q_a) + ".bin";
-				Fq_Aq_representor_norms[q_f][q_a] = mr.readRawDoubleVector(m.getInStream(filename));
-			}
-		}
-		Log.d(DEBUG_TAG, "Finished reading Fq_Aq_norms.dat");
-
-		/*
-		 * Read in Aq_Aq representor norm data
-		 */
-		int triuQa = getQa() * (getQa() + 1) / 2;
-		Aq_Aq_representor_norms = new double[triuQa][][];
-		for (int i = 0; i < getQa(); i++) {
-			for (int j = 0; j < getQa() - i; j++) {
-				filename = "Aq_Aq_" + String.format("%03d", i) + "_"
-						+ String.format("%03d", j) + "_norms.bin";
-				Aq_Aq_representor_norms[j + getQa() * i] = mr.readRawDoubleMatrix(m.getInStream(filename));
-			}
-		}
-		Log.d(DEBUG_TAG, "Finished reading Aq_Aq_norms.dat");
-
-		/*
-		 * Reading uL data, if some is present
-		 */
-		if (fQuL > 0) {
-			uL_vector = new float[fQuL][];
-			for (int q_uL = 0; q_uL < fQuL; q_uL++) {
-				filename = "uL_" + String.format("%03d", q_uL) + ".bin";
-				uL_vector[q_uL] = mr.readRawFloatVector(m.getInStream(filename));
-			}
-			Log.d(DEBUG_TAG, "Finished reading uL.dat");
-		}
-
-		/*
-		 *  Read in Z data
-		 */
-		if (fNumFields > 0) {
-			Z_vector = new float[fNumFields][n_bfs][];
-			for (int imf = 0; imf < fNumFields; imf++)
-				for (int inbfs = 0; inbfs < n_bfs; inbfs++) {
-					filename = "Z_" + String.format("%03d", imf) + "_"
-							+ String.format("%03d", inbfs) + ".bin";
-					Z_vector[imf][inbfs] = mr.readRawFloatVector(m.getInStream(filename));
-				}
-			Log.d(DEBUG_TAG, "Finished reading Z data");
-		}
 	}
 
 	/**
@@ -706,15 +609,15 @@ public class RBSystem extends RBBase {
 
 		{
 			if (getNumFields() > 0) {
-				BufferedReader reader = m.getBufReader("calN.dat");
+				BufferedReader reader = m.getBufReader("fGeo.nodes.dat");
 
 				String line = reader.readLine();
 
-				calN = Integer.parseInt(line);
+				fGeo.nodes = Integer.parseInt(line);
 				reader.close();
 				reader = null;
 			}
-			Log.d(DEBUG_TAG, "Finished reading calN.dat");
+			Log.d(DEBUG_TAG, "Finished reading fGeo.nodes.dat");
 		}
 
 		// Read in output data
@@ -903,7 +806,7 @@ public class RBSystem extends RBBase {
 					in = m.getInStream("uL_" + String.format("%03d", q_uL)
 							+ ".bin");
 					try {
-						uL_vector[q_uL] = mr.readRawFloatVector(in, get_calN());
+						uL_vector[q_uL] = mr.readRawFloatVector(in, fGeo.nodes);
 					} finally {
 						in.close();
 					}
@@ -923,7 +826,7 @@ public class RBSystem extends RBBase {
 						in = m.getInStream("Z_" + String.format("%03d", imf)
 								+ "_" + String.format("%03d", inbfs) + ".bin");
 						try {
-							Z_vector[imf][inbfs] = mr.readRawFloatVector(in, calN);
+							Z_vector[imf][inbfs] = mr.readRawFloatVector(in, fGeo.nodes);
 						} finally {
 							in.close();
 						}
@@ -933,6 +836,117 @@ public class RBSystem extends RBBase {
 			Log.d(DEBUG_TAG, "Finished reading Z.dat");
 		}
 
+	}
+
+	protected void loadOfflineDataJRB(AModelManager m) throws IOException {
+
+		MathObjectReader mr = m.getMathObjReader();
+		String filename;
+
+		/*
+		 * Get output dual norms
+		 */
+		RB_output_vectors = new RealVector[fNumOutputs][];
+		output_dual_norms = new double[fNumOutputs][];
+		for (int i = 0; i < fNumOutputs; i++) {
+			filename = "output_" + String.format("%03d", i) + "_dual_norms.bin";
+
+			output_dual_norms[i] = mr.readRawDoubleVector(m.getInStream(filename));
+			// int Q_l_hat = getQl(i) * (getQl(i) + 1) / 2;
+			// output_dual_norms[i] = new double[Q_l_hat];
+			// for (int q = 0; q < Q_l_hat; q++) {
+			// output_dual_norms[i][q] =
+			// Double.parseDouble(dual_norms_tokens[q]);
+			// }
+
+			RB_output_vectors[i] = new RealVector[Ql_values[i]];
+			for (int q_l = 0; q_l < Ql_values[i]; q_l++) {
+				filename = "output_" + String.format("%03d", i) + "_"
+						+ String.format("%03d", q_l) + ".bin";
+
+				RB_output_vectors[i][q_l] = mr.readVector(m.getInStream(filename));
+			}
+		}
+		Log.d(DEBUG_TAG, "Finished reading output data");
+
+		/*
+		 * Read in the F_q vectors
+		 */
+		RB_F_q_vector = new RealVector[fQf];
+		for (int q_f = 0; q_f < fQf; q_f++) {
+			filename = "RB_F_" + String.format("%03d", q_f) + ".bin";
+			RB_F_q_vector[q_f] = mr.readVector(m.getInStream(filename));
+		}
+		Log.d(DEBUG_TAG, "Finished reading RB_F_q data");
+
+		/*
+		 * Read in the A_q matrices
+		 */
+		RB_A_q_vector = new RealMatrix[getQa()];
+		for (int q_a = 0; q_a < getQa(); q_a++) {
+			filename = "RB_A_" + String.format("%03d", q_a) + ".bin";
+			RB_A_q_vector[q_a] = mr.readMatrix(m.getInStream(filename));
+		}
+		Log.d(DEBUG_TAG, "Finished reading RB_A_q data");
+
+		/*
+		 * Read in F_q representor norm data Contains the upper triangular
+		 * entries of the pairwise norm matrix
+		 */
+		Fq_representor_norms = mr.readRawDoubleVector(m.getInStream("Fq_norms.bin"));
+
+		// Read in Fq_Aq representor norm data
+
+		// Declare the array
+		Fq_Aq_representor_norms = new double[fQf][getQa()][n_bfs];
+		for (int q_a = 0; q_a < getQa(); q_a++) {
+			for (int q_f = 0; q_f < fQf; q_f++) {
+				filename = "Fq_Aq_" + String.format("%03d", q_f) + "_"
+						+ String.format("%03d", q_a) + ".bin";
+				Fq_Aq_representor_norms[q_f][q_a] = mr.readRawDoubleVector(m.getInStream(filename));
+			}
+		}
+		Log.d(DEBUG_TAG, "Finished reading Fq_Aq_norms.dat");
+
+		/*
+		 * Read in Aq_Aq representor norm data
+		 */
+		int triuQa = getQa() * (getQa() + 1) / 2;
+		Aq_Aq_representor_norms = new double[triuQa][][];
+		for (int i = 0; i < getQa(); i++) {
+			for (int j = 0; j < getQa() - i; j++) {
+				filename = "Aq_Aq_" + String.format("%03d", i) + "_"
+						+ String.format("%03d", j) + "_norms.bin";
+				Aq_Aq_representor_norms[j + getQa() * i] = mr.readRawDoubleMatrix(m.getInStream(filename));
+			}
+		}
+		Log.d(DEBUG_TAG, "Finished reading Aq_Aq_norms.dat");
+
+		/*
+		 * Reading uL data, if some is present
+		 */
+		if (fQuL > 0) {
+			uL_vector = new float[fQuL][];
+			for (int q_uL = 0; q_uL < fQuL; q_uL++) {
+				filename = "uL_" + String.format("%03d", q_uL) + ".bin";
+				uL_vector[q_uL] = mr.readRawFloatVector(m.getInStream(filename));
+			}
+			Log.d(DEBUG_TAG, "Finished reading uL.dat");
+		}
+
+		/*
+		 *  Read in Z data
+		 */
+		if (fNumFields > 0) {
+			Z_vector = new float[fNumFields][n_bfs][];
+			for (int imf = 0; imf < fNumFields; imf++)
+				for (int inbfs = 0; inbfs < n_bfs; inbfs++) {
+					filename = "Z_" + String.format("%03d", imf) + "_"
+							+ String.format("%03d", inbfs) + ".bin";
+					Z_vector[imf][inbfs] = mr.readRawFloatVector(m.getInStream(filename));
+				}
+			Log.d(DEBUG_TAG, "Finished reading Z data");
+		}
 	}
 
 	/**
@@ -1013,8 +1027,6 @@ public class RBSystem extends RBBase {
 		n_bfs = Integer.parseInt(m.getModelXMLAttribute("num_basisfcn", "rb_model"));
 		
 		fNumFields = Integer.parseInt(m.getModelXMLAttribute("fields", "rb_model"));
-
-		calN = Integer.parseInt(m.getModelXMLTagValue("geometry.nodes"));
 		
 		// Number of output functionals
 		fNumOutputs = affineFunctionsInstance.getNumOutputs();
@@ -1065,11 +1077,6 @@ public class RBSystem extends RBBase {
 	 */
 	protected double residual_scaling_denom(double alpha_LB) {
 		return Math.sqrt(alpha_LB);
-	}
-
-	// Set calN
-	public void set_calN(int _calN) {
-		calN = _calN;
 	}
 
 	public void set_n_basis_functions(int _N) {

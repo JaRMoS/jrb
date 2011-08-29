@@ -11,8 +11,10 @@ import org.junit.Test;
 
 import rb.java.RBContainer;
 import rb.java.RBSystem;
+import rmcommon.geometry.GeometryData;
 import rmcommon.io.AModelManager.ModelManagerException;
 import rmcommon.io.FileModelManager;
+import rmcommon.visual.ColorGenerator;
 
 /**
  * @author Daniel Wirtz
@@ -67,6 +69,13 @@ public class TestRBSolve {
 		double[] par = new double[]{.5, .5};
 		s.getParams().setCurrent(par);
 		s.RB_solve(4);
+		
+		float[][][] sol = s.getFullSolution();
+		
+		GeometryData g = new GeometryData();
+		g.loadModelGeometry(f);
+		g.set1FieldData(sol[0][0]);
+		g.computeColorData(new ColorGenerator());
 	}
 	
 //	/**
