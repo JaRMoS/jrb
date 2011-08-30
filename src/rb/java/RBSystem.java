@@ -13,6 +13,8 @@ import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 
+import rb.java.affinefcn.IAffineFunctions;
+import rb.java.affinefcn.IAffineInitials;
 import rb.java.affinefcn.IWithuL;
 import rmcommon.Log;
 import rmcommon.geometry.DiscretizationType;
@@ -44,13 +46,15 @@ public class RBSystem extends RBBase {
 	// current N
 	protected int current_N;
 
+	private GeometryData fGeo;
+
 	/* The number of fields: 0 means no visualization */
 	private int fNumFields;
-	
-	// The number of output functionals
-	private int fNumOutputs;
 
 	// PRIVATE MEMBER VARIABLES
+
+	// The number of output functionals
+	private int fNumOutputs;
 
 	protected double[][][] Fq_Aq_representor_norms;
 
@@ -72,8 +76,8 @@ public class RBSystem extends RBBase {
 	 * Zero per default.
 	 */
 	private int fQuL = 0;
-	
-	private GeometryData fGeo;
+
+	protected float[][][] fullBasisVectors;
 
 	/**
 	 * A reference to the SCM system.
@@ -83,7 +87,7 @@ public class RBSystem extends RBBase {
 	/**
 	 * The number of basis functions in the RB space.
 	 */
-	private int n_bfs;
+	private int numBasisFuncs;
 
 	/**
 	 * This array stores the dual norms for each output. Row n stores the Q_l
@@ -118,7 +122,6 @@ public class RBSystem extends RBBase {
 	 * The vectors storing the RB output vectors
 	 */
 	protected RealVector[][] RB_output_vectors;
-
 	/**
 	 * The vector storing the RB output values in the steady-state case.
 	 */
@@ -128,24 +131,49 @@ public class RBSystem extends RBBase {
 	 * The outputs at all time levels.
 	 */
 	public double[][] RB_outputs_all_k;
+
 	/**
 	 * The RB solution vector. Stored as a Vector so that we can easily resize
 	 * it during an RB_solve.
 	 */
 	protected RealVector RB_solution;
-
 	protected double[][][] RB_sweep_solution;
+
 	/**
 	 * Boolean flag to indicate whether RB_solve returns an absolute or relative
 	 * error bound. True => relative, false => absolute.
 	 */
 	public boolean return_rel_error_bound;
 
-	protected float[][] uL_vector;
-
 	// PUBLIC FUNCTIONS
 
-	protected float[][][] Z_vector;
+	protected float[][] uL_vector;
+
+	/**
+	 * The initial value solution coefficients
+	 */
+	private RealVector[] RB_initial_coeffs;
+
+	/**
+	 * Returns the initial conditions solution coefficients for RB size N
+	 * 
+	 * TODO: Use this method in any RB_Solve member in subclasses!
+	 * 
+	 * @param N The RB size
+	 * @return The initial solution coefficient vector of size N
+	 */
+	public RealVector getInitialCoefficients(int N) {
+		if (affineFunctionsInstance instanceof IAffineInitials) {
+			RealVector res = new ArrayRealVector(N);
+			IAffineInitials a = (IAffineInitials) affineFunctionsInstance;
+			for (int i = 0; i < a.getQu0(); i++) {
+				res = res.add(RB_initial_coeffs[i].getSubVector(0, N).mapMultiply(a.thetaQu0(i, getParams().getCurrent())));
+			}
+			return res;
+		} else {
+			return RB_initial_coeffs[0].getSubVector(0, N);
+		}
+	}
 
 	/**
 	 * Constructor.
@@ -153,14 +181,7 @@ public class RBSystem extends RBBase {
 	public RBSystem() {
 
 		// Initialize n_bfs to 0
-		n_bfs = 0;
-	}
-	
-	/*
-	 * The system'S geometry data
-	 */
-	public GeometryData getGeometry() {
-		return fGeo;
+		numBasisFuncs = 0;
 	}
 
 	/**
@@ -177,15 +198,15 @@ public class RBSystem extends RBBase {
 		for (int q_l1 = 0; q_l1 < getQl(i); q_l1++) {
 			for (int q_l2 = q_l1; q_l2 < getQl(i); q_l2++) {
 				double delta = (q_l1 == q_l2) ? 1. : 2.;
-				output_norm_sq += delta * eval_theta_q_l(i, q_l1, t)
-						* eval_theta_q_l(i, q_l2, t) * output_dual_norms[i][q];
+				output_norm_sq += delta * thetaQl(i, q_l1, t)
+						* thetaQl(i, q_l2, t) * output_dual_norms[i][q];
 				q++;
 			}
 		}
 
 		return Math.sqrt(output_norm_sq);
 	}
-	
+
 	/**
 	 * Compute the dual norm of the residual for the solution saved in
 	 * RB_solution_vector.
@@ -200,8 +221,8 @@ public class RBSystem extends RBBase {
 		for (int q_f1 = 0; q_f1 < getQf(); q_f1++) {
 			for (int q_f2 = q_f1; q_f2 < getQf(); q_f2++) {
 				double delta = (q_f1 == q_f2) ? 1. : 2.;
-				residual_norm_sq += delta * eval_theta_q_f(q_f1)
-						* eval_theta_q_f(q_f2) * Fq_representor_norms[q];
+				residual_norm_sq += delta * thetaQf(q_f1) * thetaQf(q_f2)
+						* Fq_representor_norms[q];
 
 				q++;
 			}
@@ -212,7 +233,7 @@ public class RBSystem extends RBBase {
 				for (int i = 0; i < N; i++) {
 					double delta = 2.;
 					residual_norm_sq += get_soln_coeff(i) * delta
-							* eval_theta_q_f(q_f) * eval_theta_q_a(q_a)
+							* thetaQf(q_f) * thetaQa(q_a)
 							* Fq_Aq_representor_norms[q_f][q_a][i];
 				}
 			}
@@ -226,8 +247,8 @@ public class RBSystem extends RBBase {
 				for (int i = 0; i < N; i++) {
 					for (int j = 0; j < N; j++) {
 						residual_norm_sq += get_soln_coeff(i)
-								* get_soln_coeff(j) * delta
-								* eval_theta_q_a(q_a1) * eval_theta_q_a(q_a2)
+								* get_soln_coeff(j) * delta * thetaQa(q_a1)
+								* thetaQa(q_a2)
 								* Aq_Aq_representor_norms[q][i][j];
 					}
 				}
@@ -245,66 +266,9 @@ public class RBSystem extends RBBase {
 
 		return Math.sqrt(residual_norm_sq);
 	}
-	
-	/**
-	 * 
-	 * @param i
-	 * @return
-	 */
-	public double eval_theta_q_f(int i) {
-		return eval_theta_q_f(i, 0);
-	}
-	
-	/**
-	 * 
-	 * @param i
-	 * @param t
-	 * @return
-	 */
-	public double eval_theta_q_f(int i, double t) {
-		return affineFunctionsInstance.thetaQf(i, getParams().getCurrent(), t);
-	}
-	
-	/**
-	 * 
-	 * @param k 
-	 * @param i
-	 * @return
-	 */
-	public double eval_theta_q_l(int k, int i) {
-		return eval_theta_q_l(k, i, 0);
-	}
-
-	/**
-	 * 
-	 * @param k 
-	 * @param i
-	 * @param t
-	 * @return
-	 */
-	public double eval_theta_q_l(int k, int i, double t) {
-		return affineFunctionsInstance.thetaQl(k, i, getParams().getCurrent(), t);
-	}
-
-//	// Return fGeo.nodes
-//	public int get_fGeo.nodes() {
-//		return fGeo.nodes;
-//	}
-
-//	public double get_dt() {
-//		return 0.;
-//	}
-
-	public int get_K() {
-		return 1;
-	}
 
 	public int get_N() {
 		return current_N;
-	}
-
-	public int getNumTimesteps() {
-		return 1;
 	}
 
 	public double get_RB_output(int n_output, boolean Rpart) {
@@ -390,14 +354,15 @@ public class RBSystem extends RBBase {
 	public float[][][] get_sweep_truth_sol() {
 		int N = RB_sweep_solution[0][0].length;
 		int numSweep = RB_sweep_solution.length;
-		float[][][] truth_sol = new float[getNumFields()][1][fGeo.nodes * numSweep];
+		float[][][] truth_sol = new float[getNumFields()][1][fGeo.nodes
+				* numSweep];
 		for (int ifn = 0; ifn < getNumFields(); ifn++) {
 			double tmpval;
 			for (int iSweep = 0; iSweep < numSweep; iSweep++)
 				for (int i = 0; i < fGeo.nodes; i++) {
 					tmpval = 0;
 					for (int j = 0; j < N; j++)
-						tmpval += Z_vector[ifn][j][i]
+						tmpval += fullBasisVectors[ifn][j][i]
 								* RB_sweep_solution[iSweep][0][j];
 					truth_sol[ifn][0][iSweep * fGeo.nodes + i] = (float) tmpval;
 				}
@@ -498,24 +463,32 @@ public class RBSystem extends RBBase {
 				 * j is the current RB dimension (with coeffs)
 				 */
 				for (int j = 0; j < N; j++)
-					tmpval += Z_vector[ifn][j][i] * get_soln_coeff(j);
+					tmpval += fullBasisVectors[ifn][j][i] * get_soln_coeff(j);
 				truth_sol[ifn][0][i] = (float) tmpval;
 			}
 		}
 		return truth_sol;
 	}
 
+	/*
+	 * The system'S geometry data
+	 */
+	public GeometryData getGeometry() {
+		return fGeo;
+	}
+
 	/**
 	 * @return The number of basis functions in the system.
 	 */
 	public int getNBF() {
-		return n_bfs;
+		return numBasisFuncs;
 	}
 
 	/**
 	 * Number of output value fields.
 	 * 
 	 * Zero for no visualization.
+	 * 
 	 * @return The number of output fields
 	 */
 	public int getNumFields() {
@@ -557,6 +530,14 @@ public class RBSystem extends RBBase {
 		return fQuL;
 	}
 
+	public int getTotalTimesteps() {
+		return 1;
+	}
+
+	public int getVisualNumTimesteps() {
+		return 1;
+	}
+
 	/**
 	 * Resize the vectors that store solution data and output data.
 	 */
@@ -574,18 +555,19 @@ public class RBSystem extends RBBase {
 	 */
 	public final void loadOfflineData(AModelManager m) throws IOException {
 		/*
-		 *  Load model geometry first as some loading methods require geometry size values
+		 * Load model geometry first as some loading methods require geometry
+		 * size values
 		 */
 		fGeo = new GeometryData();
 		fGeo.allocateBuffer();
 		fGeo.loadModelGeometry(m);
-		
+
 		if ("rbappmit".equals(m.getModelType())) {
 			loadOfflineData_rbappmit(m);
 		} else {
 			loadOfflineDataJRB(m);
 		}
-		
+
 		initialize_data_vectors();
 	}
 
@@ -596,11 +578,17 @@ public class RBSystem extends RBBase {
 	 */
 	protected void loadOfflineData_rbappmit(AModelManager m) throws IOException {
 
+		/*
+		 * Load zero initial conditions for old rbappmit models
+		 */
+		RB_initial_coeffs = new RealVector[1];
+		RB_initial_coeffs[1] = new ArrayRealVector(numBasisFuncs);
+		
 		{
 			BufferedReader reader = m.getBufReader("n_bfs.dat");
 
 			String line = reader.readLine();
-			n_bfs = Integer.parseInt(line);
+			numBasisFuncs = Integer.parseInt(line);
 			reader.close();
 			reader = null;
 
@@ -642,7 +630,8 @@ public class RBSystem extends RBBase {
 						int Q_l_hat = getQl(i) * (getQl(i) + 1) / 2;
 						output_dual_norms[i] = new double[Q_l_hat];
 						for (int q = 0; q < Q_l_hat; q++) {
-							output_dual_norms[i][q] = Double.parseDouble(dual_norms_tokens[q]);
+							output_dual_norms[i][q] = Double
+									.parseDouble(dual_norms_tokens[q]);
 						}
 					}
 
@@ -660,9 +649,11 @@ public class RBSystem extends RBBase {
 							output_i_tokens = line_i.split(" ");
 						}
 
-						RB_output_vectors[i][q_l] = new ArrayRealVector(n_bfs);
-						for (int j = 0; j < n_bfs; j++) {
-							RB_output_vectors[i][q_l].setEntry(j, Double.parseDouble(output_i_tokens[j]));
+						RB_output_vectors[i][q_l] = new ArrayRealVector(
+								numBasisFuncs);
+						for (int j = 0; j < numBasisFuncs; j++) {
+							RB_output_vectors[i][q_l].setEntry(j,
+									Double.parseDouble(output_i_tokens[j]));
 						}
 
 					}
@@ -687,11 +678,12 @@ public class RBSystem extends RBBase {
 				}
 
 				// Set the size of the inner product matrix
-				RB_F_q_vector[q_f] = new ArrayRealVector(n_bfs);
+				RB_F_q_vector[q_f] = new ArrayRealVector(numBasisFuncs);
 
 				// Fill the vector
-				for (int i = 0; i < n_bfs; i++) {
-					RB_F_q_vector[q_f].setEntry(i, Double.parseDouble(tokens[i]));
+				for (int i = 0; i < numBasisFuncs; i++) {
+					RB_F_q_vector[q_f].setEntry(i,
+							Double.parseDouble(tokens[i]));
 				}
 
 			}
@@ -713,13 +705,15 @@ public class RBSystem extends RBBase {
 				}
 
 				// Set the size of the inner product matrix
-				RB_A_q_vector[q_a] = new Array2DRowRealMatrix(n_bfs, n_bfs);
+				RB_A_q_vector[q_a] = new Array2DRowRealMatrix(numBasisFuncs,
+						numBasisFuncs);
 
 				// Fill the vector
 				int count = 0;
-				for (int i = 0; i < n_bfs; i++)
-					for (int j = 0; j < n_bfs; j++) {
-						RB_A_q_vector[q_a].setEntry(i, j, Double.parseDouble(tokens[count]));
+				for (int i = 0; i < numBasisFuncs; i++)
+					for (int j = 0; j < numBasisFuncs; j++) {
+						RB_A_q_vector[q_a].setEntry(i, j,
+								Double.parseDouble(tokens[count]));
 						count++;
 					}
 
@@ -757,14 +751,15 @@ public class RBSystem extends RBBase {
 			String[] tokens = line.split(" ");
 
 			// Declare the array
-			Fq_Aq_representor_norms = new double[getQf()][getQa()][n_bfs];
+			Fq_Aq_representor_norms = new double[getQf()][getQa()][numBasisFuncs];
 
 			// Fill it
 			int count = 0;
 			for (int q_f = 0; q_f < getQf(); q_f++)
 				for (int q_a = 0; q_a < getQa(); q_a++)
-					for (int i = 0; i < n_bfs; i++) {
-						Fq_Aq_representor_norms[q_f][q_a][i] = Double.parseDouble(tokens[count]);
+					for (int i = 0; i < numBasisFuncs; i++) {
+						Fq_Aq_representor_norms[q_f][q_a][i] = Double
+								.parseDouble(tokens[count]);
 						count++;
 					}
 
@@ -787,7 +782,9 @@ public class RBSystem extends RBBase {
 							+ String.format("%03d", j) + "_norms.bin";
 					InputStream in = m.getInStream(file);
 					try {
-						Aq_Aq_representor_norms[count] = mr.readRawDoubleMatrix(in, n_bfs, n_bfs);
+						Aq_Aq_representor_norms[count] = mr
+								.readRawDoubleMatrix(in, numBasisFuncs,
+										numBasisFuncs);
 					} finally {
 						in.close();
 					}
@@ -819,14 +816,15 @@ public class RBSystem extends RBBase {
 		{
 			int mf = getNumFields();
 			if (mf > 0) {
-				Z_vector = new float[mf][n_bfs][];
+				fullBasisVectors = new float[mf][numBasisFuncs][];
 				InputStream in;
 				for (int imf = 0; imf < mf; imf++)
-					for (int inbfs = 0; inbfs < n_bfs; inbfs++) {
+					for (int inbfs = 0; inbfs < numBasisFuncs; inbfs++) {
 						in = m.getInStream("Z_" + String.format("%03d", imf)
 								+ "_" + String.format("%03d", inbfs) + ".bin");
 						try {
-							Z_vector[imf][inbfs] = mr.readRawFloatVector(in, fGeo.nodes);
+							fullBasisVectors[imf][inbfs] = mr
+									.readRawFloatVector(in, fGeo.nodes);
 						} finally {
 							in.close();
 						}
@@ -844,6 +842,20 @@ public class RBSystem extends RBBase {
 		String filename;
 
 		/*
+		 * Get initial value coefficient vectors
+		 */
+		int Qu0 = 1;
+		if (affineFunctionsInstance instanceof IAffineInitials) {
+			Qu0 = ((IAffineInitials)affineFunctionsInstance).getQu0();
+		}
+		RB_initial_coeffs = new RealVector[Qu0];
+		for (int i = 0; i < Qu0; i++) {
+			filename = "RB_initial_" + String.format("%03d", i) + ".bin";
+			RB_initial_coeffs[i] = mr.readVector(m.getInStream(filename));
+		}
+		Log.d(DEBUG_TAG, "Finished initial value data");
+		
+		/*
 		 * Get output dual norms
 		 */
 		RB_output_vectors = new RealVector[fNumOutputs][];
@@ -851,7 +863,8 @@ public class RBSystem extends RBBase {
 		for (int i = 0; i < fNumOutputs; i++) {
 			filename = "output_" + String.format("%03d", i) + "_dual_norms.bin";
 
-			output_dual_norms[i] = mr.readRawDoubleVector(m.getInStream(filename));
+			output_dual_norms[i] = mr.readRawDoubleVector(m
+					.getInStream(filename));
 			// int Q_l_hat = getQl(i) * (getQl(i) + 1) / 2;
 			// output_dual_norms[i] = new double[Q_l_hat];
 			// for (int q = 0; q < Q_l_hat; q++) {
@@ -864,7 +877,8 @@ public class RBSystem extends RBBase {
 				filename = "output_" + String.format("%03d", i) + "_"
 						+ String.format("%03d", q_l) + ".bin";
 
-				RB_output_vectors[i][q_l] = mr.readVector(m.getInStream(filename));
+				RB_output_vectors[i][q_l] = mr.readVector(m
+						.getInStream(filename));
 			}
 		}
 		Log.d(DEBUG_TAG, "Finished reading output data");
@@ -893,17 +907,19 @@ public class RBSystem extends RBBase {
 		 * Read in F_q representor norm data Contains the upper triangular
 		 * entries of the pairwise norm matrix
 		 */
-		Fq_representor_norms = mr.readRawDoubleVector(m.getInStream("Fq_norms.bin"));
+		Fq_representor_norms = mr.readRawDoubleVector(m
+				.getInStream("Fq_norms.bin"));
 
 		// Read in Fq_Aq representor norm data
 
 		// Declare the array
-		Fq_Aq_representor_norms = new double[fQf][getQa()][n_bfs];
+		Fq_Aq_representor_norms = new double[fQf][getQa()][numBasisFuncs];
 		for (int q_a = 0; q_a < getQa(); q_a++) {
 			for (int q_f = 0; q_f < fQf; q_f++) {
 				filename = "Fq_Aq_" + String.format("%03d", q_f) + "_"
 						+ String.format("%03d", q_a) + ".bin";
-				Fq_Aq_representor_norms[q_f][q_a] = mr.readRawDoubleVector(m.getInStream(filename));
+				Fq_Aq_representor_norms[q_f][q_a] = mr.readRawDoubleVector(m
+						.getInStream(filename));
 			}
 		}
 		Log.d(DEBUG_TAG, "Finished reading Fq_Aq_norms.dat");
@@ -917,7 +933,8 @@ public class RBSystem extends RBBase {
 			for (int j = 0; j < getQa() - i; j++) {
 				filename = "Aq_Aq_" + String.format("%03d", i) + "_"
 						+ String.format("%03d", j) + "_norms.bin";
-				Aq_Aq_representor_norms[j + getQa() * i] = mr.readRawDoubleMatrix(m.getInStream(filename));
+				Aq_Aq_representor_norms[j + getQa() * i] = mr
+						.readRawDoubleMatrix(m.getInStream(filename));
 			}
 		}
 		Log.d(DEBUG_TAG, "Finished reading Aq_Aq_norms.dat");
@@ -929,21 +946,23 @@ public class RBSystem extends RBBase {
 			uL_vector = new float[fQuL][];
 			for (int q_uL = 0; q_uL < fQuL; q_uL++) {
 				filename = "uL_" + String.format("%03d", q_uL) + ".bin";
-				uL_vector[q_uL] = mr.readRawFloatVector(m.getInStream(filename));
+				uL_vector[q_uL] = mr
+						.readRawFloatVector(m.getInStream(filename));
 			}
 			Log.d(DEBUG_TAG, "Finished reading uL.dat");
 		}
 
 		/*
-		 *  Read in Z data
+		 * Read in Z data
 		 */
 		if (fNumFields > 0) {
-			Z_vector = new float[fNumFields][n_bfs][];
-			for (int imf = 0; imf < fNumFields; imf++)
-				for (int inbfs = 0; inbfs < n_bfs; inbfs++) {
-					filename = "Z_" + String.format("%03d", imf) + "_"
-							+ String.format("%03d", inbfs) + ".bin";
-					Z_vector[imf][inbfs] = mr.readRawFloatVector(m.getInStream(filename));
+			fullBasisVectors = new float[fNumFields][numBasisFuncs][];
+			for (int fieldNr = 0; fieldNr < fNumFields; fieldNr++)
+				for (int bfNr = 0; bfNr < numBasisFuncs; bfNr++) {
+					filename = "Z_" + String.format("%03d", fieldNr) + "_"
+							+ String.format("%03d", bfNr) + ".bin";
+					fullBasisVectors[fieldNr][bfNr] = mr.readRawFloatVector(m
+							.getInStream(filename));
 				}
 			Log.d(DEBUG_TAG, "Finished reading Z data");
 		}
@@ -958,32 +977,38 @@ public class RBSystem extends RBBase {
 		current_N = N;
 
 		if (N > getNBF()) {
-			throw new RuntimeException("ERROR: N cannot be larger than the number "
-					+ "of basis functions in RB_solve");
+			throw new RuntimeException(
+					"ERROR: N cannot be larger than the number "
+							+ "of basis functions in RB_solve");
 		}
 		if (N == 0) {
-			throw new RuntimeException("ERROR: N must be greater than 0 in RB_solve");
+			throw new RuntimeException(
+					"ERROR: N must be greater than 0 in RB_solve");
 		}
 
 		// Assemble the RB system
 		RealMatrix RB_system_matrix_N = new Array2DRowRealMatrix(N, N);
 
 		for (int q_a = 0; q_a < getQa(); q_a++) {
-			RB_system_matrix_N = RB_system_matrix_N.add(RB_A_q_vector[q_a].getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(eval_theta_q_a(q_a)));
+			RB_system_matrix_N = RB_system_matrix_N.add(RB_A_q_vector[q_a]
+					.getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(
+							thetaQa(q_a)));
 		}
 
 		// Assemble the RB rhs
-		RealVector RB_rhs_N = new ArrayRealVector(N);
+		RealVector RB_rhs_N = getInitialCoefficients(N);
 
 		for (int q_f = 0; q_f < fQf; q_f++) {
 			// Note getSubVector takes an initial index and the number of
 			// entries
 			// i.e. the interface is a bit different to getSubMatrix
-			RB_rhs_N = RB_rhs_N.add(RB_F_q_vector[q_f].getSubVector(0, N).mapMultiply(eval_theta_q_f(q_f)));
+			RB_rhs_N = RB_rhs_N.add(RB_F_q_vector[q_f].getSubVector(0, N)
+					.mapMultiply(thetaQf(q_f)));
 		}
 
 		// Solve the linear system
-		DecompositionSolver solver = new LUDecompositionImpl(RB_system_matrix_N).getSolver();
+		DecompositionSolver solver = new LUDecompositionImpl(RB_system_matrix_N)
+				.getSolver();
 		RB_solution = solver.solve(RB_rhs_N);
 
 		// Evaluate the dual norm of the residual for RB_solution_vector
@@ -1009,25 +1034,35 @@ public class RBSystem extends RBBase {
 			RB_outputs[i] = 0.;
 
 			for (int q_l = 0; q_l < getQl(i); q_l++) {
-				RB_output_vector_N = RB_output_vectors[i][q_l].getSubVector(0, N);
-				RB_outputs[i] += eval_theta_q_l(i, q_l)
+				RB_output_vector_N = RB_output_vectors[i][q_l].getSubVector(0,
+						N);
+				RB_outputs[i] += thetaQl(i, q_l)
 						* RB_solution.dotProduct(RB_output_vector_N);
 			}
-			RB_output_error_bounds[i] = compute_output_dual_norm(i, 0) // Zero is current time, not in RBSystem
+			RB_output_error_bounds[i] = compute_output_dual_norm(i, 0) // Zero
+																		// is
+																		// current
+																		// time,
+																		// not
+																		// in
+																		// RBSystem
 					* abs_error_bound;
 		}
 
-		return (return_rel_error_bound ? abs_error_bound / RB_solution_norm : abs_error_bound);
+		return (return_rel_error_bound ? abs_error_bound / RB_solution_norm
+				: abs_error_bound);
 	}
 
 	@Override
 	protected void readConfigurationJRB(AModelManager m) {
 		super.readConfigurationJRB(m);
 		// Number of basis functions
-		n_bfs = Integer.parseInt(m.getModelXMLAttribute("num_basisfcn", "rb_model"));
-		
-		fNumFields = Integer.parseInt(m.getModelXMLAttribute("fields", "rb_model"));
-		
+		numBasisFuncs = Integer.parseInt(m.getModelXMLAttribute("num_basisfcn",
+				"rb_model"));
+
+		fNumFields = Integer.parseInt(m.getModelXMLAttribute("fields",
+				"rb_model"));
+
 		// Number of output functionals
 		fNumOutputs = affineFunctionsInstance.getNumOutputs();
 
@@ -1050,7 +1085,8 @@ public class RBSystem extends RBBase {
 		fNumFields = infile.call("n_field", 1);
 		Log.d(DEBUG_TAG, "n_field = " + fNumFields);
 
-		int return_rel_error_bound_in = infile.call("return_rel_error_bound", 1);
+		int return_rel_error_bound_in = infile
+				.call("return_rel_error_bound", 1);
 		return_rel_error_bound = (return_rel_error_bound_in != 0);
 
 		Log.d(DEBUG_TAG, "return a relative error bound from RB_solve? "
@@ -1065,7 +1101,7 @@ public class RBSystem extends RBBase {
 		if (affineFunctionsInstance instanceof IWithuL) {
 			fQuL = ((IWithuL) affineFunctionsInstance).getQuL();
 		}
-		
+
 		fNumOutputs = affineFunctionsInstance.getNumOutputs();
 		Log.d(DEBUG_TAG, "n_outputs = " + fNumOutputs);
 	}
@@ -1080,7 +1116,7 @@ public class RBSystem extends RBBase {
 	}
 
 	public void set_n_basis_functions(int _N) {
-		n_bfs = _N;
+		numBasisFuncs = _N;
 	}
 
 	public void set_sweep_sol(double[][][] _sweep_sol) {
@@ -1092,6 +1128,47 @@ public class RBSystem extends RBBase {
 	 */
 	public void setPrimarySCM(RBSCMSystem scm_system) {
 		mRbScmSystem = scm_system;
+	}
+
+	/**
+	 * 
+	 * @param i
+	 * @return
+	 */
+	public double thetaQf(int i) {
+		return thetaQf(i, 0);
+	}
+
+	/**
+	 * 
+	 * @param i
+	 * @param t
+	 * @return
+	 */
+	public double thetaQf(int i, double t) {
+		return affineFunctionsInstance.thetaQf(i, getParams().getCurrent(), t);
+	}
+
+	/**
+	 * 
+	 * @param k
+	 * @param i
+	 * @return
+	 */
+	public double thetaQl(int k, int i) {
+		return thetaQl(k, i, 0);
+	}
+
+	/**
+	 * 
+	 * @param k
+	 * @param i
+	 * @param t
+	 * @return
+	 */
+	public double thetaQl(int k, int i, double t) {
+		return affineFunctionsInstance.thetaQl(k, i, getParams().getCurrent(),
+				t);
 	}
 
 }

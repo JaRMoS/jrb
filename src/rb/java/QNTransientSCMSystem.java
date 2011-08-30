@@ -125,7 +125,7 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 	 * to basis functions
 	 */
 	@Override
-	public double eval_theta_q_a(int q) {
+	public double thetaQa(int q) {
 
 		if (q < get_n_basis_functions()) {
 			double theta_c_value = eval_theta_c();

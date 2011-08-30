@@ -115,7 +115,7 @@ public class RBSCMSystem extends RBBase {
 
 					double[] constraint_row = new double[getQa()];
 					for (int q = 0; q < getQa(); q++) {
-						constraint_row[q] = eval_theta_q_a(q);
+						constraint_row[q] = thetaQa(q);
 					}
 
 					constraints.add(new LinearConstraint(constraint_row,
@@ -135,7 +135,7 @@ public class RBSCMSystem extends RBBase {
 			// Create objective function object
 			double[] objectiveFn = new double[getQa()];
 			for (int q = 0; q < getQa(); q++) {
-				objectiveFn[q] = eval_theta_q_a(q);
+				objectiveFn[q] = thetaQa(q);
 			}
 			LinearObjectiveFunction f = new LinearObjectiveFunction(
 					objectiveFn, 0.);
@@ -180,7 +180,7 @@ public class RBSCMSystem extends RBBase {
 
 			double J_obj = 0.;
 			for (int q = 0; q < getQa(); q++) {
-				J_obj += eval_theta_q_a(q) * UB_vector[q];
+				J_obj += thetaQa(q) * UB_vector[q];
 			}
 
 			if ((count == 1) || (J_obj < min_J_obj)) {

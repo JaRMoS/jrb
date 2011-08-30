@@ -54,7 +54,7 @@ public class TestRBSolve {
 	public void testRBSolveJRB_TimeConst() {
 		FileModelManager f = new FileModelManager("models");
 		try {
-			f.setModelDir("adv_diff_rb_tc");
+			f.setModelDir("adv_diff_tc");
 		} catch (ModelManagerException e) {
 			e.printStackTrace();
 			fail(e.getMessage());

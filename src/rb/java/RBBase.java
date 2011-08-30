@@ -252,8 +252,8 @@ public abstract class RBBase {
 	 * @param q 
 	 * @return 
 	 */
-	public double eval_theta_q_a(int q) {
-		return eval_theta_q_a(q, 0);
+	public double thetaQa(int q) {
+		return thetaQa(q, 0);
 	}
 	
 	/**
@@ -262,7 +262,7 @@ public abstract class RBBase {
 	 * @param t
 	 * @return
 	 */
-	public double eval_theta_q_a(int q, double t) {
+	public double thetaQa(int q, double t) {
 		return affineFunctionsInstance.thetaQa(q, params.getCurrent(), t);
 	}
 
