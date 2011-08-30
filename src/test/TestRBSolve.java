@@ -54,7 +54,7 @@ public class TestRBSolve {
 	public void testRBSolveJRB_TimeConst() {
 		FileModelManager f = new FileModelManager("models");
 		try {
-			f.setModelDir("adv_diff_tc");
+			f.setModelDir("adv_diff");
 		} catch (ModelManagerException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -66,7 +66,7 @@ public class TestRBSolve {
 		// Perform the solve
 		RBSystem s=rb.mRbSystem;
 //		double[] par = s.getParams().getRandomParam();
-		double[] par = new double[]{.5, .5};
+		double[] par = new double[]{.5, .5, .5};
 		s.getParams().setCurrent(par);
 		s.RB_solve(4);
 		

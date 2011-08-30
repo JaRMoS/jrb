@@ -443,7 +443,7 @@ public class TransientRBSystem extends RBSystem {
 		 */
 		int nt = (int) Math.round(75000 / getGeometry().nodes
 				/ (1 + 0.4 * (getNumFields() - 1))); // can go up to 150000
-//		nt = nt > 150 ? 150 : nt; // cap nt at 25
+		// nt = nt > 150 ? 150 : nt; // cap nt at 25
 		nt = nt > 25 ? 25 : nt; // cap nt at 25
 		return nt > fTotalTimesteps ? fTotalTimesteps : nt;
 	}
@@ -815,7 +815,7 @@ public class TransientRBSystem extends RBSystem {
 		 */
 		for (int time_level = 1; time_level <= fTotalTimesteps; time_level++) {
 			// The current time
-			double t = getdt() * time_level;
+			double t = getdt() * (time_level-1);
 
 			/*
 			 * Initialize constant RB matrices for time-independent theta
@@ -834,25 +834,16 @@ public class TransientRBSystem extends RBSystem {
 				// No need to copy, "add" returns a new matrix anyways
 				RB_LHS_matrix = RB_mass_matrix_N;
 				RB_RHS_matrix = RB_mass_matrix_N;
-				// RB_LHS_matrix = new Array2DRowRealMatrix(N, N);
-				// RB_RHS_matrix = new Array2DRowRealMatrix(N, N);
-				//
-				// RB_LHS_matrix = RB_LHS_matrix.add(RB_mass_matrix_N
-				// .scalarMultiply(1. / getdt()));
-				// RB_RHS_matrix = RB_RHS_matrix.add(RB_mass_matrix_N
-				// .scalarMultiply(1. / getdt()));
-
 				for (int q_a = 0; q_a < getQa(); q_a++) {
-					RB_LHS_matrix = RB_LHS_matrix
+					RB_LHS_matrix = RB_LHS_matrix.add(RB_A_q_vector[q_a]
+							.getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(
+									getEulerTheta() * getdt() * thetaQa(q_a, t)));
+					RB_RHS_matrix = RB_RHS_matrix
 							.add(RB_A_q_vector[q_a].getSubMatrix(0, N - 1, 0,
 									N - 1)
 									.scalarMultiply(
-											getEulerTheta() * getdt()
+											-(1. - getEulerTheta()) * getdt()
 													* thetaQa(q_a, t)));
-					RB_RHS_matrix = RB_RHS_matrix.add(RB_A_q_vector[q_a]
-							.getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(
-									-(1. - getEulerTheta()) * getdt()
-											* thetaQa(q_a, t)));
 				}
 				LHSMatrixIsID = isIdentityMatrix(RB_LHS_matrix);
 			}
@@ -887,8 +878,8 @@ public class TransientRBSystem extends RBSystem {
 			}
 			Log.d("TransientRBSystem",
 					"RB_solution at t="
-							+ String.format("%5f", time_level * getdt())
-							+ ": " + sol_str + "]");
+							+ String.format("%5f", time_level * getdt()) + ": "
+							+ sol_str + "]");
 
 			// Save RB_solution for current time level
 			timestepRBSolutions[timestep] = RB_solution_N;
