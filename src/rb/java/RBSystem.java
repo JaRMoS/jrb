@@ -33,6 +33,9 @@ import rmcommon.io.MathObjectReader;
  * @author Daniel Wirtz
  * @date Aug 28, 2011
  * 
+ * TODO: import & use implicit operators LL_I from rbmatlab
+ * TODO: report progress for transient RB systems and/or normal systems
+ * 
  */
 public class RBSystem extends RBBase {
 
@@ -578,12 +581,6 @@ public class RBSystem extends RBBase {
 	 */
 	protected void loadOfflineData_rbappmit(AModelManager m) throws IOException {
 
-		/*
-		 * Load zero initial conditions for old rbappmit models
-		 */
-		RB_initial_coeffs = new RealVector[1];
-		RB_initial_coeffs[1] = new ArrayRealVector(numBasisFuncs);
-		
 		{
 			BufferedReader reader = m.getBufReader("n_bfs.dat");
 
@@ -594,19 +591,12 @@ public class RBSystem extends RBBase {
 
 			Log.d(DEBUG_TAG, "Finished reading n_bfs.dat");
 		}
-
-		{
-			if (getNumFields() > 0) {
-				BufferedReader reader = m.getBufReader("fGeo.nodes.dat");
-
-				String line = reader.readLine();
-
-				fGeo.nodes = Integer.parseInt(line);
-				reader.close();
-				reader = null;
-			}
-			Log.d(DEBUG_TAG, "Finished reading fGeo.nodes.dat");
-		}
+		
+		/*
+		 * Load zero initial conditions for old rbappmit models
+		 */
+		RB_initial_coeffs = new RealVector[1];
+		RB_initial_coeffs[0] = new ArrayRealVector(numBasisFuncs);
 
 		// Read in output data
 		if (getNumOutputs() > 0) {
@@ -1003,7 +993,7 @@ public class RBSystem extends RBBase {
 			// entries
 			// i.e. the interface is a bit different to getSubMatrix
 			RB_rhs_N = RB_rhs_N.add(RB_F_q_vector[q_f].getSubVector(0, N)
-					.mapMultiply(thetaQf(q_f)));
+					.mapMultiplyToSelf(thetaQf(q_f)));
 		}
 
 		// Solve the linear system
