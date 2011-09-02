@@ -4,15 +4,13 @@
  */
 package test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
-import rb.java.RBContainer;
-import rb.java.RBSystem;
 import rmcommon.geometry.GeometryData;
-import rmcommon.io.FileModelManager;
 import rmcommon.io.AModelManager.ModelManagerException;
+import rmcommon.io.FileModelManager;
 
 /**
  * @author Daniel Wirtz

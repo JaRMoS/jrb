@@ -5,6 +5,7 @@ import java.io.IOException;
 import rb.java.affinefcn.IAffineFunctions;
 import rb.java.affinefcn.rbappmitAffineFunctions;
 import rmcommon.Log;
+import rmcommon.ModelType;
 import rmcommon.io.AModelManager;
 
 /**
@@ -69,14 +70,16 @@ public class RBContainer {
 	private void loadAffineFunctions(AModelManager m) throws Exception {
 
 		ClassLoader cl = m.getClassLoader();
-		Class<?> af = cl.loadClass("AffineFunctions");
+		String thepackage = m.getModelXMLTagValue("affinefunctions.package");
+		thepackage = thepackage != null ? thepackage+".":"";
+		Class<?> af = cl.loadClass(thepackage+"AffineFunctions");
 
 		Log.d(DEBUG_TAG, "Loaded AffineFunctions class");
 
 		if (mRbSystem != null) {
 			mRbSystem.oldAffFcnCl = af;
 			mRbSystem.oldAffFcnObj = af.newInstance();
-			if ("rbappmit".equals(m.getModelType())) {
+			if (m.getModelType() == ModelType.rbappmit) {
 				mRbSystem.affineFunctionsClass = IAffineFunctions.class;
 				mRbSystem.affineFunctionsInstance = new rbappmitAffineFunctions(af, af.newInstance());
 			} else {
@@ -88,7 +91,7 @@ public class RBContainer {
 		if (mRbScmSystem != null) {
 			mRbScmSystem.oldAffFcnCl = af;
 			mRbScmSystem.oldAffFcnObj = af.newInstance();
-			if ("rbappmit".equals(m.getModelType())) {
+			if (m.getModelType() == ModelType.rbappmit) {
 				mRbScmSystem.affineFunctionsClass = IAffineFunctions.class;
 				mRbScmSystem.affineFunctionsInstance = new rbappmitAffineFunctions(af, af.newInstance());
 			} else {
@@ -113,7 +116,7 @@ public class RBContainer {
 		mRbSystem = null;
 
 		// Read system types and misc data into RBContainer
-		if ("rbappmit".equals(m.getModelType())) {
+		if (m.getModelType() == ModelType.rbappmit) {
 			if (!readSystemDescriptionsRBAppMit(m)) return false;
 		} else {
 			readSystemDescriptionsJRB(m);

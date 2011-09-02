@@ -23,14 +23,12 @@ import java.io.IOException;
 
 import org.apache.commons.math.linear.Array2DRowRealMatrix;
 import org.apache.commons.math.linear.ArrayRealVector;
-import org.apache.commons.math.linear.DecompositionSolver;
 import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 
 import rb.java.affinefcn.ITransient;
 import rmcommon.Log;
-import rmcommon.geometry.DiscretizationType;
 import rmcommon.io.AModelManager;
 import rmcommon.io.MathObjectReader;
 

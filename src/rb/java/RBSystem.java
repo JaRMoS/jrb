@@ -13,11 +13,10 @@ import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 
-import rb.java.affinefcn.IAffineFunctions;
 import rb.java.affinefcn.IAffineInitials;
 import rb.java.affinefcn.IWithuL;
 import rmcommon.Log;
-import rmcommon.geometry.DiscretizationType;
+import rmcommon.ModelType;
 import rmcommon.geometry.GeometryData;
 import rmcommon.io.AModelManager;
 import rmcommon.io.MathObjectReader;
@@ -565,7 +564,7 @@ public class RBSystem extends RBBase {
 		fGeo.allocateBuffer();
 		fGeo.loadModelGeometry(m);
 
-		if ("rbappmit".equals(m.getModelType())) {
+		if (m.getModelType() == ModelType.rbappmit) {
 			loadOfflineData_rbappmit(m);
 		} else {
 			loadOfflineDataJRB(m);

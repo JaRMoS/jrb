@@ -28,6 +28,7 @@ import org.apache.commons.math.linear.FieldVector;
 
 import rb.java.affinefcn.IAffineFunctions;
 import rmcommon.Log;
+import rmcommon.ModelType;
 import rmcommon.Parameters;
 import rmcommon.io.AModelManager;
 
@@ -355,7 +356,7 @@ public abstract class RBBase {
 		fQa = affineFunctionsInstance.getQa();
 		Log.d("RBBase", "Q_a = " + fQa);
 		
-		if ("rbappmit".equals(m.getModelType())) {
+		if (m.getModelType() == ModelType.rbappmit) {
 			try {
 				GetPot infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
 				Log.d("RBBase", "Created GetPot object");
