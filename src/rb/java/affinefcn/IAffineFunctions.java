@@ -7,6 +7,8 @@ package rb.java.affinefcn;
 /**
  * Base interface for any affine functions used as an externally loaded class.
  * 
+ * @todo generalize/separate to single IAffineCoefficients-Interface of JRMCommons
+ * 
  * @author Daniel Wirtz
  * @date Aug 28, 2011
  * 
