@@ -334,10 +334,10 @@ public class ComplexRBSystem extends RBSystem {
 
 		// Read in Z data
 		{
-			if (getNumFields() > 0) {
-				Z_vector = new Complex[getNumFields()][getNBF()][n];
+			if (getNumOutputVisualizationFields() > 0) {
+				Z_vector = new Complex[getNumOutputVisualizationFields()][getNBF()][n];
 				float[] Rdata3, Idata3;
-				for (int imf = 0; imf < getNumFields(); imf++)
+				for (int imf = 0; imf < getNumOutputVisualizationFields(); imf++)
 					for (int inbfs = 0; inbfs < getNBF(); inbfs++) {
 						InputStream in = m.getInStream("Z_"
 								+ String.format("%03d", imf) + "_"
@@ -588,8 +588,8 @@ public class ComplexRBSystem extends RBSystem {
 	public float[][][] getFullSolution() {
 		int N = RB_solution.getDimension();
 		int nodes = getGeometry().nodes;
-		float[][][] truth_sol = new float[getNumFields()][3][nodes];
-		for (int ifn = 0; ifn < getNumFields(); ifn++) {
+		float[][][] truth_sol = new float[getNumOutputVisualizationFields()][3][nodes];
+		for (int ifn = 0; ifn < getNumOutputVisualizationFields(); ifn++) {
 			Complex tmpval;
 			for (int i = 0; i < nodes; i++) {
 				tmpval = new Complex(0., 0.);
@@ -605,6 +605,9 @@ public class ComplexRBSystem extends RBSystem {
 						truth_sol[ifn][1][i] += uL_vector[q_uL][i].getImaginary();
 					}
 			}
+			/*
+			 * Add norm of complex number to third true solution array
+			 */
 			for (int i = 0; i < nodes; i++)
 				truth_sol[ifn][2][i] = (float) Math.sqrt(truth_sol[ifn][0][i]
 						* truth_sol[ifn][0][i] + truth_sol[ifn][1][i]
@@ -623,9 +626,9 @@ public class ComplexRBSystem extends RBSystem {
 			for (int j = 0; j < N; j++)
 				RB_sweep_sol[i][j] = new Complex(RB_sweep_solution[i][0][j], RB_sweep_solution[i][1][j]);
 		int nodes = getGeometry().nodes;
-		float[][][] truth_sol = new float[getNumFields()][3][nodes
+		float[][][] truth_sol = new float[getNumOutputVisualizationFields()][3][nodes
 				* numSweep];
-		for (int ifn = 0; ifn < getNumFields(); ifn++) {
+		for (int ifn = 0; ifn < getNumOutputVisualizationFields(); ifn++) {
 			Complex tmpval;
 			for (int iSweep = 0; iSweep < numSweep; iSweep++) {
 				for (int i = 0; i < nodes; i++) {

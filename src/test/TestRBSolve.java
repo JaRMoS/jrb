@@ -15,6 +15,7 @@ import rmcommon.geometry.GeometryData;
 import rmcommon.io.AModelManager.ModelManagerException;
 import rmcommon.io.FileModelManager;
 import rmcommon.visual.ColorGenerator;
+import rmcommon.visual.VisualizationData;
 
 /**
  * @author Daniel Wirtz
@@ -74,8 +75,9 @@ public class TestRBSolve {
 		
 		GeometryData g = new GeometryData();
 		g.loadModelGeometry(f);
-		g.set1FieldData(sol[0][0]);
-		g.computeColorData(new ColorGenerator());
+		VisualizationData d = new VisualizationData(g);
+		d.set1FieldData(sol[0][0]);
+		d.computeColorData(new ColorGenerator());
 	}
 	
 //	/**

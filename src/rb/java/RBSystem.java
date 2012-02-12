@@ -356,9 +356,9 @@ public class RBSystem extends RBBase {
 	public float[][][] get_sweep_truth_sol() {
 		int N = RB_sweep_solution[0][0].length;
 		int numSweep = RB_sweep_solution.length;
-		float[][][] truth_sol = new float[getNumFields()][1][fGeo.nodes
+		float[][][] truth_sol = new float[getNumOutputVisualizationFields()][1][fGeo.nodes
 				* numSweep];
-		for (int ifn = 0; ifn < getNumFields(); ifn++) {
+		for (int ifn = 0; ifn < getNumOutputVisualizationFields(); ifn++) {
 			double tmpval;
 			for (int iSweep = 0; iSweep < numSweep; iSweep++)
 				for (int i = 0; i < fGeo.nodes; i++) {
@@ -450,11 +450,11 @@ public class RBSystem extends RBBase {
 	 */
 	public float[][][] getFullSolution() {
 		int N = RB_solution.getDimension();
-		float[][][] truth_sol = new float[getNumFields()][1][fGeo.nodes];
+		float[][][] truth_sol = new float[getNumOutputVisualizationFields()][1][fGeo.nodes];
 		/*
 		 * Assign solutions of each field
 		 */
-		for (int ifn = 0; ifn < getNumFields(); ifn++) {
+		for (int ifn = 0; ifn < getNumOutputVisualizationFields(); ifn++) {
 			double tmpval;
 			/*
 			 * i is the node number of the grid
@@ -493,7 +493,7 @@ public class RBSystem extends RBBase {
 	 * 
 	 * @return The number of output fields
 	 */
-	public int getNumFields() {
+	public int getNumOutputVisualizationFields() {
 		return fNumFields;
 	}
 
@@ -803,7 +803,7 @@ public class RBSystem extends RBBase {
 
 		// Read in Z data
 		{
-			int mf = getNumFields();
+			int mf = getNumOutputVisualizationFields();
 			if (mf > 0) {
 				fullBasisVectors = new float[mf][numBasisFuncs][];
 				InputStream in;

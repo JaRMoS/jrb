@@ -393,8 +393,8 @@ public class TransientRBSystem extends RBSystem {
 		// Dimension of the full solution
 		int fullDim = fullBasisVectors[0][0].length;
 
-		float[][][] truth_sol = new float[getNumFields()][1][fullDim * nt];
-		for (int fieldNr = 0; fieldNr < getNumFields(); fieldNr++) {
+		float[][][] truth_sol = new float[getNumOutputVisualizationFields()][1][fullDim * nt];
+		for (int fieldNr = 0; fieldNr < getNumOutputVisualizationFields(); fieldNr++) {
 			double tmpval;
 			for (timestep = 1; timestep <= nt; timestep++) {
 				// Choose equally spaced indices
@@ -440,7 +440,7 @@ public class TransientRBSystem extends RBSystem {
 		 * int nt = Math.round(50000/get_calN()); nt = nt>_K?_K:nt; return nt;
 		 */
 		int nt = (int) Math.round(75000 / getGeometry().nodes
-				/ (1 + 0.4 * (getNumFields() - 1))); // can go up to 150000
+				/ (1 + 0.4 * (getNumOutputVisualizationFields() - 1))); // can go up to 150000
 		// nt = nt > 150 ? 150 : nt; // cap nt at 25
 		nt = nt > 25 ? 25 : nt; // cap nt at 25
 		return nt > fTotalTimesteps ? fTotalTimesteps : nt;
