@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import rb.java.RBContainer;
 import rb.java.RBSystem;
+import rmcommon.SimulationResult;
 import rmcommon.geometry.GeometryData;
 import rmcommon.io.AModelManager.ModelManagerException;
 import rmcommon.io.FileModelManager;
@@ -71,12 +72,12 @@ public class TestRBSolve {
 		s.getParams().setCurrent(par);
 		s.RB_solve(4);
 		
-		float[][][] sol = s.getFullSolution();
+		SimulationResult sol = s.getSimulationResults();
 		
 		GeometryData g = new GeometryData();
 		g.loadModelGeometry(f);
 		VisualizationData d = new VisualizationData(g);
-		d.set1FieldData(sol[0][0]);
+		d.setSolutionFields(sol.getFields());
 		d.computeColorData(new ColorGenerator());
 	}
 	

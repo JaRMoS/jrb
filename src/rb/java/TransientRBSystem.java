@@ -29,6 +29,8 @@ import org.apache.commons.math.linear.RealVector;
 
 import rb.java.affinefcn.ITransient;
 import rmcommon.Log;
+import rmcommon.SimulationResult;
+import rmcommon.SolutionField;
 import rmcommon.io.AModelManager;
 import rmcommon.io.MathObjectReader;
 
@@ -382,10 +384,10 @@ public class TransientRBSystem extends RBSystem {
 	/**
 	 * return truth solution
 	 * 
-	 * @see rb.java.RBSystem#getFullSolution()
+	 * @see rb.java.RBSystem#getSimulationResults()
 	 */
 	@Override
-	public float[][][] getFullSolution() {
+	public SimulationResult getSimulationResults() {
 		// RB solution size
 		int N = timestepRBSolutions[1].getDimension();
 		// Number of time-steps to show
@@ -393,8 +395,10 @@ public class TransientRBSystem extends RBSystem {
 		// Dimension of the full solution
 		int fullDim = fullBasisVectors[0][0].length;
 
-		float[][][] truth_sol = new float[getNumOutputVisualizationFields()][1][fullDim * nt];
+		//float[][][] truth_sol = new float[getNumOutputVisualizationFields()][1][fullDim * nt];
+		SimulationResult res = new SimulationResult();
 		for (int fieldNr = 0; fieldNr < getNumOutputVisualizationFields(); fieldNr++) {
+			SolutionField f = new SolutionField(fullDim * nt);
 			double tmpval;
 			for (timestep = 1; timestep <= nt; timestep++) {
 				// Choose equally spaced indices
@@ -406,11 +410,12 @@ public class TransientRBSystem extends RBSystem {
 						tmpval += fullBasisVectors[fieldNr][j][dim]
 								* timestepRBSolutions[solidx].getEntry(j);
 					}
-					truth_sol[fieldNr][0][(timestep - 1) * fullDim + dim] = (float) tmpval;
+					f.setRealValue((timestep - 1) * fullDim + dim, (float) tmpval);
 				}
 			}
+			res.addField(f, false);
 		}
-		return truth_sol;
+		return res;
 	}
 
 	/**

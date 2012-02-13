@@ -17,6 +17,8 @@ import rb.java.affinefcn.IAffineInitials;
 import rb.java.affinefcn.IWithuL;
 import rmcommon.Log;
 import rmcommon.ModelType;
+import rmcommon.SimulationResult;
+import rmcommon.SolutionField;
 import rmcommon.geometry.GeometryData;
 import rmcommon.io.AModelManager;
 import rmcommon.io.MathObjectReader;
@@ -32,8 +34,8 @@ import rmcommon.io.MathObjectReader;
  * @author Daniel Wirtz
  * @date Aug 28, 2011
  * 
- * TODO: import & use implicit operators LL_I from rbmatlab
- * TODO: report progress for transient RB systems and/or normal systems
+ *       TODO: import & use implicit operators LL_I from rbmatlab TODO: report
+ *       progress for transient RB systems and/or normal systems
  * 
  */
 public class RBSystem extends RBBase {
@@ -161,7 +163,8 @@ public class RBSystem extends RBBase {
 	 * 
 	 * TODO: Use this method in any RB_Solve member in subclasses!
 	 * 
-	 * @param N The RB size
+	 * @param N
+	 *            The RB size
 	 * @return The initial solution coefficient vector of size N
 	 */
 	public RealVector getInitialCoefficients(int N) {
@@ -169,7 +172,8 @@ public class RBSystem extends RBBase {
 			RealVector res = new ArrayRealVector(N);
 			IAffineInitials a = (IAffineInitials) affineFunctionsInstance;
 			for (int i = 0; i < a.getQu0(); i++) {
-				res = res.add(RB_initial_coeffs[i].getSubVector(0, N).mapMultiply(a.thetaQu0(i, getParams().getCurrent())));
+				res = res.add(RB_initial_coeffs[i].getSubVector(0, N)
+						.mapMultiply(a.thetaQu0(i, getParams().getCurrent())));
 			}
 			return res;
 		} else {
@@ -353,12 +357,14 @@ public class RBSystem extends RBBase {
 		return RB_solution.getEntry(i);
 	}
 
-	public float[][][] get_sweep_truth_sol() {
+	public SimulationResult getSweepSimResults() {
 		int N = RB_sweep_solution[0][0].length;
 		int numSweep = RB_sweep_solution.length;
-		float[][][] truth_sol = new float[getNumOutputVisualizationFields()][1][fGeo.nodes
-				* numSweep];
+		SimulationResult res = new SimulationResult();
+//		float[][][] truth_sol = new float[getNumOutputVisualizationFields()][1][fGeo.nodes
+//				* numSweep];
 		for (int ifn = 0; ifn < getNumOutputVisualizationFields(); ifn++) {
+			SolutionField f = new SolutionField(fGeo.nodes*numSweep);
 			double tmpval;
 			for (int iSweep = 0; iSweep < numSweep; iSweep++)
 				for (int i = 0; i < fGeo.nodes; i++) {
@@ -366,10 +372,12 @@ public class RBSystem extends RBBase {
 					for (int j = 0; j < N; j++)
 						tmpval += fullBasisVectors[ifn][j][i]
 								* RB_sweep_solution[iSweep][0][j];
-					truth_sol[ifn][0][iSweep * fGeo.nodes + i] = (float) tmpval;
+					f.setRealValue(iSweep * fGeo.nodes + i, (float) tmpval);
 				}
+			// Default: no displacements in RBSystems!
+			res.addField(f, false);
 		}
-		return truth_sol;
+		return res;
 	}
 
 	/**
@@ -445,16 +453,16 @@ public class RBSystem extends RBBase {
 	 * 
 	 * @see ComplexRBSystem for an overridden version of this method.
 	 * 
-	 * @return a float array with the true solution, with entries
-	 *         [field_nr][0][node_nr]
+	 * @return
 	 */
-	public float[][][] getFullSolution() {
+	public SimulationResult getSimulationResults() {
 		int N = RB_solution.getDimension();
-		float[][][] truth_sol = new float[getNumOutputVisualizationFields()][1][fGeo.nodes];
+		SimulationResult res = new SimulationResult();
 		/*
 		 * Assign solutions of each field
 		 */
 		for (int ifn = 0; ifn < getNumOutputVisualizationFields(); ifn++) {
+			SolutionField f = new SolutionField(fGeo.nodes);
 			double tmpval;
 			/*
 			 * i is the node number of the grid
@@ -464,12 +472,15 @@ public class RBSystem extends RBBase {
 				/*
 				 * j is the current RB dimension (with coeffs)
 				 */
-				for (int j = 0; j < N; j++)
+				for (int j = 0; j < N; j++) {
 					tmpval += fullBasisVectors[ifn][j][i] * get_soln_coeff(j);
-				truth_sol[ifn][0][i] = (float) tmpval;
+				}
+				f.setRealValue(i, (float) tmpval);
 			}
+			// Default RB System: No deformation data
+			res.addField(f, false);
 		}
-		return truth_sol;
+		return res;
 	}
 
 	/*
@@ -590,7 +601,7 @@ public class RBSystem extends RBBase {
 
 			Log.d(DEBUG_TAG, "Finished reading n_bfs.dat");
 		}
-		
+
 		/*
 		 * Load zero initial conditions for old rbappmit models
 		 */
@@ -835,7 +846,7 @@ public class RBSystem extends RBBase {
 		 */
 		int Qu0 = 1;
 		if (affineFunctionsInstance instanceof IAffineInitials) {
-			Qu0 = ((IAffineInitials)affineFunctionsInstance).getQu0();
+			Qu0 = ((IAffineInitials) affineFunctionsInstance).getQu0();
 		}
 		RB_initial_coeffs = new RealVector[Qu0];
 		for (int i = 0; i < Qu0; i++) {
@@ -843,7 +854,7 @@ public class RBSystem extends RBBase {
 			RB_initial_coeffs[i] = mr.readVector(m.getInStream(filename));
 		}
 		Log.d(DEBUG_TAG, "Finished initial value data");
-		
+
 		/*
 		 * Get output dual norms
 		 */
