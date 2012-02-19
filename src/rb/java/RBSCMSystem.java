@@ -37,7 +37,9 @@ import rmcommon.io.AModelManager;
  * @date Aug 28, 2011
  *
  */
-public class RBSCMSystem extends RBBase {
+public class RBSCMSystem {
+	
+	protected RBSystem sys;
 
 	// Logging tag
 	private static final String DEBUG_TAG = "RBSCMSystem";
@@ -74,6 +76,18 @@ public class RBSCMSystem extends RBBase {
 	 * the SCM calculation
 	 */
 	private double[] saved_parameters;
+	
+	public RBSCMSystem(RBSystem sys) {
+		this.sys = sys;
+	}
+	
+	protected double thetaQa(int q) {
+		return sys.thetaQa(q);
+	}
+	
+	protected int getQa() {
+		return sys.getQa();
+	}
 
 	/**
 	 * @return the SCM lower bound for the current parameters.
@@ -115,7 +129,7 @@ public class RBSCMSystem extends RBBase {
 
 					double[] constraint_row = new double[getQa()];
 					for (int q = 0; q < getQa(); q++) {
-						constraint_row[q] = thetaQa(q);
+						constraint_row[q] = sys.thetaQa(q);
 					}
 
 					constraints.add(new LinearConstraint(constraint_row,
@@ -135,7 +149,7 @@ public class RBSCMSystem extends RBBase {
 			// Create objective function object
 			double[] objectiveFn = new double[getQa()];
 			for (int q = 0; q < getQa(); q++) {
-				objectiveFn[q] = thetaQa(q);
+				objectiveFn[q] = sys.thetaQa(q);
 			}
 			LinearObjectiveFunction f = new LinearObjectiveFunction(
 					objectiveFn, 0.);
@@ -180,7 +194,7 @@ public class RBSCMSystem extends RBBase {
 
 			double J_obj = 0.;
 			for (int q = 0; q < getQa(); q++) {
-				J_obj += thetaQa(q) * UB_vector[q];
+				J_obj += sys.thetaQa(q) * UB_vector[q];
 			}
 
 			if ((count == 1) || (J_obj < min_J_obj)) {
@@ -214,44 +228,43 @@ public class RBSCMSystem extends RBBase {
 	 * Load the current_parameters from the set C_J.
 	 */
 	protected void get_current_parameters_from_C_J(int index) {
-		getParams().setCurrent(C_J.get(index));
+		sys.getParams().setCurrent(C_J.get(index));
 	}
 
 	/**
 	 * Save current_parameters in saved_parameters.
 	 */
 	protected void save_current_parameters() {
-		saved_parameters = getParams().getCurrent().clone();
+		saved_parameters = sys.getParams().getCurrent().clone();
 	}
 
 	/**
 	 * Reload from saved_parameters
 	 */
 	protected void reload_current_parameters() {
-		getParams().setCurrent(saved_parameters);
+		sys.getParams().setCurrent(saved_parameters);
 	}
 
 	/**
 	 * @return the current parameters
 	 */
 	public double[] get_current_parameters() {
-		return getParams().getCurrent();
+		return sys.getParams().getCurrent();
 	}
 
-	@Override
-	protected void readConfigurationJRB(AModelManager m) {
-		super.readConfigurationJRB(m);
-	}
+//	@Override
+//	protected void readConfigurationJRB(AModelManager m) {
+//		super.readConfigurationJRB(m);
+//	}
 	
 	/**
 	 * 
 	 * @param m
 	 * @return
+	 * @throws IOException 
 	 */
-	@Override
-	protected void readConfigurationRBAppMIT(GetPot infile) {
-		super.readConfigurationRBAppMIT(infile);
-		
+	public void readConfiguration(AModelManager m) throws IOException {
+		GetPot infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
 		// int n_SCM_parameters = infile.call("n_SCM_parameters",1);
 		int n_SCM_parameters = infile.call("n_SCM_parameters",
 				infile.call("n_parameters", 1));
@@ -346,7 +359,7 @@ public class RBSCMSystem extends RBBase {
 				String[] tokens = line.split(" ");
 
 				int count = 0;
-				int np = getParams().getNumParams();
+				int np = sys.getParams().getNumParams();
 				for (int i = 0; i < C_J_stability_vector.length; i++) {
 					C_J.add(new double[np]);
 					for (int j = 0; j < np; j++) {

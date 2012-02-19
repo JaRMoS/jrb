@@ -44,6 +44,10 @@ import rmcommon.io.AModelManager;
 
 public class RBnSCMCSystem extends RBSCMSystem {
 
+	public RBnSCMCSystem(RBSystem sys) {
+		super(sys);
+	}
+
 	// Logging tag
 	private static final String DEBUG_TAG = "RBnSCMCSystem";
 
@@ -84,7 +88,7 @@ public class RBnSCMCSystem extends RBSCMSystem {
 		n_mubar = Integer.parseInt(tokens[count]);
 		count++;
 
-		int np = getParams().getNumParams();
+		int np = sys.getParams().getNumParams();
 		mu_bar = new Vector<double[]>(0);
 		for (int i = 0; i < n_mubar; i++) {
 			mu_bar.add(new double[np]);
@@ -137,6 +141,9 @@ public class RBnSCMCSystem extends RBSCMSystem {
 
 	}
 
+	/**
+	 * TODO create local double[] currentParam field and remove save_/restore_params fcns
+	 */
 	public double get_SCM_LB() {
 		// return 0.01;
 
@@ -179,11 +186,11 @@ public class RBnSCMCSystem extends RBSCMSystem {
 			// Add the constraint rows
 			if (n_muhat[imubar] > 0) {
 				for (int imuhat = 0; imuhat < n_muhat[imubar]; imuhat++) {
-					getParams().setCurrent(mu_hat[imubar].get(imuhat));
+					sys.getParams().setCurrent(mu_hat[imubar].get(imuhat));
 
 					double[] constraint_row = new double[getQa() * 2];
 					for (int q = 0; q < getQa(); q++) {
-						Complex theta_q_a = complex_eval_theta_q_a(q);
+						Complex theta_q_a = sys.complex_eval_theta_q_a(q);
 						constraint_row[q] = theta_q_a.getReal()
 								* beta_bar[imubar];
 						constraint_row[q + getQa()] = theta_q_a.getImaginary()
@@ -201,7 +208,7 @@ public class RBnSCMCSystem extends RBSCMSystem {
 			// Create objective function object
 			double[] objectiveFn = new double[getQa() * 2];
 			for (int q = 0; q < getQa(); q++) {
-				Complex theta_q_a = complex_eval_theta_q_a(q);
+				Complex theta_q_a = sys.complex_eval_theta_q_a(q);
 				objectiveFn[q] = theta_q_a.getReal() * beta_bar[imubar];
 				objectiveFn[q + getQa()] = theta_q_a.getImaginary()
 						* beta_bar[imubar];

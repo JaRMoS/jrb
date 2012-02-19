@@ -37,6 +37,10 @@ import rmcommon.io.AModelManager;
 
 public class QNTransientSCMSystem extends RBSCMSystem {
 
+	public QNTransientSCMSystem(RBSystem sys) {
+		super(sys);
+	}
+
 	// Logging tag
 	private static final String DEBUG_TAG = "QNTransientSCMSystem";
 
@@ -91,7 +95,7 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 			Class<?> partypes[] = new Class[1];
 			partypes[0] = double[].class;
 
-			meth = oldAffFcnCl.getMethod("evaluateC", partypes);
+			meth = sys.oldAffFcnCl.getMethod("evaluateC", partypes);
 		} catch (NoSuchMethodException nsme) {
 			throw new RuntimeException("getMethod for evaluateC failed", nsme);
 		}
@@ -99,9 +103,9 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 		Double theta_val;
 		try {
 			Object arglist[] = new Object[1];
-			arglist[0] = getParams().getCurrent();
+			arglist[0] = sys.getParams().getCurrent();
 
-			Object theta_obj = meth.invoke(oldAffFcnObj, arglist);
+			Object theta_obj = meth.invoke(sys.oldAffFcnObj, arglist);
 			theta_val = (Double) theta_obj;
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
@@ -139,7 +143,7 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 				partypes[0] = Integer.TYPE;
 				partypes[1] = double[].class;
 
-				meth = oldAffFcnCl.getMethod("evaluateA", partypes);
+				meth = sys.oldAffFcnCl.getMethod("evaluateA", partypes);
 			} catch (NoSuchMethodException nsme) {
 				throw new RuntimeException("getMethod for evaluateA failed",
 						nsme);
@@ -149,9 +153,9 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 			try {
 				Object arglist[] = new Object[2];
 				arglist[0] = new Integer(q - get_n_basis_functions());
-				arglist[1] = getParams().getCurrent();
+				arglist[1] = sys.getParams().getCurrent();
 
-				Object theta_obj = meth.invoke(oldAffFcnObj, arglist);
+				Object theta_obj = meth.invoke(sys.oldAffFcnObj, arglist);
 				theta_val = (Double) theta_obj;
 			} catch (IllegalAccessException iae) {
 				throw new RuntimeException(iae);
@@ -247,9 +251,9 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 	 * @throws IOException 
 	 */
 	@Override
-	protected void readConfigurationRBAppMIT(GetPot infile) {
-		super.readConfigurationRBAppMIT(infile);
-
+	public void readConfiguration(AModelManager m) throws IOException {
+		super.readConfiguration(m);
+		GetPot infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
 		SCM_theta_c_scaling = infile.call("SCM_theta_c_scaling", 1.);
 		Log.d(DEBUG_TAG, "SCM_theta_c_scaling = " + SCM_theta_c_scaling);
 	}

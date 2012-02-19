@@ -7,6 +7,8 @@ package test;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
+
 import org.junit.Test;
 
 import rb.java.RBContainer;
@@ -25,38 +27,38 @@ import rmcommon.visual.VisualizationData;
  */
 public class TestRBSolve {
 
-//	/**
-//	 * Tests loading & solving of JRB models (type "rb")
-//	 */
-//	@Test
-//	public void testRBSolveJRB() {
-//		FileModelManager f = new FileModelManager("models");
-//		try {
-//			f.setModelDir("adv_diff_rb");
-//		} catch (ModelManagerException e) {
-//			e.printStackTrace();
-//			fail(e.getMessage());
-//		}
-//		
-//		RBContainer rb = new RBContainer();
-//		assertTrue(rb.loadModel(f));
-//		
-//		// Perform the solve
-//		RBSystem s=rb.mRbSystem;
-////		double[] par = s.getParams().getRandomParam();
-//		double[] par = new double[]{.5, .5};
-//		s.getParams().setCurrent(par);
-//		s.RB_solve(4);
-//	}
+	/**
+	 * Tests loading & solving of JRB models (type "rb")
+	 */
+	//@Test
+	public void testRBSolveJRB() {
+		FileModelManager f = new FileModelManager("models");
+		try {
+			f.useModel("rbm_advec");
+		} catch (ModelManagerException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		RBContainer rb = new RBContainer();
+		assertTrue(rb.loadModel(f));
+		
+		// Perform the solve
+		RBSystem s=rb.mRbSystem;
+//		double[] par = s.getParams().getRandomParam();
+		double[] par = new double[]{.5, .5};
+		s.getParams().setCurrent(par);
+		s.solveRB(4);
+	}
 	
 	/**
 	 * Tests loading & solving of JRB models (type "rb")
 	 */
-	@Test
+	//@Test
 	public void testRBSolveJRB_TimeConst() {
 		FileModelManager f = new FileModelManager("models");
 		try {
-			f.setModelDir("rbm_advec");
+			f.useModel("rbm_advec");
 		} catch (ModelManagerException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -70,39 +72,53 @@ public class TestRBSolve {
 //		double[] par = s.getParams().getRandomParam();
 		double[] par = new double[]{.5, .5, .5};
 		s.getParams().setCurrent(par);
-		s.RB_solve(4);
+		s.solveRB(4);
 		
 		SimulationResult sol = s.getSimulationResults();
 		
 		GeometryData g = new GeometryData();
 		g.loadModelGeometry(f);
 		VisualizationData d = new VisualizationData(g);
-		d.setSolutionFields(sol.getFields());
-		d.computeColorData(new ColorGenerator());
+		d.useResult(sol);
+		d.computeVisualFeatures(new ColorGenerator());
 	}
 	
-//	/**
-//	 * Tests loading & solving of JRB models (type "rb")
-//	 */
-//	@Test
-//	public void testRBSolverbappmit() {
-//		FileModelManager f = new FileModelManager("models");
-//		try {
-//			f.setModelDir("demo8");
-//		} catch (ModelManagerException e) {
-//			e.printStackTrace();
-//			fail(e.getMessage());
-//		}
-//		
-//		RBContainer rb = new RBContainer();
-//		assertTrue(rb.loadModel(f));
-//		
-//		// Perform the solve
-//		RBSystem s=rb.mRbSystem;
-//		double[] par = s.getParams().getRandomParam();
-////		double[] par = new double[]{.5, .5};
-//		s.getParams().setCurrent(par);
-//		s.RB_solve(s.getNBF()/2);
-//	}
+	
+	
+	/**
+	 * Tests loading & solving of JRB models (type "rb")
+	 */
+	@Test
+	public void testRBSolverbappmit() {
+		FileModelManager f = new FileModelManager("models");
+		try {
+			f.useModel("demo3");
+		} catch (ModelManagerException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		RBContainer rb = new RBContainer();
+		assertTrue(rb.loadModel(f));
+		
+		// Perform the solve
+		RBSystem s=rb.mRbSystem;
+		double[] par = s.getParams().getRandomParam();
+//		double[] par = new double[]{.5, .5};
+		s.getParams().setCurrent(par);
+		s.solveRB(s.getNBF()/2);
+		
+		SimulationResult res = s.getSimulationResults();
+		GeometryData g = rb.mRbSystem.getGeometry();
+		VisualizationData v = new VisualizationData(g);
+		v.useResult(res);
+		
+		v.computeVisualFeatures(new ColorGenerator());
+		
+		s.performSweep(0, 4);
+		res = s.getSweepSimResults();
+		v.useResult(res);
+		v.computeVisualFeatures(new ColorGenerator());
+	}
 
 }

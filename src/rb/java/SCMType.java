@@ -53,18 +53,18 @@ public enum SCMType {
 	 * Creates a new instance of an RBSCMSystem subclass according to the current SCMType.
 	 * @return A new RBSCMSystem instance
 	 */
-	public RBSCMSystem getNewRBSCMSystem() {
+	public RBSCMSystem getNewRBSCMSystem(RBSystem sys) {
 		switch (this) {
 		case NONE:
 			return null;
 		case COERCIVE:
-			return new RBSCMSystem();
+			return new RBSCMSystem(sys);
 		case COERCIVE_ALPHASIGMA:
-			return new RBSCMSystem();
+			return new RBSCMSystem(sys);
 		case QN_TRANSIENT_SCM:
-			return new QNTransientSCMSystem();
+			return new QNTransientSCMSystem(sys);
 		case COMPLEX_NONCOERCIVE:
-			return new RBnSCMCSystem();
+			return new RBnSCMCSystem(sys);
 		default:
 			return null;
 		}

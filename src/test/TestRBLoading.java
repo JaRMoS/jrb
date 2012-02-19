@@ -33,7 +33,7 @@ public class TestRBLoading {
 				if (("rb".equals(m.type) || "rbappmit".equals(m.type))) {
 					System.out.println("\n----------------- Trying to load model "+m.title+" from folder "+m.modeldir+" -----------------\n");
 					try {
-						f.setModelDir(m.modeldir);
+						f.useModel(m.modeldir);
 					} catch (ModelManagerException e) {
 						e.printStackTrace();
 						fail(e.getMessage());

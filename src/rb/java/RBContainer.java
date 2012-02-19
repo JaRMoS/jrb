@@ -70,9 +70,7 @@ public class RBContainer {
 	private void loadAffineFunctions(AModelManager m) throws Exception {
 
 		ClassLoader cl = m.getClassLoader();
-		String thepackage = m.getModelXMLTagValue("affinefunctions.package");
-		thepackage = thepackage != null ? thepackage+".":"";
-		Class<?> af = cl.loadClass(thepackage+"AffineFunctions");
+		Class<?> af = cl.loadClass(m.getModelPackageStr() + "AffineFunctions");
 
 		Log.d(DEBUG_TAG, "Loaded AffineFunctions class");
 
@@ -81,24 +79,28 @@ public class RBContainer {
 			mRbSystem.oldAffFcnObj = af.newInstance();
 			if (m.getModelType() == ModelType.rbappmit) {
 				mRbSystem.affineFunctionsClass = IAffineFunctions.class;
-				mRbSystem.affineFunctionsInstance = new rbappmitAffineFunctions(af, af.newInstance());
+				mRbSystem.affineFunctionsInstance = new rbappmitAffineFunctions(
+						af, af.newInstance());
 			} else {
 				mRbSystem.affineFunctionsClass = (Class<IAffineFunctions>) af;
-				mRbSystem.affineFunctionsInstance = mRbSystem.affineFunctionsClass.newInstance();
+				mRbSystem.affineFunctionsInstance = mRbSystem.affineFunctionsClass
+						.newInstance();
 			}
 		}
 
-		if (mRbScmSystem != null) {
-			mRbScmSystem.oldAffFcnCl = af;
-			mRbScmSystem.oldAffFcnObj = af.newInstance();
-			if (m.getModelType() == ModelType.rbappmit) {
-				mRbScmSystem.affineFunctionsClass = IAffineFunctions.class;
-				mRbScmSystem.affineFunctionsInstance = new rbappmitAffineFunctions(af, af.newInstance());
-			} else {
-				mRbScmSystem.affineFunctionsClass = (Class<IAffineFunctions>) af;
-				mRbScmSystem.affineFunctionsInstance = mRbSystem.affineFunctionsClass.newInstance();
-			}
-		}
+//		if (mRbScmSystem != null) {
+//			mRbScmSystem.oldAffFcnCl = af;
+//			mRbScmSystem.oldAffFcnObj = af.newInstance();
+//			if (m.getModelType() == ModelType.rbappmit) {
+//				mRbScmSystem.affineFunctionsClass = IAffineFunctions.class;
+//				mRbScmSystem.affineFunctionsInstance = new rbappmitAffineFunctions(
+//						af, af.newInstance());
+//			} else {
+//				mRbScmSystem.affineFunctionsClass = (Class<IAffineFunctions>) af;
+//				mRbScmSystem.affineFunctionsInstance = mRbSystem.affineFunctionsClass
+//						.newInstance();
+//			}
+//		}
 	}
 
 	/**
@@ -117,14 +119,15 @@ public class RBContainer {
 
 		// Read system types and misc data into RBContainer
 		if (m.getModelType() == ModelType.rbappmit) {
-			if (!readSystemDescriptionsRBAppMit(m)) return false;
+			if (!readSystemDescriptionsRBAppMit(m))
+				return false;
 		} else {
 			readSystemDescriptionsJRB(m);
 		}
 
 		// Init the main systems
-		mRbScmSystem = fSCMType.getNewRBSCMSystem();
 		mRbSystem = fSystemType.getNewRBSystem();
+		mRbScmSystem = fSCMType.getNewRBSCMSystem(mRbSystem);
 
 		// Assign SCM system
 		mRbSystem.setPrimarySCM(mRbScmSystem);
@@ -136,8 +139,9 @@ public class RBContainer {
 			 */
 			loadAffineFunctions(m);
 		} catch (Exception e) {
-			Log.e(DEBUG_TAG, "Exception occurred while attaching affine functions: "
-					+ e.getMessage(), e);
+			Log.e(DEBUG_TAG,
+					"Exception occurred while loading affine functions: "
+							+ e.getMessage(), e);
 			return false;
 		}
 
@@ -145,16 +149,18 @@ public class RBContainer {
 		try {
 			if (mRbSystem != null) {
 				// Read parameters into RB systems
-				if (!mRbSystem.readConfiguration(m)) return false;
+				if (!mRbSystem.readConfiguration(m))
+					return false;
 				mRbSystem.loadOfflineData(m);
 				Log.d(DEBUG_TAG, "Finished reading offline data for RBSystem.");
 			}
 
 			if (mRbScmSystem != null) {
 				// Read parameters into SCM systems
-				if (!mRbScmSystem.readConfiguration(m)) return false;
+				mRbScmSystem.readConfiguration(m);
 				mRbScmSystem.loadOfflineData(m);
-				Log.d(DEBUG_TAG, "Finished reading offline data for RBSCMSystem.");
+				Log.d(DEBUG_TAG,
+						"Finished reading offline data for RBSCMSystem.");
 			}
 
 			/*
@@ -174,34 +180,36 @@ public class RBContainer {
 		return true;
 	}
 
-	@SuppressWarnings("unused")
-	private boolean loadSecondSCMSystem(AModelManager m)
-			throws InstantiationException, IllegalAccessException {
-		mSecondRbScmSystem = null;
-		if (fSCMType == SCMType.COERCIVE_ALPHASIGMA) {
-			mSecondRbScmSystem = fSCMType.getNewRBSCMSystem();
-
-			if (mSecondRbScmSystem != null) {
-				if (fSystemType == SystemType.LINEAR_UNSTEADY) {
-					/*
-					 * Uncomment this line to restore previous status using an
-					 * optional second SCM system.
-					 */
-					// ((TransientRBSystem)
-					// mRbSystem).setSecondarySCM(mSecondRbScmSystem);
-				}
-
-				if (!mSecondRbScmSystem.readConfiguration(m)) return false;
-
-				// Attach AffineFunctions class also to this system
-				mSecondRbScmSystem.affineFunctionsClass = mRbScmSystem.affineFunctionsClass;
-				mSecondRbScmSystem.oldAffFcnCl = mRbSystem.oldAffFcnCl;
-				mSecondRbScmSystem.affineFunctionsInstance = mRbSystem.affineFunctionsClass.newInstance();
-				mSecondRbScmSystem.oldAffFcnObj = mRbSystem.oldAffFcnObj;
-			}
-		}
-		return true;
-	}
+//	@SuppressWarnings("unused")
+//	private boolean loadSecondSCMSystem(AModelManager m)
+//			throws InstantiationException, IllegalAccessException {
+//		mSecondRbScmSystem = null;
+//		if (fSCMType == SCMType.COERCIVE_ALPHASIGMA) {
+//			mSecondRbScmSystem = fSCMType.getNewRBSCMSystem();
+//
+//			if (mSecondRbScmSystem != null) {
+//				if (fSystemType == SystemType.LINEAR_UNSTEADY) {
+//					/*
+//					 * Uncomment this line to restore previous status using an
+//					 * optional second SCM system.
+//					 */
+//					// ((TransientRBSystem)
+//					// mRbSystem).setSecondarySCM(mSecondRbScmSystem);
+//				}
+//
+//				if (!mSecondRbScmSystem.readConfiguration(m))
+//					return false;
+//
+//				// Attach AffineFunctions class also to this system
+//				mSecondRbScmSystem.affineFunctionsClass = mRbScmSystem.affineFunctionsClass;
+//				mSecondRbScmSystem.oldAffFcnCl = mRbSystem.oldAffFcnCl;
+//				mSecondRbScmSystem.affineFunctionsInstance = mRbSystem.affineFunctionsClass
+//						.newInstance();
+//				mSecondRbScmSystem.oldAffFcnObj = mRbSystem.oldAffFcnObj;
+//			}
+//		}
+//		return true;
+//	}
 
 	private void readSystemDescriptionsJRB(AModelManager m) {
 		problemTitle = m.getModelXMLTagValue("description.name");
@@ -209,7 +217,8 @@ public class RBContainer {
 		// TODO: Dont know where this value is used
 		descriptionURL = m.getModelXMLTagValue("description.infohtml");
 
-		fSystemType = SystemType.parse(m.getModelXMLTagValue("rb_model.systype"));
+		fSystemType = SystemType.parse(m
+				.getModelXMLTagValue("rb_model.systype"));
 		fSCMType = SCMType.parse(m.getModelXMLTagValue("rb_model.scmtype"));
 
 		Log.d(DEBUG_TAG, "RB system type = " + fSystemType);
@@ -220,7 +229,8 @@ public class RBContainer {
 		// GetPot infile = m.getParamFileGetPot();
 		GetPot infile = null;
 		try {
-			infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
+			infile = new GetPot(m.getInStream(Const.parameters_filename),
+					Const.parameters_filename);
 		} catch (IOException e) {
 			Log.e("RBContainer", "Exception loading infile.in", e);
 			e.printStackTrace();

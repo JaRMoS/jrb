@@ -31,9 +31,10 @@ import org.apache.commons.math.linear.ArrayFieldVector;
 import org.apache.commons.math.linear.FieldMatrix;
 import org.apache.commons.math.linear.FieldVector;
 
+import rmcommon.ComplexSolutionField;
+import rmcommon.FieldDescriptor;
 import rmcommon.Log;
 import rmcommon.SimulationResult;
-import rmcommon.SolutionField;
 import rmcommon.io.AModelManager;
 import rmcommon.io.MathObjectReader;
 
@@ -87,8 +88,8 @@ public class ComplexRBSystem extends RBSystem {
 
 					String[] dual_norms_tokens;
 					{
-						BufferedReader reader = m.getBufReader("output_"
-								+ String.format("%03d", i) + "_dual_norms.dat");
+						BufferedReader reader = m
+								.getBufReader("output_" + String.format("%03d", i) + "_dual_norms.dat");
 
 						dual_norms_tokens = reader.readLine().split(" ");
 						reader.close();
@@ -98,10 +99,8 @@ public class ComplexRBSystem extends RBSystem {
 						int Q_l_hat = getQl(i) * (getQl(i) + 1) / 2;
 						output_dual_norms[i] = new Complex[Q_l_hat];
 						for (int q = 0; q < Q_l_hat; q++) {
-							output_dual_norms[i][q] = new Complex(
-									Double.parseDouble(dual_norms_tokens[q]),
-									Double.parseDouble(dual_norms_tokens[Q_l_hat
-											+ q]));
+							output_dual_norms[i][q] = new Complex(Double.parseDouble(dual_norms_tokens[q]),
+									Double.parseDouble(dual_norms_tokens[Q_l_hat + q]));
 						}
 					}
 
@@ -111,28 +110,19 @@ public class ComplexRBSystem extends RBSystem {
 						for (int q_l = 0; q_l < getQl(i); q_l++) {
 							// Now read in the RB output vectors
 							{
-								BufferedReader reader_i = m
-										.getBufReader("output_"
-												+ String.format("%03d", i)
-												+ "_"
-												+ String.format("%03d", q_l)
-												+ ".dat");
+								BufferedReader reader_i = m.getBufReader("output_" + String.format("%03d", i) + "_"
+										+ String.format("%03d", q_l) + ".dat");
 
-								output_i_tokens = reader_i.readLine()
-										.split(" ");
+								output_i_tokens = reader_i.readLine().split(" ");
 								reader_i.close();
 							}
 
-							RB_output_vectors[i][q_l] = new ArrayFieldVector<Complex>(
-									getNBF(), new Complex(0d, 0d));
+							RB_output_vectors[i][q_l] = new ArrayFieldVector<Complex>(getNBF(), new Complex(0d, 0d));
 							for (int j = 0; j < getNBF(); j++) {
-								RB_output_vectors[i][q_l]
-										.setEntry(
-												j,
-												new Complex(
-														Double.parseDouble(output_i_tokens[j]),
-														Double.parseDouble(output_i_tokens[getNBF()
-																+ j])));
+								RB_output_vectors[i][q_l].setEntry(
+										j,
+										new Complex(Double.parseDouble(output_i_tokens[j]), Double
+												.parseDouble(output_i_tokens[getNBF() + j])));
 							}
 						}
 					}
@@ -172,23 +162,19 @@ public class ComplexRBSystem extends RBSystem {
 			String[] tokens;
 			for (int q_f = 0; q_f < getQf(); q_f++) {
 				{
-					BufferedReader reader = m.getBufReader("RB_F_"
-							+ String.format("%03d", q_f) + ".dat");
+					BufferedReader reader = m.getBufReader("RB_F_" + String.format("%03d", q_f) + ".dat");
 
 					tokens = reader.readLine().split(" ");
 					reader.close();
 				}
 
 				// Set the size of the inner product matrix
-				RB_F_q_vector[q_f] = new ArrayFieldVector<Complex>(getNBF(),
-						new Complex(0d, 0d));
+				RB_F_q_vector[q_f] = new ArrayFieldVector<Complex>(getNBF(), new Complex(0d, 0d));
 
 				// Fill the vector
 				for (int i = 0; i < getNBF(); i++) {
-					RB_F_q_vector[q_f].setEntry(
-							i,
-							new Complex(Double.parseDouble(tokens[i]), Double
-									.parseDouble(tokens[getNBF() + i])));
+					RB_F_q_vector[q_f].setEntry(i,
+							new Complex(Double.parseDouble(tokens[i]), Double.parseDouble(tokens[getNBF() + i])));
 				}
 			}
 			Log.d(DEBUG_TAG, "Finished reading RB_F_q data");
@@ -196,22 +182,20 @@ public class ComplexRBSystem extends RBSystem {
 
 		// Read in the A_q matrices
 		{
-			RB_A_q_vector = (FieldMatrix<Complex>[]) Array.newInstance(
-					FieldMatrix.class, getQa());// (FieldMatrix<Complex>[])
-												// new
-												// FieldMatrix<?>[get_Q_a()];
+			RB_A_q_vector = (FieldMatrix<Complex>[]) Array.newInstance(FieldMatrix.class, getQa());// (FieldMatrix<Complex>[])
+																									// new
+																									// FieldMatrix<?>[get_Q_a()];
 			String[] tokens;
 			for (int q_a = 0; q_a < getQa(); q_a++) {
 				{
-					BufferedReader reader = m.getBufReader("RB_A_"
-							+ String.format("%03d", q_a) + ".dat");
+					BufferedReader reader = m.getBufReader("RB_A_" + String.format("%03d", q_a) + ".dat");
 					tokens = reader.readLine().split(" ");
 					reader.close();
 				}
 
 				// Set the size of the inner product matrix
-				RB_A_q_vector[q_a] = new Array2DRowFieldMatrix<Complex>(
-						(new Complex(0, 0)).getField(), getNBF(), getNBF());
+				RB_A_q_vector[q_a] = new Array2DRowFieldMatrix<Complex>((new Complex(0, 0)).getField(), getNBF(),
+						getNBF());
 
 				// Fill the vector
 				int count = 0;
@@ -220,9 +204,8 @@ public class ComplexRBSystem extends RBSystem {
 						RB_A_q_vector[q_a].setEntry(
 								i,
 								j,
-								new Complex(Double.parseDouble(tokens[count]),
-										Double.parseDouble(tokens[count
-												+ getNBF() * getNBF()])));
+								new Complex(Double.parseDouble(tokens[count]), Double.parseDouble(tokens[count
+										+ getNBF() * getNBF()])));
 						count++;
 					}
 			}
@@ -242,8 +225,7 @@ public class ComplexRBSystem extends RBSystem {
 
 			// Fill it
 			for (int i = 0; i < Q_f_hat; i++) {
-				Fq_representor_norms[i] = new Complex(
-						Double.parseDouble(tokens[i * 2 + 0]),
+				Fq_representor_norms[i] = new Complex(Double.parseDouble(tokens[i * 2 + 0]),
 						Double.parseDouble(tokens[i * 2 + 1]));
 			}
 
@@ -280,8 +262,7 @@ public class ComplexRBSystem extends RBSystem {
 			for (int q_f = 0; q_f < getQf(); q_f++)
 				for (int q_a = 0; q_a < getQa(); q_a++)
 					for (int i = 0; i < getNBF(); i++)
-						Fq_Aq_representor_norms[q_f][q_a][i] = new Complex(
-								Rdata[q_f][q_a][i], Idata[q_f][q_a][i]);
+						Fq_Aq_representor_norms[q_f][q_a][i] = new Complex(Rdata[q_f][q_a][i], Idata[q_f][q_a][i]);
 
 			Log.d(DEBUG_TAG, "Finished reading Fq_Aq_norms.dat");
 		}
@@ -297,8 +278,7 @@ public class ComplexRBSystem extends RBSystem {
 			double[][] Rdata2 = null, Idata2 = null;
 			for (int i = 0; i < getQa(); i++)
 				for (int j = i; j < getQa(); j++) {
-					String file = "Aq_Aq_" + String.format("%03d", i) + "_"
-							+ String.format("%03d", j) + "_norms.bin";
+					String file = "Aq_Aq_" + String.format("%03d", i) + "_" + String.format("%03d", j) + "_norms.bin";
 
 					int n = getNBF();
 					InputStream in = m.getInStream(file);
@@ -306,16 +286,14 @@ public class ComplexRBSystem extends RBSystem {
 						Rdata2 = mr.readRawDoubleMatrix(in, n, n);
 						Idata2 = mr.readRawDoubleMatrix(in, n, n);
 					} catch (IOException io) {
-						Log.e("ComplexRBSystem", "IOException with file "
-								+ file, io);
+						Log.e("ComplexRBSystem", "IOException with file " + file, io);
 					} finally {
 						in.close();
 						in = null;
 					}
 					for (int k = 0; k < n; k++)
 						for (int l = 0; l < n; l++)
-							Aq_Aq_representor_norms[count][k][l] = new Complex(
-									Rdata2[k][l], Idata2[k][l]);
+							Aq_Aq_representor_norms[count][k][l] = new Complex(Rdata2[k][l], Idata2[k][l]);
 
 					count++;
 				}
@@ -336,15 +314,14 @@ public class ComplexRBSystem extends RBSystem {
 		// Log.d(DEBUG_TAG, "Finished reading calN.dat");
 		// }
 
-		int n = getGeometry().nodes;
+		int n = getGeometry().numVertices;
 		// Reading uL data
 		{
 			if (getQuL() > 0) {
 				uL_vector = new Complex[getQuL()][n];
 				float[] Rdata3, Idata3;
 				for (int q_uL = 0; q_uL < getQuL(); q_uL++) {
-					InputStream in = m.getInStream("uL_"
-							+ String.format("%03d", q_uL) + ".bin");
+					InputStream in = m.getInStream("uL_" + String.format("%03d", q_uL) + ".bin");
 					try {
 						Rdata3 = mr.readRawFloatVector(in, n);
 						Idata3 = mr.readRawFloatVector(in, n);
@@ -365,8 +342,7 @@ public class ComplexRBSystem extends RBSystem {
 				float[] Rdata3, Idata3;
 				for (int imf = 0; imf < getNumOutputVisualizationFields(); imf++)
 					for (int inbfs = 0; inbfs < getNBF(); inbfs++) {
-						InputStream in = m.getInStream("Z_"
-								+ String.format("%03d", imf) + "_"
+						InputStream in = m.getInStream("Z_" + String.format("%03d", imf) + "_"
 								+ String.format("%03d", inbfs) + ".bin");
 						try {
 							Rdata3 = mr.readRawFloatVector(in, n);
@@ -375,8 +351,7 @@ public class ComplexRBSystem extends RBSystem {
 							in.close();
 						}
 						for (int i = 0; i < n; i++)
-							Z_vector[imf][inbfs][i] = new Complex(Rdata3[i],
-									Idata3[i]);
+							Z_vector[imf][inbfs][i] = new Complex(Rdata3[i], Idata3[i]);
 					}
 			}
 			Log.d(DEBUG_TAG, "Finished reading Z.dat");
@@ -399,36 +374,30 @@ public class ComplexRBSystem extends RBSystem {
 		theta_a = complex_eval_theta_q_a();
 
 		if (N > getNBF()) {
-			throw new RuntimeException(
-					"ERROR: N cannot be larger than the number "
-							+ "of basis functions in RB_solve");
+			throw new RuntimeException("ERROR: N cannot be larger than the number " + "of basis functions in RB_solve");
 		}
 		if (N == 0) {
-			throw new RuntimeException(
-					"ERROR: N must be greater than 0 in RB_solve");
+			throw new RuntimeException("ERROR: N must be greater than 0 in RB_solve");
 		}
 
 		// Assemble the RB system
-		FieldMatrix<Complex> RB_system_matrix_N = new Array2DRowFieldMatrix<Complex>(
-				(new Complex(0, 0)).getField(), N, N);
+		FieldMatrix<Complex> RB_system_matrix_N = new Array2DRowFieldMatrix<Complex>((new Complex(0, 0)).getField(), N,
+				N);
 
 		for (int q_a = 0; q_a < getQa(); q_a++) {
-			RB_system_matrix_N = RB_system_matrix_N.add(RB_A_q_vector[q_a]
-					.getSubMatrix(0, N - 1, 0, N - 1).scalarMultiply(
-							theta_a.getEntry(q_a)));
+			RB_system_matrix_N = RB_system_matrix_N.add(RB_A_q_vector[q_a].getSubMatrix(0, N - 1, 0, N - 1)
+					.scalarMultiply(theta_a.getEntry(q_a)));
 			// scalarMultiply(complex_eval_theta_q_a(q_a) ) );
 		}
 
 		// Assemble the RB rhs
-		FieldVector<Complex> RB_rhs_N = new ArrayFieldVector<Complex>(N,
-				new Complex(0d, 0d));
+		FieldVector<Complex> RB_rhs_N = new ArrayFieldVector<Complex>(N, new Complex(0d, 0d));
 
 		for (int q_f = 0; q_f < getQf(); q_f++) {
 			// Note getSubVector takes an initial index and the number of
 			// entries
 			// i.e. the interface is a bit different to getSubMatrix
-			RB_rhs_N = RB_rhs_N.add(RB_F_q_vector[q_f].getSubVector(0, N)
-					.mapMultiply(complex_eval_theta_q_f(q_f)));
+			RB_rhs_N = RB_rhs_N.add(RB_F_q_vector[q_f].getSubVector(0, N).mapMultiply(complex_eval_theta_q_f(q_f)));
 		}
 
 		// Solve the linear system by Gaussian elimination
@@ -436,31 +405,21 @@ public class ComplexRBSystem extends RBSystem {
 		RB_solution = new ArrayFieldVector<Complex>(N, new Complex(0., 0.));
 		for (int j = 1; j < N; j++)
 			for (int i = j; i < N; i++) {
-				Complex m = RB_system_matrix_N.getEntry(i, j - 1).divide(
-						RB_system_matrix_N.getEntry(j - 1, j - 1));
+				Complex m = RB_system_matrix_N.getEntry(i, j - 1).divide(RB_system_matrix_N.getEntry(j - 1, j - 1));
 				for (int k = 0; k < N; k++)
 					RB_system_matrix_N.setEntry(
 							i,
 							k,
 							RB_system_matrix_N.getEntry(i, k).subtract(
-									RB_system_matrix_N.getEntry(j - 1, k)
-											.multiply(m)));
-				RB_rhs_N.setEntry(
-						i,
-						RB_rhs_N.getEntry(i).subtract(
-								m.multiply(RB_rhs_N.getEntry(j - 1))));
+									RB_system_matrix_N.getEntry(j - 1, k).multiply(m)));
+				RB_rhs_N.setEntry(i, RB_rhs_N.getEntry(i).subtract(m.multiply(RB_rhs_N.getEntry(j - 1))));
 			}
-		RB_solution.setEntry(
-				N - 1,
-				RB_rhs_N.getEntry(N - 1).divide(
-						RB_system_matrix_N.getEntry(N - 1, N - 1)));
+		RB_solution.setEntry(N - 1, RB_rhs_N.getEntry(N - 1).divide(RB_system_matrix_N.getEntry(N - 1, N - 1)));
 		for (int j = N - 2; j >= 0; j--) {
 			Complex m = new Complex(0., 0.);
 			for (int i = j + 1; i < N; i++)
-				m = m.add(RB_system_matrix_N.getEntry(j, i).multiply(
-						RB_solution.getEntry(i)));
-			RB_solution.setEntry(j, (RB_rhs_N.getEntry(j).subtract(m))
-					.divide(RB_system_matrix_N.getEntry(j, j)));
+				m = m.add(RB_system_matrix_N.getEntry(j, i).multiply(RB_solution.getEntry(i)));
+			RB_solution.setEntry(j, (RB_rhs_N.getEntry(j).subtract(m)).divide(RB_system_matrix_N.getEntry(j, j)));
 		}
 
 		// Evaluate the dual norm of the residual for RB_solution_vector
@@ -485,34 +444,28 @@ public class ComplexRBSystem extends RBSystem {
 
 		double RB_solution_norm = 0.0d;
 		for (int i = 0; i < N; i++)
-			RB_solution_norm += ((RB_solution.getEntry(i))
-					.multiply((RB_solution.getEntry(i)).conjugate())).getReal();
+			RB_solution_norm += ((RB_solution.getEntry(i)).multiply((RB_solution.getEntry(i)).conjugate())).getReal();
 		RB_solution_norm = Math.sqrt(RB_solution_norm);
 
 		// Now compute the outputs and associated errors
-		FieldVector<Complex> RB_output_vector_N = new ArrayFieldVector<Complex>(
-				N, new Complex(0d, 0d));
+		FieldVector<Complex> RB_output_vector_N = new ArrayFieldVector<Complex>(N, new Complex(0d, 0d));
 		for (int i = 0; i < getNumOutputs(); i++) {
 			RB_outputs[i] = new Complex(0., 0.);
 
-			RB_output_vector_N = (RB_output_vectors[i][0].getSubVector(0, N))
-					.mapMultiply(complex_eval_theta_q_l(i, 0));
+			RB_output_vector_N = (RB_output_vectors[i][0].getSubVector(0, N)).mapMultiply(complex_eval_theta_q_l(i, 0));
 			for (int q_l = 1; q_l < getQl(i); q_l++)
-				RB_output_vector_N = RB_output_vector_N
-						.add((RB_output_vectors[i][q_l].getSubVector(0, N))
-								.mapMultiply(complex_eval_theta_q_l(i, q_l)));
+				RB_output_vector_N = RB_output_vector_N.add((RB_output_vectors[i][q_l].getSubVector(0, N))
+						.mapMultiply(complex_eval_theta_q_l(i, q_l)));
 			for (int j = 0; j < N; j++)
-				RB_outputs[i] = RB_outputs[i].add((RB_output_vector_N
-						.getEntry(j).conjugate()).multiply((RB_solution
+				RB_outputs[i] = RB_outputs[i].add((RB_output_vector_N.getEntry(j).conjugate()).multiply((RB_solution
 						.getEntry(j))));
 
-			RB_output_error_bounds[i] = new Complex(compute_output_dual_norm(i,
-					0) // Zero
-						// means
-						// no
-						// time
-						// used
-						// here
+			RB_output_error_bounds[i] = new Complex(compute_output_dual_norm(i, 0) // Zero
+																					// means
+																					// no
+																					// time
+																					// used
+																					// here
 					* abs_error_bound, compute_output_dual_norm(i, 0) // Zero
 																		// means
 																		// no
@@ -524,8 +477,7 @@ public class ComplexRBSystem extends RBSystem {
 
 		cal_derived_output();
 
-		return (return_rel_error_bound ? abs_error_bound / RB_solution_norm
-				: abs_error_bound);
+		return (return_rel_error_bound ? abs_error_bound / RB_solution_norm : abs_error_bound);
 	}
 
 	@Override
@@ -542,9 +494,7 @@ public class ComplexRBSystem extends RBSystem {
 			for (int q_f2 = q_f1; q_f2 < getQf(); q_f2++) {
 				double delta = (q_f1 == q_f2) ? 1. : 2.;
 				res_ff += delta
-						* ((complex_eval_theta_q_f(q_f1)
-								.multiply(complex_eval_theta_q_f(q_f2)
-										.conjugate()))
+						* ((complex_eval_theta_q_f(q_f1).multiply(complex_eval_theta_q_f(q_f2).conjugate()))
 								.multiply(Fq_representor_norms[q])).getReal();
 				q++;
 			}
@@ -553,13 +503,10 @@ public class ComplexRBSystem extends RBSystem {
 		for (int q_f = 0; q_f < getQf(); q_f++) {
 			for (int q_a = 0; q_a < getQa(); q_a++) {
 				for (int i = 0; i < N; i++) {
-					res_af += 2. * (get_complex_soln_coeff(i).conjugate()
-							.multiply(
-							// complex_eval_theta_q_f(q_f).multiply(complex_eval_theta_q_a(q_a).conjugate())
-									complex_eval_theta_q_f(q_f).multiply(
-											theta_a.getEntry(q_a).conjugate()))
-							.multiply(Fq_Aq_representor_norms[q_f][q_a][i]))
-							.getReal();
+					res_af += 2. * (get_complex_soln_coeff(i).conjugate().multiply(
+					// complex_eval_theta_q_f(q_f).multiply(complex_eval_theta_q_a(q_a).conjugate())
+							complex_eval_theta_q_f(q_f).multiply(theta_a.getEntry(q_a).conjugate()))
+							.multiply(Fq_Aq_representor_norms[q_f][q_a][i])).getReal();
 				}
 			}
 		}
@@ -571,15 +518,11 @@ public class ComplexRBSystem extends RBSystem {
 					for (int j = 0; j < N; j++) {
 						double delta = (q_a1 == q_a2) ? 1. : 2.;
 						res_aa += delta
-								* ((get_complex_soln_coeff(i).conjugate()
-										.multiply(get_complex_soln_coeff(j)))
+								* ((get_complex_soln_coeff(i).conjugate().multiply(get_complex_soln_coeff(j)))
 										.multiply(
 										// (complex_eval_theta_q_a(q_a1).conjugate().multiply(complex_eval_theta_q_a(q_a2)))
-										(theta_a.getEntry(q_a1).conjugate()
-												.multiply(theta_a
-														.getEntry(q_a2))))
-										.multiply(Aq_Aq_representor_norms[q][i][j]))
-										.getReal();
+										(theta_a.getEntry(q_a1).conjugate().multiply(theta_a.getEntry(q_a2))))
+										.multiply(Aq_Aq_representor_norms[q][i][j])).getReal();
 					}
 				}
 				q++;
@@ -613,15 +556,11 @@ public class ComplexRBSystem extends RBSystem {
 		for (int q_l1 = 0; q_l1 < getQl(i); q_l1++) {
 			for (int q_l2 = q_l1; q_l2 < getQl(i); q_l2++) {
 				if (q_l1 == q_l2)
-					output_norm_sq += 1. * ((complex_eval_theta_q_l(i, q_l1)
-							.multiply(complex_eval_theta_q_l(i, q_l2)
-									.conjugate()))
-							.multiply(output_dual_norms[i][q])).getReal();
+					output_norm_sq += 1. * ((complex_eval_theta_q_l(i, q_l1).multiply(complex_eval_theta_q_l(i, q_l2)
+							.conjugate())).multiply(output_dual_norms[i][q])).getReal();
 				else
-					output_norm_sq += 2. * ((complex_eval_theta_q_l(i, q_l1)
-							.multiply(complex_eval_theta_q_l(i, q_l2)
-									.conjugate()))
-							.multiply(output_dual_norms[i][q])).getReal();
+					output_norm_sq += 2. * ((complex_eval_theta_q_l(i, q_l1).multiply(complex_eval_theta_q_l(i, q_l2)
+							.conjugate())).multiply(output_dual_norms[i][q])).getReal();
 				q++;
 			}
 		}
@@ -660,34 +599,59 @@ public class ComplexRBSystem extends RBSystem {
 			return RB_output_error_bounds[n_output].getImaginary();
 	}
 
+	/**
+	 * Returns the results of the complex RB simulation.
+	 * 
+	 * Formerly, the returned float[][] array was again sorted into
+	 * visualization data in RBVisualization.onCreate. As there have only been
+	 * rbappmit models with complex field data, which has been split into real,
+	 * imaginary and norm field values for visualization, this new method is the
+	 * native way of transforming the results into ComplexSolutionFields,
+	 * however many there may be. For each field the visualization will
+	 * automatically create views for real, imaginary and norm value fields.
+	 */
 	@Override
 	public SimulationResult getSimulationResults() {
 		int N = RB_solution.getDimension();
-		int nodes = getGeometry().nodes;
 		SimulationResult res = new SimulationResult();
-		// float[][][] truth_sol = new
-		// float[getNumOutputVisualizationFields()][3][nodes];
-		for (int ifn = 0; ifn < getNumOutputVisualizationFields(); ifn++) {
-			SolutionField f = new SolutionField(nodes);
-			Complex tmpval;
-			for (int i = 0; i < nodes; i++) {
-				tmpval = new Complex(0., 0.);
-				for (int j = 0; j < N; j++) {
-					tmpval = tmpval.add(Z_vector[ifn][j][i]
-							.multiply(get_complex_soln_coeff(j)));
-				}
-				f.setComplexValue(i, tmpval);
+
+		int fnumcnt = 0;
+		for (FieldDescriptor sftype : logicalFieldTypes) {
+			if (fnumcnt + sftype.Type.requiredOutputFields > getNumOutputVisualizationFields()) {
+				throw new RuntimeException("Too many output fields used by current "
+						+ "SolutionFieldTypes set in RBSystem. Check your model.xml.");
 			}
-			if (getQuL() > 0) {
-				for (int q_uL = 0; q_uL < getQuL(); q_uL++)
-					for (int i = 0; i < nodes; i++) {
-						f.addComplexValue(i,
-								(float) uL_vector[q_uL][i].getReal(),
-								(float) uL_vector[q_uL][i].getImaginary());
+			int numDoF = Z_vector[fnumcnt][0].length;
+			switch (sftype.Type) {
+			case ComplexValue: {
+				ComplexSolutionField f = new ComplexSolutionField(sftype, numDoF);
+				Complex tmpval;
+				for (int nodenr = 0; nodenr < numDoF; nodenr++) {
+					tmpval = new Complex(0., 0.);
+					for (int rbdim = 0; rbdim < N; rbdim++) {
+						tmpval = tmpval.add(Z_vector[fnumcnt][rbdim][nodenr].multiply(get_complex_soln_coeff(rbdim)));
 					}
+					f.setComplexValue(nodenr, tmpval);
+				}
+				if (getQuL() > 0) {
+					for (int q_uL = 0; q_uL < getQuL(); q_uL++)
+						for (int i = 0; i < numDoF; i++) {
+							f.addComplexValue(i, (float) uL_vector[q_uL][i].getReal(),
+									(float) uL_vector[q_uL][i].getImaginary());
+						}
+				}
+				res.addField(f);
+				break;
 			}
-			// No models with complex displacements!
-			res.addField(f, false);
+			default:
+				throw new RuntimeException("Invalid/unimplemented solution field type '" + sftype.Type
+						+ "' for complex RB system");
+			}
+			/*
+			 * Increase field counter by the amount the current solution field
+			 * used
+			 */
+			fnumcnt += sftype.Type.requiredOutputFields;
 		}
 		return res;
 	}
@@ -697,37 +661,53 @@ public class ComplexRBSystem extends RBSystem {
 		int N = RB_sweep_solution[0][0].length;
 		int numSweep = RB_sweep_solution.length;
 
+		/*
+		 * Preparations
+		 */
 		Complex[][] RB_sweep_sol = new Complex[numSweep][N];
 		for (int i = 0; i < numSweep; i++)
 			for (int j = 0; j < N; j++)
-				RB_sweep_sol[i][j] = new Complex(RB_sweep_solution[i][0][j],
-						RB_sweep_solution[i][1][j]);
-		int nodes = getGeometry().nodes;
+				RB_sweep_sol[i][j] = new Complex(RB_sweep_solution[i][0][j], RB_sweep_solution[i][1][j]);
 		SimulationResult res = new SimulationResult();
-		// float[][][] truth_sol = new
-		// float[getNumOutputVisualizationFields()][3][nodes
-		// * numSweep];
-		for (int ifn = 0; ifn < getNumOutputVisualizationFields(); ifn++) {
-			SolutionField f = new SolutionField(nodes * numSweep);
-			Complex tmpval;
-			for (int iSweep = 0; iSweep < numSweep; iSweep++) {
-				for (int i = 0; i < nodes; i++) {
-					tmpval = new Complex(0., 0.);
-					for (int j = 0; j < N; j++)
-						tmpval = tmpval.add(Z_vector[ifn][j][i]
-								.multiply(RB_sweep_sol[iSweep][j]));
-					f.setComplexValue(iSweep * nodes + i, tmpval);
-				}
+		int fnumcnt = 0;
+		for (FieldDescriptor sftype : logicalFieldTypes) {
+			if (fnumcnt + sftype.Type.requiredOutputFields > getNumOutputVisualizationFields()) {
+				throw new RuntimeException("Too many output fields used by current "
+						+ "SolutionFieldTypes set in RBSystem. Check your model.xml.");
 			}
-			if (getQuL() > 0) {
-				for (int q_uL = 0; q_uL < getQuL(); q_uL++)
-					for (int iSweep = 0; iSweep < numSweep; iSweep++)
-						for (int i = 0; i < nodes; i++) {
-							f.addComplexValue(iSweep * nodes + i,
-									(float) uL_vector[q_uL][i].getReal(),
-									(float) uL_vector[q_uL][i].getImaginary());
+			int numDoF = Z_vector[fnumcnt][0].length;
+			switch (sftype.Type) {
+			case ComplexValue: {
+				ComplexSolutionField f = new ComplexSolutionField(sftype, numDoF * numSweep);
+				Complex tmpval;
+				for (int iSweep = 0; iSweep < numSweep; iSweep++) {
+					for (int i = 0; i < numDoF; i++) {
+						tmpval = new Complex(0., 0.);
+						for (int rbdim = 0; rbdim < N; rbdim++) {
+							tmpval = tmpval.add(Z_vector[fnumcnt][rbdim][i].multiply(RB_sweep_sol[iSweep][rbdim]));
 						}
+						f.setComplexValue(iSweep * numDoF + i, tmpval);
+					}
+				}
+				if (getQuL() > 0) {
+					for (int q_uL = 0; q_uL < getQuL(); q_uL++)
+						for (int iSweep = 0; iSweep < numSweep; iSweep++)
+							for (int nodenr = 0; nodenr < numDoF; nodenr++) {
+								f.addComplexValue(iSweep * numDoF + nodenr, uL_vector[q_uL][nodenr]);
+							}
+				}
+				res.addField(f);
+				break;
 			}
+			default:
+				throw new RuntimeException("Invalid/unimplemented solution field type '" + sftype.Type
+						+ "' for complex RB system sweep");
+			}
+			/*
+			 * Increase field counter by the amount the current solution field
+			 * used
+			 */
+			fnumcnt += sftype.Type.requiredOutputFields;
 		}
 		return res;
 	}
@@ -765,8 +745,7 @@ public class ComplexRBSystem extends RBSystem {
 
 				meth = oldAffFcnCl.getMethod("cal_derived_output", partypes);
 			} catch (NoSuchMethodException nsme) {
-				throw new RuntimeException(
-						"getMethod for cal_derived_output failed", nsme);
+				throw new RuntimeException("getMethod for cal_derived_output failed", nsme);
 			}
 
 			try {
@@ -784,8 +763,7 @@ public class ComplexRBSystem extends RBSystem {
 					Object theta_obj = meth.invoke(oldAffFcnObj, arglist);
 					double[] output = (double[]) theta_obj;
 					RB_outputs[i] = new Complex(output[0], output[1]);
-					RB_output_error_bounds[i] = new Complex(output[2],
-							output[3]);
+					RB_output_error_bounds[i] = new Complex(output[2], output[3]);
 				}
 			} catch (IllegalAccessException iae) {
 				throw new RuntimeException(iae);
