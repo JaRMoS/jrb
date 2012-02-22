@@ -18,6 +18,7 @@ import rmcommon.geometry.GeometryData;
 import rmcommon.io.AModelManager.ModelManagerException;
 import rmcommon.io.FileModelManager;
 import rmcommon.visual.ColorGenerator;
+import rmcommon.visual.JOGLRenderer;
 import rmcommon.visual.VisualizationData;
 
 /**
@@ -115,10 +116,12 @@ public class TestRBSolve {
 		
 		v.computeVisualFeatures(new ColorGenerator());
 		
-		s.performSweep(0, 4);
-		res = s.getSweepSimResults();
-		v.useResult(res);
-		v.computeVisualFeatures(new ColorGenerator());
+		JOGLRenderer.render(v);
+		
+//		s.performSweep(0, 4);
+//		res = s.getSweepSimResults();
+//		v.useResult(res);
+//		v.computeVisualFeatures(new ColorGenerator());
 	}
 
 }
