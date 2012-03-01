@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.commons.math.complex.Complex;
 import org.apache.commons.math.linear.Array2DRowRealMatrix;
@@ -27,8 +29,11 @@ import rmcommon.ModelType;
 import rmcommon.Parameters;
 import rmcommon.DefaultSolutionField;
 import rmcommon.SimulationResult;
+import rmcommon.geometry.AffineLinearMeshTransform;
+import rmcommon.geometry.DefaultTransform;
 import rmcommon.geometry.DisplacementField;
 import rmcommon.geometry.GeometryData;
+import rmcommon.geometry.MeshTransform;
 import rmcommon.io.AModelManager;
 import rmcommon.io.MathObjectReader;
 import rmcommon.io.AModelManager.ModelManagerException;
@@ -219,6 +224,8 @@ public class RBSystem extends ModelBase {
 
 	protected float[][] uL_vector;
 
+	private List<MeshTransform> transforms;
+
 	/**
 	 * Constructor.
 	 */
@@ -226,6 +233,7 @@ public class RBSystem extends ModelBase {
 
 		// Initialize n_bfs to 0
 		numBasisFuncs = 0;
+		transforms = new ArrayList<MeshTransform>();
 	}
 
 	// PUBLIC FUNCTIONS
@@ -473,27 +481,29 @@ public class RBSystem extends ModelBase {
 		return Math.sqrt(residual_norm_sq);
 	}
 
-	/**
-	 * @param mu
-	 * @param gData
-	 */
-	public void customMeshTransform(double[][] mu, GeometryData gData) {
-		int numT = mu.length;
-
-		gData.vertices = new float[numT * gData.numVertices * 3];
-		for (int i = 0; i < numT; i++) {
-			// get current nodal data
-			float[] tmpnode = mesh_transform(mu[i], gData.originalVertices.clone());
-			// Log.d("GLRenderer", mu[i][0] + " " + mu[i][1]);
-			// Log.d("GLRenderer", tmpnode[4] + " " + data.vertices[4]);
-			// copy current nodal data into animation list
-			for (int j = 0; j < gData.numVertices; j++) {
-				for (int k = 0; k < 3; k++) {
-					gData.vertices[i * gData.numVertices * 3 + j * 3 + k] = tmpnode[j * 3 + k];
-				}
-			}
-		}
-	}
+	// /**
+	// * @param mu
+	// * @param gData
+	// */
+	// public void customMeshTransform(double[][] mu, GeometryData gData) {
+	// int numT = mu.length;
+	//
+	// gData.vertices = new float[numT * gData.getNumVertices() * 3];
+	// for (int i = 0; i < numT; i++) {
+	// // get current nodal data
+	// float[] tmpnode = rbappmitCustomMeshTransform(mu[i],
+	// gData.originalVertices.clone());
+	// // Log.d("GLRenderer", mu[i][0] + " " + mu[i][1]);
+	// // Log.d("GLRenderer", tmpnode[4] + " " + data.vertices[4]);
+	// // copy current nodal data into animation list
+	// for (int j = 0; j < gData.getNumVertices(); j++) {
+	// for (int k = 0; k < 3; k++) {
+	// gData.vertices[i * gData.getNumVertices() * 3 + j * 3 + k] = tmpnode[j *
+	// 3 + k];
+	// }
+	// }
+	// }
+	// }
 
 	public int get_N() {
 		return current_N;
@@ -614,17 +624,6 @@ public class RBSystem extends ModelBase {
 	}
 
 	/**
-	 * Number of output value fields.
-	 * 
-	 * Zero for no visualization.
-	 * 
-	 * @return The number of output fields
-	 */
-	public int getNumOutputVisualizationFields() {
-		return getNumDoFFields();
-	}
-
-	/**
 	 * Returns the system's parameters object
 	 * 
 	 * @return The current parameters
@@ -688,11 +687,11 @@ public class RBSystem extends ModelBase {
 	 */
 	public SimulationResult getSimulationResults() {
 		int N = RB_solution.getDimension();
-		SimulationResult res = new SimulationResult();
+		SimulationResult res = new SimulationResult(1);
 		double co;
 		int fnumcnt = 0;
 		for (FieldDescriptor sftype : logicalFieldTypes) {
-			if (fnumcnt + sftype.Type.requiredOutputFields > getNumDoFFields()) {
+			if (fnumcnt + sftype.Type.requiredDoFFields > getNumDoFFields()) {
 				throw new RuntimeException("Too many output fields used by current "
 						+ "SolutionFieldTypes set in RBSystem. Check your model.xml.");
 			}
@@ -747,7 +746,10 @@ public class RBSystem extends ModelBase {
 			 * Increase field counter by the amount the current solution field
 			 * used
 			 */
-			fnumcnt += sftype.Type.requiredOutputFields;
+			fnumcnt += sftype.Type.requiredDoFFields;
+		}
+		for (MeshTransform m : transforms) {
+			res.addTransform(m);
 		}
 		return res;
 	}
@@ -775,58 +777,61 @@ public class RBSystem extends ModelBase {
 		int numSweeps = RB_sweep_solution.length;
 
 		double tmpval;
-		SimulationResult res = new SimulationResult();
+		SimulationResult res = new SimulationResult(numSweeps);
 
-		int fnumcnt = 0;
+		int currentDoFField = 0;
 		for (FieldDescriptor sftype : logicalFieldTypes) {
-			if (fnumcnt + sftype.Type.requiredOutputFields > getNumDoFFields()) {
+			if (currentDoFField + sftype.Type.requiredDoFFields > getNumDoFFields()) {
 				throw new RuntimeException("Too many output fields used by current "
 						+ "SolutionFieldTypes set in RBSystem. Check your model.xml.");
 			}
-			int numDoF = fullBasisVectors[fnumcnt][0].length;
+			int numDoFs = fullBasisVectors[currentDoFField][0].length;
 			Log.d("RBSystem", "Creating sweep solution field of type " + sftype.Type + ", sweeps:" + numSweeps
-					+ ", Dofs: " + numDoF);
+					+ ", Dofs: " + numDoFs);
 			switch (sftype.Type) {
 			case Displacement3D: {
-				DisplacementField d = new DisplacementField(sftype, numDoF * numSweeps);
+				DisplacementField d = new DisplacementField(sftype, numDoFs * numSweeps);
 				for (int iSweep = 0; iSweep < numSweeps; iSweep++) {
-					for (int nodenr = 0; nodenr < numDoF; nodenr++) {
+					for (int nodenr = 0; nodenr < numDoFs; nodenr++) {
 						double x = 0, y = 0, z = 0;
 						for (int rbdim = 0; rbdim < N; rbdim++) {
-							x += fullBasisVectors[fnumcnt][rbdim][nodenr] * RB_sweep_solution[iSweep][0][rbdim];
-							y += fullBasisVectors[fnumcnt + 1][rbdim][nodenr] * RB_sweep_solution[iSweep][0][rbdim];
-							z += fullBasisVectors[fnumcnt + 2][rbdim][nodenr] * RB_sweep_solution[iSweep][0][rbdim];
+							x += fullBasisVectors[currentDoFField][rbdim][nodenr] * RB_sweep_solution[iSweep][0][rbdim];
+							y += fullBasisVectors[currentDoFField + 1][rbdim][nodenr]
+									* RB_sweep_solution[iSweep][0][rbdim];
+							z += fullBasisVectors[currentDoFField + 2][rbdim][nodenr]
+									* RB_sweep_solution[iSweep][0][rbdim];
 						}
-						d.setDisplacement(iSweep * numDoF + nodenr, (float) x, (float) y, (float) z);
+						d.setDisplacement(iSweep * numDoFs + nodenr, (float) x, (float) y, (float) z);
 					}
 				}
 				res.addField(d);
 				break;
 			}
 			case Displacement2D: {
-				DisplacementField d = new DisplacementField(sftype, numDoF * numSweeps);
+				DisplacementField d = new DisplacementField(sftype, numDoFs * numSweeps);
 				for (int iSweep = 0; iSweep < numSweeps; iSweep++) {
-					for (int nodenr = 0; nodenr < numDoF; nodenr++) {
+					for (int nodenr = 0; nodenr < numDoFs; nodenr++) {
 						double x = 0, y = 0;
 						for (int rbdim = 0; rbdim < N; rbdim++) {
-							x += fullBasisVectors[fnumcnt][rbdim][nodenr] * RB_sweep_solution[iSweep][0][rbdim];
-							y += fullBasisVectors[fnumcnt + 1][rbdim][nodenr] * RB_sweep_solution[iSweep][0][rbdim];
+							x += fullBasisVectors[currentDoFField][rbdim][nodenr] * RB_sweep_solution[iSweep][0][rbdim];
+							y += fullBasisVectors[currentDoFField + 1][rbdim][nodenr]
+									* RB_sweep_solution[iSweep][0][rbdim];
 						}
-						d.setDisplacement(iSweep * numDoF + nodenr, (float) x, (float) y);
+						d.setDisplacement(iSweep * numDoFs + nodenr, (float) x, (float) y);
 					}
 				}
 				res.addField(d);
 				break;
 			}
 			case RealValue: {
-				DefaultSolutionField f = new DefaultSolutionField(sftype, numSweeps * numDoF);
+				DefaultSolutionField f = new DefaultSolutionField(sftype, numSweeps * numDoFs);
 				for (int sweepNr = 0; sweepNr < numSweeps; sweepNr++) {
-					for (int i = 0; i < numDoF; i++) {
+					for (int i = 0; i < numDoFs; i++) {
 						tmpval = 0;
 						for (int j = 0; j < N; j++) {
-							tmpval += fullBasisVectors[fnumcnt][j][i] * RB_sweep_solution[sweepNr][0][j];
+							tmpval += fullBasisVectors[currentDoFField][j][i] * RB_sweep_solution[sweepNr][0][j];
 						}
-						f.setValue(sweepNr * numDoF + i, (float) tmpval);
+						f.setValue(sweepNr * numDoFs + i, (float) tmpval);
 					}
 				}
 				res.addField(f);
@@ -835,6 +840,9 @@ public class RBSystem extends ModelBase {
 			default:
 				throw new RuntimeException("Invalid/unimplemented solution field type '" + sftype.Type + "' for sweep.");
 			}
+		}
+		for (MeshTransform m : transforms) {
+			res.addTransform(m);
 		}
 		return res;
 	}
@@ -860,7 +868,7 @@ public class RBSystem extends ModelBase {
 	 * 
 	 * @return
 	 */
-	public float[][] getTransformationData(double[] mu) {
+	protected float[][] getAffLinTransformationData(double[] mu) {
 		assert transformationMethod != null;
 		if (transformationMethod != null) {
 			try {
@@ -881,7 +889,7 @@ public class RBSystem extends ModelBase {
 	/**
 	 * @return
 	 */
-	public boolean hasCustomMeshTransform() {
+	protected boolean hasCustomMeshTransform() {
 		Method meth;
 
 		try {
@@ -903,7 +911,7 @@ public class RBSystem extends ModelBase {
 		}
 	}
 
-	public boolean hasTransformationData() {
+	protected boolean hasAffLinTransformationData() {
 		return transformationMethod != null;
 	}
 
@@ -1142,7 +1150,7 @@ public class RBSystem extends ModelBase {
 						in = m.getInStream("Z_" + String.format("%03d", imf) + "_" + String.format("%03d", inbfs)
 								+ ".bin");
 						try {
-							fullBasisVectors[imf][inbfs] = mr.readRawFloatVector(in, getGeometry().numVertices);
+							fullBasisVectors[imf][inbfs] = mr.readRawFloatVector(in, getGeometry().getNumVertices());
 						} finally {
 							in.close();
 						}
@@ -1160,7 +1168,7 @@ public class RBSystem extends ModelBase {
 				for (int q_uL = 0; q_uL < getQuL(); q_uL++) {
 					in = m.getInStream("uL_" + String.format("%03d", q_uL) + ".bin");
 					try {
-						uL_vector[q_uL] = mr.readRawFloatVector(in, getGeometry().numVertices);
+						uL_vector[q_uL] = mr.readRawFloatVector(in, getGeometry().getNumVertices());
 					} finally {
 						in.close();
 					}
@@ -1302,11 +1310,13 @@ public class RBSystem extends ModelBase {
 	}
 
 	/**
+	 * Custom mesh transformation method of old rbappmit-models
+	 * 
 	 * @param mu
 	 * @param x
 	 * @return
 	 */
-	public float[] mesh_transform(double[] mu, float[] x) {
+	public float[] rbappmitCustomMeshTransform(double[] mu, float[] x) {
 		Method meth;
 
 		try {
@@ -1349,8 +1359,8 @@ public class RBSystem extends ModelBase {
 	 */
 	public int performSweep(int sweepIndex, int N) {
 		Log.d("RBSystem", "Starting sweep: sweepIdx:" + sweepIndex + ", N:" + N + ", NumDoFs:" + getNumDoFFields()
-				+ ", vertices:" + getGeometry().numVertices);
-		return performSweep(sweepIndex, N, Math.round(100000 / (getNumDoFFields() * getGeometry().numVertices)));
+				+ ", vertices:" + getGeometry().getNumVertices());
+		return performSweep(sweepIndex, N, Math.round(100000 / (getNumDoFFields() * getGeometry().getNumVertices())));
 	}
 
 	/**
@@ -1393,11 +1403,7 @@ public class RBSystem extends ModelBase {
 		double sweepParamRange = p.getMaxValue(sweepIndex) - p.getMinValue(sweepIndex);
 		sweepIncrement = sweepParamRange / (numSweepPts - 1);
 
-		float[][][] RB_sweep_LTfuncs = null;
-		if (hasTransformationData()) {
-			RB_sweep_LTfuncs = new float[numSweepPts][][];
-		}
-
+		transforms.clear();
 		for (int sweepNr = 0; sweepNr < numSweepPts; sweepNr++) {
 			double new_param = p.getMinValue(sweepIndex) + sweepNr * sweepIncrement;
 			mSweepParam[sweepNr] = p.getCurrent().clone();
@@ -1421,15 +1427,17 @@ public class RBSystem extends ModelBase {
 
 			if (getNumDoFFields() > 0) {
 				RB_sweep_solution[sweepNr] = get_RBsolution();
-				if (hasTransformationData()) {
-					RB_sweep_LTfuncs[sweepNr] = getTransformationData(p.getCurrent());
+				if (!hasCustomMeshTransform()) {
+					if (hasAffLinTransformationData()) {
+						float[][] tmp = getAffLinTransformationData(p.getCurrent());
+						Log.d("RBSystem", "Storing AffLinTrafo: " + Log.dumpArr(tmp));
+						transforms.add(new AffineLinearMeshTransform(tmp, getGeometry().vertexLTFuncNr));
+					}
+				} else {
+					transforms.add(new rbappmitCustomMeshTransform(mSweepParam[sweepNr], this));
 				}
 			}
 		}
-		/**
-		 * Update the model geometry according to the current sweep
-		 */
-		sweepUpdateGeometry(RB_sweep_LTfuncs, numSweepPts);
 		return numSweepPts;
 	}
 
@@ -1628,55 +1636,57 @@ public class RBSystem extends ModelBase {
 		 * LINEAR_COMPLEX_STEADY enums in ROMSim/rbappmit, where the check was
 		 * made originally.
 		 */
+		transforms.clear();
 		if (!(this instanceof TransientRBSystem)) {
 			if (!hasCustomMeshTransform()) {
-				if (hasTransformationData()) {
-					/*
-					 * Create array with one element, which is the
-					 * transformation data for the current parameter.
-					 */
-					getGeometry().applyAffLinVertexTransformation(
-							new float[][][] { getTransformationData(getParams().getCurrent()) });
+				if (hasAffLinTransformationData()) {
+					float[][] tmp = getAffLinTransformationData(getParams().getCurrent());
+					Log.d("RBSystem", "Storing AffLinTrafo: " + Log.dumpArr(tmp));
+					transforms.add(new AffineLinearMeshTransform(tmp, getGeometry().vertexLTFuncNr));
 				}
 			} else {
-				customMeshTransform(new double[][] { getParams().getCurrent().clone() }, getGeometry());
+				transforms.add(new rbappmitCustomMeshTransform(getParams().getCurrent(), this));
 			}
+		} else {
+			transforms.add(new DefaultTransform());
 		}
 		return RB_solve(N);
 	}
 
-	private void sweepUpdateGeometry(float[][][] RB_sweep_LTfuncs, int numSweepPts) {
-		GeometryData geoData = getGeometry();
-		if (!hasCustomMeshTransform()) {
-			/*
-			 * Apply affine-linear transformation according to sweeped parameter
-			 * values if present
-			 */
-			if (RB_sweep_LTfuncs != null) {
-				/*
-				 * The number of sweeps os encoded in the length of the first
-				 * dimension of the RB_sweep_LTfuncs array as there is a set for
-				 * each sweep.
-				 */
-				geoData.applyAffLinVertexTransformation(RB_sweep_LTfuncs);
-				/*
-				 * otherwise just copy the nodes as often as there have been
-				 * parameter sweeps
-				 * 
-				 * @TODO separate geometry / field value frames for less memory
-				 * usage!
-				 */
-			} else {
-				geoData.vertices = new float[numSweepPts * geoData.numVertices * 3];
-				for (int sweep = 0; sweep < numSweepPts; sweep++) {
-					System.arraycopy(geoData.originalVertices, 0, geoData.vertices, sweep * geoData.numVertices * 3,
-							geoData.numVertices);
-				}
-			}
-		} else {
-			customMeshTransform(mSweepParam, geoData);
-		}
-	}
+	// private void sweepUpdateGeometry(float[][][] RB_sweep_LTfuncs, int
+	// numSweepPts) {
+	// GeometryData geoData = getGeometry();
+	// if (!hasCustomMeshTransform()) {
+	// /*
+	// * Apply affine-linear transformation according to sweeped parameter
+	// * values if present
+	// */
+	// if (RB_sweep_LTfuncs != null) {
+	// /*
+	// * The number of sweeps os encoded in the length of the first
+	// * dimension of the RB_sweep_LTfuncs array as there is a set for
+	// * each sweep.
+	// */
+	// geoData.applyAffLinVertexTransformation(RB_sweep_LTfuncs);
+	// /*
+	// * otherwise just copy the nodes as often as there have been
+	// * parameter sweeps
+	// *
+	// * @TODO separate geometry / field value frames for less memory
+	// * usage!
+	// */
+	// } else {
+	// geoData.vertices = new float[numSweepPts * geoData.getNumVertices() * 3];
+	// for (int sweep = 0; sweep < numSweepPts; sweep++) {
+	// System.arraycopy(geoData.originalVertices, 0, geoData.vertices, sweep *
+	// geoData.getNumVertices()
+	// * 3, geoData.getNumVertices());
+	// }
+	// }
+	// } else {
+	// customMeshTransform(mSweepParam, geoData);
+	// }
+	// }
 
 	/**
 	 * Evaluate theta_q_a (for the q^th bilinear form) at the current parameter.
@@ -1714,7 +1724,7 @@ public class RBSystem extends ModelBase {
 	 * @return
 	 */
 	public double thetaQf(int i, double t) {
-		return affineFunctionsInstance.thetaQf(i, getParams().getCurrent(), t);
+		return affineFunctionsInstance.thetaQf(i, params.getCurrent(), t);
 	}
 
 	/**

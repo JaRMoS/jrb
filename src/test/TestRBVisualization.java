@@ -5,6 +5,7 @@ package test;
 
 import rb.java.RBContainer;
 import rb.java.RBSystem;
+import rb.java.TransientRBSystem;
 import rmcommon.SimulationResult;
 import rmcommon.geometry.GeometryData;
 import rmcommon.io.AModelManager.ModelManagerException;
@@ -17,7 +18,7 @@ import rmcommon.visual.VisualizationData;
  * @author CreaByte
  *
  */
-public class RBVisualization {
+public class TestRBVisualization {
 
 	/**
 	 * @param args
@@ -25,7 +26,7 @@ public class RBVisualization {
 	 */
 	public static void main(String[] args) throws ModelManagerException {
 		FileModelManager f = new FileModelManager("models");
-		f.useModel("demo3");
+		f.useModel("demo8");
 		
 		RBContainer rb = new RBContainer();
 		rb.loadModel(f);
@@ -33,26 +34,20 @@ public class RBVisualization {
 		// Perform the solve
 		RBSystem s=rb.mRbSystem;
 		double[] par = s.getParams().getRandomParam();
-//		double[] par = new double[]{.5, .5};
 		s.getParams().setCurrent(par);
-		s.solveRB(s.getNBF()/2);
-		
+		s.solveRB(s.getNBF());
 		SimulationResult res = s.getSimulationResults();
+		
+//		s.performSweep(0, 4);
+//		SimulationResult res = s.getSweepSimResults();
+		
 		GeometryData g = rb.mRbSystem.getGeometry();
 		VisualizationData v = new VisualizationData(g);
-		v.useResult(res);
 		
-		v.computeVisualFeatures(new ColorGenerator());
-		
-		//JOGLRenderer.render(v);
-		
-		s.performSweep(0, 4);
-		res = s.getSweepSimResults();
 		v.useResult(res);
 		v.computeVisualFeatures(new ColorGenerator());
-		
+				
 		JOGLRenderer.render(v);
-
 	}
 
 }

@@ -314,7 +314,7 @@ public class ComplexRBSystem extends RBSystem {
 		// Log.d(DEBUG_TAG, "Finished reading calN.dat");
 		// }
 
-		int n = getGeometry().numVertices;
+		int n = getGeometry().getNumVertices();
 		// Reading uL data
 		{
 			if (getQuL() > 0) {
@@ -337,10 +337,10 @@ public class ComplexRBSystem extends RBSystem {
 
 		// Read in Z data
 		{
-			if (getNumOutputVisualizationFields() > 0) {
-				Z_vector = new Complex[getNumOutputVisualizationFields()][getNBF()][n];
+			if (getNumDoFFields() > 0) {
+				Z_vector = new Complex[getNumDoFFields()][getNBF()][n];
 				float[] Rdata3, Idata3;
-				for (int imf = 0; imf < getNumOutputVisualizationFields(); imf++)
+				for (int imf = 0; imf < getNumDoFFields(); imf++)
 					for (int inbfs = 0; inbfs < getNBF(); inbfs++) {
 						InputStream in = m.getInStream("Z_" + String.format("%03d", imf) + "_"
 								+ String.format("%03d", inbfs) + ".bin");
@@ -613,11 +613,11 @@ public class ComplexRBSystem extends RBSystem {
 	@Override
 	public SimulationResult getSimulationResults() {
 		int N = RB_solution.getDimension();
-		SimulationResult res = new SimulationResult();
+		SimulationResult res = new SimulationResult(1);
 
 		int fnumcnt = 0;
 		for (FieldDescriptor sftype : logicalFieldTypes) {
-			if (fnumcnt + sftype.Type.requiredOutputFields > getNumOutputVisualizationFields()) {
+			if (fnumcnt + sftype.Type.requiredDoFFields > getNumDoFFields()) {
 				throw new RuntimeException("Too many output fields used by current "
 						+ "SolutionFieldTypes set in RBSystem. Check your model.xml.");
 			}
@@ -651,7 +651,7 @@ public class ComplexRBSystem extends RBSystem {
 			 * Increase field counter by the amount the current solution field
 			 * used
 			 */
-			fnumcnt += sftype.Type.requiredOutputFields;
+			fnumcnt += sftype.Type.requiredDoFFields;
 		}
 		return res;
 	}
@@ -668,10 +668,10 @@ public class ComplexRBSystem extends RBSystem {
 		for (int i = 0; i < numSweep; i++)
 			for (int j = 0; j < N; j++)
 				RB_sweep_sol[i][j] = new Complex(RB_sweep_solution[i][0][j], RB_sweep_solution[i][1][j]);
-		SimulationResult res = new SimulationResult();
+		SimulationResult res = new SimulationResult(numSweep);
 		int fnumcnt = 0;
 		for (FieldDescriptor sftype : logicalFieldTypes) {
-			if (fnumcnt + sftype.Type.requiredOutputFields > getNumOutputVisualizationFields()) {
+			if (fnumcnt + sftype.Type.requiredDoFFields > getNumDoFFields()) {
 				throw new RuntimeException("Too many output fields used by current "
 						+ "SolutionFieldTypes set in RBSystem. Check your model.xml.");
 			}
@@ -707,7 +707,7 @@ public class ComplexRBSystem extends RBSystem {
 			 * Increase field counter by the amount the current solution field
 			 * used
 			 */
-			fnumcnt += sftype.Type.requiredOutputFields;
+			fnumcnt += sftype.Type.requiredDoFFields;
 		}
 		return res;
 	}

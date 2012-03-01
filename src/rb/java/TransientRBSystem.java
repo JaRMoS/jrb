@@ -32,6 +32,7 @@ import rmcommon.FieldDescriptor;
 import rmcommon.Log;
 import rmcommon.DefaultSolutionField;
 import rmcommon.SimulationResult;
+import rmcommon.geometry.DefaultTransform;
 import rmcommon.io.AModelManager;
 import rmcommon.io.MathObjectReader;
 
@@ -102,7 +103,7 @@ public class TransientRBSystem extends RBSystem {
 	/**
 	 * Total number of time-steps.
 	 */
-	protected int fTotalTimesteps;
+	public int fTotalTimesteps;
 
 	private double[][][] Mq_Mq_representor_norms;
 
@@ -383,28 +384,32 @@ public class TransientRBSystem extends RBSystem {
 		// Number of time-steps to show
 		int nt = getVisualNumTimesteps();
 		// Dimension of the full solution
-		int numDoF = fullBasisVectors[0][0].length;
+		int numDoFs = fullBasisVectors[0][0].length;
 
-		SimulationResult res = new SimulationResult();
-		int fnumcnt = 0;
+		SimulationResult res = new SimulationResult(nt);
+		DefaultTransform dt = new DefaultTransform();
+		for (timestep = 1; timestep <= nt; timestep++) {
+			res.addTransform(dt);
+		}
+		int curDoFfield = 0;
 		for (FieldDescriptor sftype : logicalFieldTypes) {
-			if (fnumcnt + sftype.Type.requiredOutputFields > getNumOutputVisualizationFields()) {
+			if (curDoFfield + sftype.Type.requiredDoFFields > getNumDoFFields()) {
 				throw new RuntimeException("Too many output fields used by current "
 						+ "SolutionFieldTypes set in RBSystem. Check your model.xml.");
 			}
 			switch (sftype.Type) {
 			case RealValue: {
-				DefaultSolutionField f = new DefaultSolutionField(sftype, numDoF * nt);
+				DefaultSolutionField f = new DefaultSolutionField(sftype, numDoFs * nt);
 				double tmpval;
 				for (timestep = 1; timestep <= nt; timestep++) {
 					// Choose equally spaced indices
-					int solidx = (int) Math.round(Math.floor(timestep * fTotalTimesteps / nt));
-					for (int dim = 0; dim < numDoF; dim++) {
+					int solidx = (int) Math.round(Math.floor(fTotalTimesteps * ((float)timestep  / nt)));
+					for (int dim = 0; dim < numDoFs; dim++) {
 						tmpval = 0;
 						for (int j = 0; j < N; j++) {
-							tmpval += fullBasisVectors[fnumcnt][j][dim] * timestepRBSolutions[solidx].getEntry(j);
+							tmpval += fullBasisVectors[curDoFfield][j][dim] * timestepRBSolutions[solidx].getEntry(j);
 						}
-						f.setValue((timestep - 1) * numDoF + dim, (float) tmpval);
+						f.setValue((timestep - 1) * numDoFs + dim, (float) tmpval);
 					}
 				}
 				res.addField(f);
@@ -418,7 +423,7 @@ public class TransientRBSystem extends RBSystem {
 			 * Increase field counter by the amount the current solution field
 			 * used
 			 */
-			fnumcnt += sftype.Type.requiredOutputFields;
+			curDoFfield += sftype.Type.requiredDoFFields;
 		}
 		return res;
 	}
@@ -438,23 +443,12 @@ public class TransientRBSystem extends RBSystem {
 		return fTotalTimesteps;
 	}
 
-	/*
-	 * public double[] get_RBsolution(int nt){ int N = get_N(); double[] tmpsol
-	 * = new double[N*nt]; for (_k = 1; _k <= nt; _k++) for (int j = 0; j < N;
-	 * j++) tmpsol[(_k-1)*N+j] =
-	 * RB_temporal_solution_data[(int)Math.round(Math.floor
-	 * (_k*_K/nt))].getEntry(j); return tmpsol; }
-	 */
 	public int getVisualNumTimesteps() {
 		/*
 		 * int nt = Math.round(50000/get_calN()); nt = nt>_K?_K:nt; return nt;
 		 */
-		int nt = (int) Math.round(75000 / getGeometry().numVertices
-				/ (1 + 0.4 * (getNumOutputVisualizationFields() - 1))); // can
-																		// go up
-																		// to
-																		// 150000
-		// nt = nt > 150 ? 150 : nt; // cap nt at 25
+		int nt = (int) Math.round(75000 / getGeometry().getNumVertices()
+				/ (1 + 0.4 * (getNumDoFFields() - 1)));
 		nt = nt > 25 ? 25 : nt; // cap nt at 25
 		return nt > fTotalTimesteps ? fTotalTimesteps : nt;
 	}
@@ -856,8 +850,8 @@ public class TransientRBSystem extends RBSystem {
 			for (int i = 0; i < sol.length; i++) {
 				sol_str += String.format("%1.15e  ", sol[i]);
 			}
-			Log.d("TransientRBSystem", "RB_solution at t=" + String.format("%5f", time_level * getdt()) + ": "
-					+ sol_str + "]");
+//			Log.d("TransientRBSystem", "RB_solution at t=" + String.format("%5f", time_level * getdt()) + ": "
+//					+ sol_str + "]");
 
 			// Save RB_solution for current time level
 			timestepRBSolutions[timestep] = RB_solution_N;
