@@ -42,7 +42,7 @@ public class TestrbappmitModels {
 				RBSystem s = rb.mRbSystem;
 				double[] par = s.getParams().getRandomParam();
 				s.getParams().setCurrent(par);
-				s.solveRB(2);
+				s.computeRBSolution(2);
 
 				SimulationResult sol = s.getSimulationResults();
 

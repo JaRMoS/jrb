@@ -35,6 +35,7 @@ import rmcommon.ComplexSolutionField;
 import rmcommon.FieldDescriptor;
 import rmcommon.Log;
 import rmcommon.SimulationResult;
+import rmcommon.geometry.MeshTransform;
 import rmcommon.io.AModelManager;
 import rmcommon.io.MathObjectReader;
 
@@ -653,6 +654,9 @@ public class ComplexRBSystem extends RBSystem {
 			 */
 			fnumcnt += sftype.Type.requiredDoFFields;
 		}
+		for (MeshTransform m : transforms) {
+			res.addTransform(m);
+		}
 		return res;
 	}
 
@@ -708,6 +712,9 @@ public class ComplexRBSystem extends RBSystem {
 			 * used
 			 */
 			fnumcnt += sftype.Type.requiredDoFFields;
+		}
+		for (MeshTransform m : transforms) {
+			res.addTransform(m);
 		}
 		return res;
 	}

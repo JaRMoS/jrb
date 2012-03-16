@@ -5,7 +5,6 @@ package test;
 
 import rb.java.RBContainer;
 import rb.java.RBSystem;
-import rb.java.TransientRBSystem;
 import rmcommon.SimulationResult;
 import rmcommon.geometry.GeometryData;
 import rmcommon.io.AModelManager.ModelManagerException;
@@ -35,7 +34,7 @@ public class TestRBVisualization {
 		RBSystem s=rb.mRbSystem;
 		double[] par = s.getParams().getRandomParam();
 		s.getParams().setCurrent(par);
-		s.solveRB(s.getNBF());
+		s.computeRBSolution(s.getNBF());
 		SimulationResult res = s.getSimulationResults();
 		
 //		s.performSweep(0, 4);

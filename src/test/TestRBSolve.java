@@ -7,8 +7,6 @@ package test;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Arrays;
-
 import org.junit.Test;
 
 import rb.java.RBContainer;
@@ -49,7 +47,7 @@ public class TestRBSolve {
 //		double[] par = s.getParams().getRandomParam();
 		double[] par = new double[]{.5, .5};
 		s.getParams().setCurrent(par);
-		s.solveRB(4);
+		s.computeRBSolution(4);
 	}
 	
 	/**
@@ -73,7 +71,7 @@ public class TestRBSolve {
 //		double[] par = s.getParams().getRandomParam();
 		double[] par = new double[]{.5, .5, .5};
 		s.getParams().setCurrent(par);
-		s.solveRB(4);
+		s.computeRBSolution(4);
 		
 		SimulationResult sol = s.getSimulationResults();
 		
@@ -107,7 +105,7 @@ public class TestRBSolve {
 		double[] par = s.getParams().getRandomParam();
 //		double[] par = new double[]{.5, .5};
 		s.getParams().setCurrent(par);
-		s.solveRB(s.getNBF()/2);
+		s.computeRBSolution(s.getNBF()/2);
 		
 		SimulationResult res = s.getSimulationResults();
 		GeometryData g = rb.mRbSystem.getGeometry();

@@ -22,21 +22,20 @@ import org.apache.commons.math.linear.RealVector;
 import rb.java.affinefcn.IAffineFunctions;
 import rb.java.affinefcn.IAffineInitials;
 import rb.java.affinefcn.IWithuL;
+import rmcommon.DefaultSolutionField;
 import rmcommon.FieldDescriptor;
 import rmcommon.Log;
 import rmcommon.ModelBase;
 import rmcommon.ModelType;
 import rmcommon.Parameters;
-import rmcommon.DefaultSolutionField;
 import rmcommon.SimulationResult;
 import rmcommon.geometry.AffineLinearMeshTransform;
 import rmcommon.geometry.DefaultTransform;
 import rmcommon.geometry.DisplacementField;
-import rmcommon.geometry.GeometryData;
 import rmcommon.geometry.MeshTransform;
 import rmcommon.io.AModelManager;
-import rmcommon.io.MathObjectReader;
 import rmcommon.io.AModelManager.ModelManagerException;
+import rmcommon.io.MathObjectReader;
 import rmcommon.io.MathObjectReader.MathReaderException;
 
 /**
@@ -224,7 +223,7 @@ public class RBSystem extends ModelBase {
 
 	protected float[][] uL_vector;
 
-	private List<MeshTransform> transforms;
+	protected List<MeshTransform> transforms;
 
 	/**
 	 * Constructor.
@@ -1429,9 +1428,10 @@ public class RBSystem extends ModelBase {
 				RB_sweep_solution[sweepNr] = get_RBsolution();
 				if (!hasCustomMeshTransform()) {
 					if (hasAffLinTransformationData()) {
-						float[][] tmp = getAffLinTransformationData(p.getCurrent());
-						Log.d("RBSystem", "Storing AffLinTrafo: " + Log.dumpArr(tmp));
-						transforms.add(new AffineLinearMeshTransform(tmp, getGeometry().vertexLTFuncNr));
+						transforms.add(new AffineLinearMeshTransform(getAffLinTransformationData(p.getCurrent()),
+								getGeometry().vertexLTFuncNr));
+					} else {
+						transforms.add(new DefaultTransform());
 					}
 				} else {
 					transforms.add(new rbappmitCustomMeshTransform(mSweepParam[sweepNr], this));
@@ -1629,7 +1629,13 @@ public class RBSystem extends ModelBase {
 		mRbScmSystem = scm_system;
 	}
 
-	public double solveRB(int N) {
+	/**
+	 * Performs a reduced basis simulation and stores the results locally.
+	 * Access via getSimulationResults
+	 * @param N
+	 * @return
+	 */
+	public double computeRBSolution(int N) {
 		/**
 		 * If this system is unsteady dont perform geometric transformations
 		 * (not checked yet/no models there yet) Comes from the LINEAR_STEADY /
@@ -1643,7 +1649,7 @@ public class RBSystem extends ModelBase {
 					float[][] tmp = getAffLinTransformationData(getParams().getCurrent());
 					Log.d("RBSystem", "Storing AffLinTrafo: " + Log.dumpArr(tmp));
 					transforms.add(new AffineLinearMeshTransform(tmp, getGeometry().vertexLTFuncNr));
-				}
+				} else transforms.add(new DefaultTransform());
 			} else {
 				transforms.add(new rbappmitCustomMeshTransform(getParams().getCurrent(), this));
 			}

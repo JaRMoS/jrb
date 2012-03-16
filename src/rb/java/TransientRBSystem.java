@@ -28,9 +28,9 @@ import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 
 import rb.java.affinefcn.ITransient;
+import rmcommon.DefaultSolutionField;
 import rmcommon.FieldDescriptor;
 import rmcommon.Log;
-import rmcommon.DefaultSolutionField;
 import rmcommon.SimulationResult;
 import rmcommon.geometry.DefaultTransform;
 import rmcommon.io.AModelManager;
