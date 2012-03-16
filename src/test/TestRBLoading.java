@@ -6,14 +6,14 @@ package test;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import jarmos.ModelDescriptor;
+import jarmos.io.AModelManager;
+import jarmos.io.AModelManager.ModelManagerException;
+import jarmos.io.FileModelManager;
 
 import org.junit.Test;
 
 import rb.java.RBContainer;
-import rmcommon.ModelDescriptor;
-import rmcommon.io.AModelManager;
-import rmcommon.io.AModelManager.ModelManagerException;
-import rmcommon.io.FileModelManager;
 
 /**
  * @author Daniel Wirtz

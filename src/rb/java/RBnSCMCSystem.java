@@ -18,6 +18,9 @@ package rb.java;
 //    You should have received a copy of the GNU General Public License
 //    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
 
+import jarmos.Log;
+import jarmos.io.AModelManager;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,8 +42,6 @@ import org.apache.commons.math.optimization.linear.LinearObjectiveFunction;
 import org.apache.commons.math.optimization.linear.Relationship;
 import org.apache.commons.math.optimization.linear.SimplexSolver;
 
-import rmcommon.Log;
-import rmcommon.io.AModelManager;
 
 public class RBnSCMCSystem extends RBSCMSystem {
 

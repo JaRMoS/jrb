@@ -18,6 +18,14 @@ package rb.java;
 //    You should have received a copy of the GNU General Public License
 //    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
 
+import jarmos.DefaultSolutionField;
+import jarmos.FieldDescriptor;
+import jarmos.Log;
+import jarmos.SimulationResult;
+import jarmos.geometry.DefaultTransform;
+import jarmos.io.AModelManager;
+import jarmos.io.MathObjectReader;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 
@@ -28,13 +36,6 @@ import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 
 import rb.java.affinefcn.ITransient;
-import rmcommon.DefaultSolutionField;
-import rmcommon.FieldDescriptor;
-import rmcommon.Log;
-import rmcommon.SimulationResult;
-import rmcommon.geometry.DefaultTransform;
-import rmcommon.io.AModelManager;
-import rmcommon.io.MathObjectReader;
 
 // This class provides the Online reduced
 // basis functionality for linear parabolic

@@ -18,6 +18,14 @@ package rb.java;
 //    You should have received a copy of the GNU General Public License
 //    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
 
+import jarmos.ComplexSolutionField;
+import jarmos.FieldDescriptor;
+import jarmos.Log;
+import jarmos.SimulationResult;
+import jarmos.geometry.MeshTransform;
+import jarmos.io.AModelManager;
+import jarmos.io.MathObjectReader;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,13 +39,6 @@ import org.apache.commons.math.linear.ArrayFieldVector;
 import org.apache.commons.math.linear.FieldMatrix;
 import org.apache.commons.math.linear.FieldVector;
 
-import rmcommon.ComplexSolutionField;
-import rmcommon.FieldDescriptor;
-import rmcommon.Log;
-import rmcommon.SimulationResult;
-import rmcommon.geometry.MeshTransform;
-import rmcommon.io.AModelManager;
-import rmcommon.io.MathObjectReader;
 
 public class ComplexRBSystem extends RBSystem {
 

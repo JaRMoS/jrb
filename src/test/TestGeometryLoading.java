@@ -5,12 +5,12 @@
 package test;
 
 import static org.junit.Assert.fail;
+import jarmos.geometry.GeometryData;
+import jarmos.io.AModelManager.ModelManagerException;
+import jarmos.io.FileModelManager;
 
 import org.junit.Test;
 
-import rmcommon.geometry.GeometryData;
-import rmcommon.io.AModelManager.ModelManagerException;
-import rmcommon.io.FileModelManager;
 
 /**
  * @author Daniel Wirtz

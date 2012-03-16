@@ -1,5 +1,21 @@
 package rb.java;
 
+import jarmos.DefaultSolutionField;
+import jarmos.FieldDescriptor;
+import jarmos.Log;
+import jarmos.ModelBase;
+import jarmos.ModelType;
+import jarmos.Parameters;
+import jarmos.SimulationResult;
+import jarmos.geometry.AffineLinearMeshTransform;
+import jarmos.geometry.DefaultTransform;
+import jarmos.geometry.DisplacementField;
+import jarmos.geometry.MeshTransform;
+import jarmos.io.AModelManager;
+import jarmos.io.AModelManager.ModelManagerException;
+import jarmos.io.MathObjectReader;
+import jarmos.io.MathObjectReader.MathReaderException;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,21 +38,6 @@ import org.apache.commons.math.linear.RealVector;
 import rb.java.affinefcn.IAffineFunctions;
 import rb.java.affinefcn.IAffineInitials;
 import rb.java.affinefcn.IWithuL;
-import rmcommon.DefaultSolutionField;
-import rmcommon.FieldDescriptor;
-import rmcommon.Log;
-import rmcommon.ModelBase;
-import rmcommon.ModelType;
-import rmcommon.Parameters;
-import rmcommon.SimulationResult;
-import rmcommon.geometry.AffineLinearMeshTransform;
-import rmcommon.geometry.DefaultTransform;
-import rmcommon.geometry.DisplacementField;
-import rmcommon.geometry.MeshTransform;
-import rmcommon.io.AModelManager;
-import rmcommon.io.AModelManager.ModelManagerException;
-import rmcommon.io.MathObjectReader;
-import rmcommon.io.MathObjectReader.MathReaderException;
 
 /**
  * This class provides the Online stage for the reduced basis method for

@@ -19,6 +19,9 @@ package rb.java;
 
 
 
+import jarmos.Log;
+import jarmos.io.AModelManager;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -26,8 +29,6 @@ import java.lang.reflect.Method;
 
 import org.apache.commons.math.linear.RealVector;
 
-import rmcommon.Log;
-import rmcommon.io.AModelManager;
 
 // This class implements the Online stage
 // of the Successive Constraint Method

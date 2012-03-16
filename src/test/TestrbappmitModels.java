@@ -4,19 +4,19 @@
 package test;
 
 import static org.junit.Assert.assertTrue;
+import jarmos.ModelDescriptor;
+import jarmos.ModelType;
+import jarmos.SimulationResult;
+import jarmos.geometry.GeometryData;
+import jarmos.io.AModelManager.ModelManagerException;
+import jarmos.io.FileModelManager;
+import jarmos.visual.ColorGenerator;
+import jarmos.visual.VisualizationData;
 
 import org.junit.Test;
 
 import rb.java.RBContainer;
 import rb.java.RBSystem;
-import rmcommon.ModelDescriptor;
-import rmcommon.ModelType;
-import rmcommon.SimulationResult;
-import rmcommon.geometry.GeometryData;
-import rmcommon.io.AModelManager.ModelManagerException;
-import rmcommon.io.FileModelManager;
-import rmcommon.visual.ColorGenerator;
-import rmcommon.visual.VisualizationData;
 
 /**
  * @author CreaByte

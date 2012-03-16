@@ -3,7 +3,7 @@
  */
 package rb.java;
 
-import rmcommon.geometry.MeshTransform;
+import jarmos.geometry.MeshTransform;
 
 /**
  * @author CreaByte
@@ -20,7 +20,7 @@ public class rbappmitCustomMeshTransform implements MeshTransform {
 	}
 
 	/** (non-Javadoc)
-	 * @see rmcommon.geometry.MeshTransform#transformMesh(float[])
+	 * @see jarmos.geometry.MeshTransform#transformMesh(float[])
 	 */
 	@Override
 	public float[] transformMesh(float[] vertices) {

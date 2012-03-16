@@ -1,5 +1,8 @@
 package rb.java;
 
+import jarmos.Log;
+import jarmos.io.AModelManager;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,8 +24,6 @@ import org.apache.commons.math.optimization.linear.LinearObjectiveFunction;
 import org.apache.commons.math.optimization.linear.Relationship;
 import org.apache.commons.math.optimization.linear.SimplexSolver;
 
-import rmcommon.Log;
-import rmcommon.io.AModelManager;
 
 
 // This class implements the Online stage

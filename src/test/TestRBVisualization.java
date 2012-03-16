@@ -3,15 +3,15 @@
  */
 package test;
 
+import jarmos.SimulationResult;
+import jarmos.geometry.GeometryData;
+import jarmos.io.AModelManager.ModelManagerException;
+import jarmos.io.FileModelManager;
+import jarmos.visual.ColorGenerator;
+import jarmos.visual.JOGLRenderer;
+import jarmos.visual.VisualizationData;
 import rb.java.RBContainer;
 import rb.java.RBSystem;
-import rmcommon.SimulationResult;
-import rmcommon.geometry.GeometryData;
-import rmcommon.io.AModelManager.ModelManagerException;
-import rmcommon.io.FileModelManager;
-import rmcommon.visual.ColorGenerator;
-import rmcommon.visual.JOGLRenderer;
-import rmcommon.visual.VisualizationData;
 
 /**
  * @author CreaByte

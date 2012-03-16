@@ -1,12 +1,13 @@
 package rb.java;
 
+import jarmos.Log;
+import jarmos.ModelType;
+import jarmos.io.AModelManager;
+
 import java.io.IOException;
 
 import rb.java.affinefcn.IAffineFunctions;
 import rb.java.affinefcn.rbappmitAffineFunctions;
-import rmcommon.Log;
-import rmcommon.ModelType;
-import rmcommon.io.AModelManager;
 
 /**
  * Base class for RB models and systems, extracted from the old RBActivity class
