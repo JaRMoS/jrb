@@ -11,7 +11,6 @@ import jarmos.geometry.GeometryData;
 import jarmos.io.AModelManager.ModelManagerException;
 import jarmos.io.FileModelManager;
 import jarmos.visual.ColorGenerator;
-import jarmos.visual.JOGLRenderer;
 import jarmos.visual.VisualizationData;
 
 import org.junit.Test;
@@ -113,13 +112,6 @@ public class TestRBSolve {
 		v.useResult(res);
 		
 		v.computeVisualFeatures(new ColorGenerator());
-		
-		JOGLRenderer.render(v);
-		
-//		s.performSweep(0, 4);
-//		res = s.getSweepSimResults();
-//		v.useResult(res);
-//		v.computeVisualFeatures(new ColorGenerator());
 	}
 
 }

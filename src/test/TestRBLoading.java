@@ -7,6 +7,7 @@ package test;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import jarmos.ModelDescriptor;
+import jarmos.ModelType;
 import jarmos.io.AModelManager;
 import jarmos.io.AModelManager.ModelManagerException;
 import jarmos.io.FileModelManager;
@@ -27,10 +28,10 @@ public class TestRBLoading {
 	 */
 	@Test
 	public void testModelLoading() {
-		FileModelManager f = new FileModelManager("models");
+		FileModelManager f = new FileModelManager();
 		try {
 			for (ModelDescriptor m : f.getModelDescriptors()) {
-				if (("rb".equals(m.type) || "rbappmit".equals(m.type))) {
+				if (m.type == ModelType.JRB || m.type == ModelType.rbappmit) {
 					System.out.println("\n----------------- Trying to load model "+m.title+" from folder "+m.modeldir+" -----------------\n");
 					try {
 						f.useModel(m.modeldir);
