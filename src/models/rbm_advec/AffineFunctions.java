@@ -172,7 +172,7 @@ public class AffineFunctions implements IAffineFunctions, ITransient,
 		// end;
 		// ---------------------------------------------
 		//
-		// bdir_E_conv liefert dann die endgültigen Theta_f
+		// bdir_E_conv liefert dann die endgï¿½ltigen Theta_f
 
 		int didx = (int)Math.floor(i / getQa());
 		int Qaidx = i - getQa()*didx;
