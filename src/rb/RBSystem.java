@@ -47,8 +47,8 @@ import rb.affinefcn.IWithuL;
  * 
  * @author Daniel Wirtz @date Aug 28, 2011
  * 
- * @TODO: import & use implicit operators LL_I from rbmatlab
- * @TODO: report progress for transient RB systems and/or normal systems
+ * @todo import & use implicit operators LL_I from rbmatlab
+ * @todo report progress for transient RB systems and/or normal systems
  * 
  */
 public class RBSystem extends ModelBase {
@@ -1656,7 +1656,7 @@ public class RBSystem extends ModelBase {
 	// * otherwise just copy the nodes as often as there have been
 	// * parameter sweeps
 	// *
-	// * @TODO separate geometry / field value frames for less memory
+	// * @todo separate geometry / field value frames for less memory
 	// * usage!
 	// */
 	// } else {
