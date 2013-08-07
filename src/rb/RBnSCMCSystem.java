@@ -1,22 +1,4 @@
-package rb.java;
-
-//    rbAPPmit: An Android front-end for the Certified Reduced Basis Method
-//    Copyright (C) 2010 David J. Knezevic and Phuong Huynh
-//
-//    This file is part of rbAPPmit
-//
-//    rbAPPmit is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    rbAPPmit is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
+package rb;
 
 import jarmos.Log;
 import jarmos.io.AModelManager;
@@ -42,7 +24,15 @@ import org.apache.commons.math.optimization.linear.LinearObjectiveFunction;
 import org.apache.commons.math.optimization.linear.Relationship;
 import org.apache.commons.math.optimization.linear.SimplexSolver;
 
-
+/**
+ * Reduced basis SCM system
+ * 
+ * This class has been taken from the original @ref rbappmit package and modified to fit into the current JaRMoS
+ * framework.
+ * 
+ * @author Daniel Wirtz @date 07.08.2013
+ * 
+ */
 public class RBnSCMCSystem extends RBSCMSystem {
 
 	public RBnSCMCSystem(RBSystem sys) {
@@ -68,8 +58,7 @@ public class RBnSCMCSystem extends RBSCMSystem {
 	 * @throws InconsistentStateException
 	 */
 	@SuppressWarnings("unchecked")
-	public void loadOfflineData(AModelManager m) throws IOException,
-			InconsistentStateException {
+	public void loadOfflineData(AModelManager m) throws IOException, InconsistentStateException {
 
 		BufferedReader reader = m.getBufReader("SCMdata.dat");
 
@@ -166,18 +155,14 @@ public class RBnSCMCSystem extends RBSCMSystem {
 				double[] index = new double[getQa() * 2];
 				index[q] = 1.;
 
-				constraints.add(new LinearConstraint(index, Relationship.GEQ, B_min[q]
-						/ beta_bar[imubar]));
-				constraints.add(new LinearConstraint(index, Relationship.LEQ, B_max[q]
-						/ beta_bar[imubar]));
+				constraints.add(new LinearConstraint(index, Relationship.GEQ, B_min[q] / beta_bar[imubar]));
+				constraints.add(new LinearConstraint(index, Relationship.LEQ, B_max[q] / beta_bar[imubar]));
 
 				index[q] = 0.;
 				index[q + getQa()] = 1.;
 
-				constraints.add(new LinearConstraint(index, Relationship.GEQ, B_min[q]
-						/ beta_bar[imubar]));
-				constraints.add(new LinearConstraint(index, Relationship.LEQ, B_max[q]
-						/ beta_bar[imubar]));
+				constraints.add(new LinearConstraint(index, Relationship.GEQ, B_min[q] / beta_bar[imubar]));
+				constraints.add(new LinearConstraint(index, Relationship.LEQ, B_max[q] / beta_bar[imubar]));
 			}
 
 			// Save the current_parameters since we'll change them in the loop
@@ -192,10 +177,8 @@ public class RBnSCMCSystem extends RBSCMSystem {
 					double[] constraint_row = new double[getQa() * 2];
 					for (int q = 0; q < getQa(); q++) {
 						Complex theta_q_a = sys.complex_eval_theta_q_a(q);
-						constraint_row[q] = theta_q_a.getReal()
-								* beta_bar[imubar];
-						constraint_row[q + getQa()] = theta_q_a.getImaginary()
-								* beta_bar[imubar];
+						constraint_row[q] = theta_q_a.getReal() * beta_bar[imubar];
+						constraint_row[q + getQa()] = theta_q_a.getImaginary() * beta_bar[imubar];
 					}
 
 					constraints.add(new LinearConstraint(constraint_row, Relationship.GEQ, beta_hat[imubar][imuhat]));
@@ -211,8 +194,7 @@ public class RBnSCMCSystem extends RBSCMSystem {
 			for (int q = 0; q < getQa(); q++) {
 				Complex theta_q_a = sys.complex_eval_theta_q_a(q);
 				objectiveFn[q] = theta_q_a.getReal() * beta_bar[imubar];
-				objectiveFn[q + getQa()] = theta_q_a.getImaginary()
-						* beta_bar[imubar];
+				objectiveFn[q + getQa()] = theta_q_a.getImaginary() * beta_bar[imubar];
 			}
 			LinearObjectiveFunction f = new LinearObjectiveFunction(objectiveFn, 0.);
 
@@ -268,7 +250,7 @@ public class RBnSCMCSystem extends RBSCMSystem {
 		}
 
 		List<Map.Entry<Double, Integer>> list = new LinkedList<Map.Entry<Double, Integer>>(dist_from_mu.entrySet());
-		Collections.sort(list, new Comparator<Map.Entry<Double, Integer>>(){
+		Collections.sort(list, new Comparator<Map.Entry<Double, Integer>>() {
 			public int compare(Map.Entry<Double, Integer> o1, Map.Entry<Double, Integer> o2) {
 				return o1.getKey().compareTo(o2.getKey());
 				/*

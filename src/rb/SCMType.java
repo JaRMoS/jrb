@@ -1,10 +1,9 @@
-package rb.java;
+package rb;
 
 /**
- * Enum containing the known SCM (successive constraint method) model types in
- * JRB.
+ * Enum containing the known SCM (successive constraint method) model types in JRB.
  * 
- * Values taken from the previous rbappmit RBEnums.SCMTypeEnum class.
+ * Values taken from the previous @ref rbappmit RBEnums.SCMTypeEnum class.
  * 
  * @author Daniel Wirtz
  * @date Aug 28, 2011
@@ -38,19 +37,20 @@ public enum SCMType {
 
 	/**
 	 * @param s
-	 *            The string to parse
-	 * @return The matching SCM type or SCMType.NONE if no match was found or s
-	 *         is null.
+	 * The string to parse
+	 * @return The matching SCM type or SCMType.NONE if no match was found or s is null.
 	 */
 	public static SCMType parse(String s) {
 		for (SCMType t : SCMType.values()) {
-			if (t.toString().equals(s)) return t;
+			if (t.toString().equals(s))
+				return t;
 		}
 		return SCMType.NONE;
 	}
 
 	/**
 	 * Creates a new instance of an RBSCMSystem subclass according to the current SCMType.
+	 * 
 	 * @return A new RBSCMSystem instance
 	 */
 	public RBSCMSystem getNewRBSCMSystem(RBSystem sys) {

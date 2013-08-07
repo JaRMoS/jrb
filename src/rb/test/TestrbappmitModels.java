@@ -1,7 +1,4 @@
-/**
- * 
- */
-package test;
+package rb.test;
 
 import static org.junit.Assert.assertTrue;
 import jarmos.ModelDescriptor;
@@ -15,16 +12,16 @@ import jarmos.visual.VisualizationData;
 
 import org.junit.Test;
 
-import rb.java.RBContainer;
-import rb.java.RBSystem;
+import rb.RBContainer;
+import rb.RBSystem;
 
 /**
- * @author CreaByte
+ * @author Daniel Wirtz
  * 
  */
 public class TestrbappmitModels {
 	/**
-	 * Tests loading & solving of rbappmit models (type "rbappmit")
+	 * Tests loading & solving of @ref rbappmit models (type "rbappmit")
 	 * 
 	 * @throws ModelManagerException
 	 */

@@ -1,22 +1,4 @@
-package rb.java;
-
-//    rbAPPmit: An Android front-end for the Certified Reduced Basis Method
-//    Copyright (C) 2010 David J. Knezevic and Phuong Huynh
-//
-//    This file is part of rbAPPmit
-//
-//    rbAPPmit is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    rbAPPmit is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
+package rb;
 
 import jarmos.Log;
 import jarmos.io.AModelManager;
@@ -33,13 +15,12 @@ import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 
-
 /**
- * This class provides the Online reduced basis functionality for quadratically
- * nonlinear time-dependent problems. This class is modeled on the
- * QNTransientRBSystem class in rbOOmit
+ * This class provides the Online reduced basis functionality for quadratically nonlinear time-dependent problems. This
+ * class is modeled on the QNTransientRBSystem class in rbappmit
  * 
- * Changes made by
+ * This class has been taken from the original @ref rbappmit package and modified to fit into the current JaRMoS
+ * framework.
  * 
  * @author Daniel Wirtz
  * @date Aug 29, 2011
@@ -64,8 +45,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 	protected double[][][] RB_trilinear_form;
 
 	/**
-	 * Vectors storing the residual representor inner products to be used in
-	 * computing the residuals online.
+	 * Vectors storing the residual representor inner products to be used in computing the residuals online.
 	 */
 	double[][][] Fq_C_representor_norms;
 	double[][][][] Mq_C_representor_norms;
@@ -73,8 +53,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 	double[][][][] C_C_representor_norms;
 
 	/**
-	 * Member variable that stores the exponential growth factor of the error
-	 * bound
+	 * Member variable that stores the exponential growth factor of the error bound
 	 */
 	private double tau_prod_k;
 
@@ -82,11 +61,10 @@ public class QNTransientRBSystem extends TransientRBSystem {
 	private int _N_in_RB_solve;
 
 	/**
-	 * Perform online solve for current_params with the N basis functions.
-	 * Overload this to solve the nonlinear RB system using Newton's method.
+	 * Perform online solve for current_params with the N basis functions. Overload this to solve the nonlinear RB
+	 * system using Newton's method.
 	 * 
-	 * TODO: Use the current time information when the theta's are
-	 * time-dependent, as in TransientRBSystem.
+	 * TODO: Use the current time information when the theta's are time-dependent, as in TransientRBSystem.
 	 */
 	@Override
 	public double RB_solve(int N) {
@@ -306,8 +284,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 	}
 
 	/**
-	 * Set the nonlinear tolerance for Newton's method for both the truth and RB
-	 * solves.
+	 * Set the nonlinear tolerance for Newton's method for both the truth and RB solves.
 	 */
 	public void set_nonlinear_tolerance(double nonlinear_tolerance_in) {
 		nonlinear_tolerance = nonlinear_tolerance_in;
@@ -335,8 +312,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 	}
 
 	/**
-	 * Evaluate theta_c (for the quadratic nonlinearity) at the current
-	 * parameter.
+	 * Evaluate theta_c (for the quadratic nonlinearity) at the current parameter.
 	 */
 	public double eval_theta_c() {
 
@@ -368,8 +344,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 	}
 
 	/**
-	 * Compute the dual norm of the residual for the solution saved in
-	 * RB_solution_vector.
+	 * Compute the dual norm of the residual for the solution saved in RB_solution_vector.
 	 */
 	@Override
 	protected double compute_residual_dual_norm(int N) {
@@ -475,8 +450,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 	}
 
 	/**
-	 * Get the nominal stability factor lower bound. By default, this is a
-	 * linear function of parameter 0.
+	 * Get the nominal stability factor lower bound. By default, this is a linear function of parameter 0.
 	 */
 	public double get_nominal_rho_LB() {
 		double mu_min = getParams().getMinValue(0);
@@ -524,7 +498,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 
 	/**
 	 * 
-	 * @see rb.java.TransientRBSystem#readConfiguration(jarmos.io.AModelManager)
+	 * @see rb.TransientRBSystem#readConfiguration(jarmos.io.AModelManager)
 	 */
 	@Override
 	public void readConfigurationRBAppMIT(GetPot infile) {
@@ -550,8 +524,7 @@ public class QNTransientRBSystem extends TransientRBSystem {
 	}
 
 	/**
-	 * Override read_offline_data_from_files in order to read in the data for
-	 * the nonlinear problem.
+	 * Override read_offline_data_from_files in order to read in the data for the nonlinear problem.
 	 */
 	@Override
 	public void loadOfflineData_rbappmit(AModelManager m) throws IOException {

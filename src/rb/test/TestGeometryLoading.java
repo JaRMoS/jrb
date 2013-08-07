@@ -1,8 +1,7 @@
 /**
- * Created on Aug 29, 2011 in Project JRB
- * Location: test.TestGeometryLoading.java
+ * Created on Aug 29, 2011 in Project JRB Location: rb.test.TestGeometryLoading.java
  */
-package test;
+package rb.test;
 
 import static org.junit.Assert.fail;
 import jarmos.geometry.GeometryData;
@@ -11,11 +10,10 @@ import jarmos.io.FileModelManager;
 
 import org.junit.Test;
 
-
 /**
  * @author Daniel Wirtz
  * @date Aug 29, 2011
- *
+ * 
  */
 public class TestGeometryLoading {
 
@@ -31,7 +29,7 @@ public class TestGeometryLoading {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		GeometryData g = new GeometryData();
 		g.loadModelGeometry(f);
 	}

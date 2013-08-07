@@ -1,4 +1,4 @@
-package rb.java;
+package rb;
 
 import jarmos.Log;
 import jarmos.io.AModelManager;
@@ -24,22 +24,18 @@ import org.apache.commons.math.optimization.linear.LinearObjectiveFunction;
 import org.apache.commons.math.optimization.linear.Relationship;
 import org.apache.commons.math.optimization.linear.SimplexSolver;
 
-
-
-// This class implements the Online stage
-// of the Successive Constraint Method
-// for coercive problems.
-// This class is modeled on the RBSCMSystem
-// class in rbOOmit
-
 /**
- * Changes made by
+ * This class implements the Online stage of the Successive Constraint Method for coercive problems.
+ * 
+ * This class has been taken from the original @ref rbappmit package and modified to fit into the current JaRMoS
+ * framework.
+ * 
  * @author Daniel Wirtz
  * @date Aug 28, 2011
- *
+ * 
  */
 public class RBSCMSystem {
-	
+
 	protected RBSystem sys;
 
 	// Logging tag
@@ -67,25 +63,24 @@ public class RBSCMSystem {
 	protected double[] C_J_stability_vector;
 
 	/**
-	 * This matrix stores the infimizing vectors y_1(\mu),...,y_Q_a(\mu), for
-	 * each \mu in C_J, which are used in computing the SCM upper bounds.
+	 * This matrix stores the infimizing vectors y_1(\mu),...,y_Q_a(\mu), for each \mu in C_J, which are used in
+	 * computing the SCM upper bounds.
 	 */
 	private double[][] SCM_UB_vectors;
 
 	/**
-	 * A private Parameter used to temporarily store current_parameters during
-	 * the SCM calculation
+	 * A private Parameter used to temporarily store current_parameters during the SCM calculation
 	 */
 	private double[] saved_parameters;
-	
+
 	public RBSCMSystem(RBSystem sys) {
 		this.sys = sys;
 	}
-	
+
 	protected double thetaQa(int q) {
 		return sys.thetaQa(q);
 	}
-	
+
 	protected int getQa() {
 		return sys.getQa();
 	}
@@ -106,10 +101,8 @@ public class RBSCMSystem {
 				double[] index = new double[getQa()];
 				index[q] = 1.;
 
-				constraints.add(new LinearConstraint(index, Relationship.GEQ,
-						B_min[q]));
-				constraints.add(new LinearConstraint(index, Relationship.LEQ,
-						B_max[q]));
+				constraints.add(new LinearConstraint(index, Relationship.GEQ, B_min[q]));
+				constraints.add(new LinearConstraint(index, Relationship.LEQ, B_max[q]));
 			}
 
 			// Sort the indices of C_J based on distance from current_parameters
@@ -133,8 +126,8 @@ public class RBSCMSystem {
 						constraint_row[q] = sys.thetaQa(q);
 					}
 
-					constraints.add(new LinearConstraint(constraint_row,
-							Relationship.GEQ, C_J_stability_vector[mu_index]));
+					constraints.add(new LinearConstraint(constraint_row, Relationship.GEQ,
+							C_J_stability_vector[mu_index]));
 
 					if (count >= n_rows)
 						break;
@@ -152,12 +145,10 @@ public class RBSCMSystem {
 			for (int q = 0; q < getQa(); q++) {
 				objectiveFn[q] = sys.thetaQa(q);
 			}
-			LinearObjectiveFunction f = new LinearObjectiveFunction(
-					objectiveFn, 0.);
+			LinearObjectiveFunction f = new LinearObjectiveFunction(objectiveFn, 0.);
 
 			SimplexSolver solver = new SimplexSolver();
-			RealPointValuePair opt_pair = solver.optimize(f, constraints,
-					GoalType.MINIMIZE, false);
+			RealPointValuePair opt_pair = solver.optimize(f, constraints, GoalType.MINIMIZE, false);
 			min_J_obj = opt_pair.getValue();
 		} catch (OptimizationException e) {
 			Log.e("DEBUG_TAG", "Optimal solution not found");
@@ -253,41 +244,36 @@ public class RBSCMSystem {
 		return sys.getParams().getCurrent();
 	}
 
-//	@Override
-//	protected void readConfigurationJRB(AModelManager m) {
-//		super.readConfigurationJRB(m);
-//	}
-	
+	// @Override
+	// protected void readConfigurationJRB(AModelManager m) {
+	// super.readConfigurationJRB(m);
+	// }
+
 	/**
 	 * 
 	 * @param m
 	 * @return
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public void readConfiguration(AModelManager m) throws IOException {
 		GetPot infile = new GetPot(m.getInStream(Const.parameters_filename), Const.parameters_filename);
 		// int n_SCM_parameters = infile.call("n_SCM_parameters",1);
-		int n_SCM_parameters = infile.call("n_SCM_parameters",
-				infile.call("n_parameters", 1));
+		int n_SCM_parameters = infile.call("n_SCM_parameters", infile.call("n_parameters", 1));
 		Log.d(DEBUG_TAG, "n_parameters = " + n_SCM_parameters);
 
 		SCM_M = infile.call("SCM_M", 0);
 
-		Log.d(DEBUG_TAG, "RBSCMSystem parameters from " + Const.parameters_filename
-				+ ":");
+		Log.d(DEBUG_TAG, "RBSCMSystem parameters from " + Const.parameters_filename + ":");
 		Log.d(DEBUG_TAG, "SCM_M: " + SCM_M);
 	}
 
 	/**
-	 * Read in the stored data from the specified URL in order to initialize the
-	 * SCM.
+	 * Read in the stored data from the specified URL in order to initialize the SCM.
 	 * 
 	 * @param directory_name
-	 *            The URL of the directory containing the Offline data Read in
-	 *            the Offline data to initialize this RBSystem.
+	 * The URL of the directory containing the Offline data Read in the Offline data to initialize this RBSystem.
 	 */
-	public void loadOfflineData(AModelManager m) throws IOException,
-			InconsistentStateException {
+	public void loadOfflineData(AModelManager m) throws IOException, InconsistentStateException {
 
 		// Read in the bounding box minimum values
 		{
@@ -295,7 +281,8 @@ public class RBSCMSystem {
 
 			String line = reader.readLine();
 			String[] tokens = line.split(" ");
-			reader.close(); reader = null;
+			reader.close();
+			reader = null;
 
 			B_min = new double[getQa()];
 			for (int i = 0; i < B_min.length; i++) {
@@ -316,7 +303,8 @@ public class RBSCMSystem {
 			for (int i = 0; i < B_max.length; i++) {
 				B_max[i] = Double.parseDouble(tokens[i]);
 			}
-			reader.close(); reader = null;
+			reader.close();
+			reader = null;
 
 			Log.d(DEBUG_TAG, "Finished reading B_max.dat");
 		}
@@ -326,7 +314,8 @@ public class RBSCMSystem {
 			BufferedReader reader = m.getBufReader("C_J_stability_vector.dat");
 
 			String line = reader.readLine();
-			reader.close(); reader = null;
+			reader.close();
+			reader = null;
 
 			try {
 				String[] tokens = line.split(" ");
@@ -340,8 +329,7 @@ public class RBSCMSystem {
 					}
 				}
 			} catch (Exception e) {
-				Log.d(DEBUG_TAG, "Exception occurred when splitting string, "
-						+ "setting C_J_stability_vector to null");
+				Log.d(DEBUG_TAG, "Exception occurred when splitting string, " + "setting C_J_stability_vector to null");
 				C_J_stability_vector = null;
 			}
 
@@ -356,7 +344,8 @@ public class RBSCMSystem {
 			if (C_J_stability_vector != null) {
 
 				String line = reader.readLine();
-				reader.close(); reader = null;
+				reader.close();
+				reader = null;
 				String[] tokens = line.split(" ");
 
 				int count = 0;
@@ -380,7 +369,8 @@ public class RBSCMSystem {
 			if (C_J_stability_vector != null) {
 
 				String line = reader.readLine();
-				reader.close(); reader = null;
+				reader.close();
+				reader = null;
 				String[] tokens = line.split(" ");
 
 				int count = 0;
@@ -388,8 +378,7 @@ public class RBSCMSystem {
 				SCM_UB_vectors = new double[C_J_stability_vector.length][getQa()];
 				for (int i = 0; i < SCM_UB_vectors.length; i++) {
 					for (int j = 0; j < getQa(); j++) {
-						SCM_UB_vectors[i][j] = Double
-								.parseDouble(tokens[count]);
+						SCM_UB_vectors[i][j] = Double.parseDouble(tokens[count]);
 						count++;
 					}
 				}
@@ -401,26 +390,22 @@ public class RBSCMSystem {
 	}
 
 	/**
-	 * Private helper function to sort the indices of C_J based on distance from
-	 * current_parameters
+	 * Private helper function to sort the indices of C_J based on distance from current_parameters
 	 */
 	private List<Integer> getSorted_CJ_Indices() {
 
 		int J = C_J.size();
 
-		LinkedHashMap<Double, Integer> dist_from_mu = new LinkedHashMap<Double, Integer>(
-				J);
+		LinkedHashMap<Double, Integer> dist_from_mu = new LinkedHashMap<Double, Integer>(J);
 
 		for (int j = 0; j < J; j++) {
 			double dist = param_dist(get_current_parameters(), C_J.get(j));
 			dist_from_mu.put(dist, j);
 		}
 
-		List<Map.Entry<Double, Integer>> list = new LinkedList<Map.Entry<Double, Integer>>(
-				dist_from_mu.entrySet());
+		List<Map.Entry<Double, Integer>> list = new LinkedList<Map.Entry<Double, Integer>>(dist_from_mu.entrySet());
 		Collections.sort(list, new Comparator<Map.Entry<Double, Integer>>() {
-			public int compare(Map.Entry<Double, Integer> o1,
-					Map.Entry<Double, Integer> o2) {
+			public int compare(Map.Entry<Double, Integer> o1, Map.Entry<Double, Integer> o2) {
 				return o1.getKey().compareTo(o2.getKey());
 				/*
 				 * return ((Comparable<?>) ((Map.Entry) (o1)).getKey())

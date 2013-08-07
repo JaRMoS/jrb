@@ -1,4 +1,4 @@
-package rb.java;
+package rb;
 
 import jarmos.DefaultSolutionField;
 import jarmos.FieldDescriptor;
@@ -35,23 +35,20 @@ import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 
-import rb.java.affinefcn.IAffineFunctions;
-import rb.java.affinefcn.IAffineInitials;
-import rb.java.affinefcn.IWithuL;
+import rb.affinefcn.IAffineFunctions;
+import rb.affinefcn.IAffineInitials;
+import rb.affinefcn.IWithuL;
 
 /**
- * This class provides the Online stage for the reduced basis method for
- * elliptic steady state problems.
+ * This class provides the Online stage for the reduced basis method for elliptic steady state problems.
  * 
- * This class is modeled on RBSystem from rbOOmit
+ * This class has been taken from the original @ref rbappmit package and modified to fit into the current JaRMoS
+ * framework.
  * 
- * Changes by
+ * @author Daniel Wirtz @date Aug 28, 2011
  * 
- * @author Daniel Wirtz
- * @date Aug 28, 2011
- * 
- *       TODO: import & use implicit operators LL_I from rbmatlab TODO: report
- *       progress for transient RB systems and/or normal systems
+ * @TODO: import & use implicit operators LL_I from rbmatlab
+ * @TODO: report progress for transient RB systems and/or normal systems
  * 
  */
 public class RBSystem extends ModelBase {
@@ -67,14 +64,13 @@ public class RBSystem extends ModelBase {
 	/**
 	 * The Class object for the affine functions class.
 	 * 
-	 * Implements the interface import rb.java.affinefcn.IAffineFunctions.
+	 * Implements the interface import rb.affinefcn.IAffineFunctions.
 	 */
 	public Class<IAffineFunctions> affineFunctionsClass;
 	/**
-	 * The member object that defines the parameter-dependent functions for the
-	 * affine expansion of the left-hand, right-hand side and outputs. We need
-	 * to access this object at runtime, hence we use a ClassLoader and
-	 * reflection in order to call the relevant functions.
+	 * The member object that defines the parameter-dependent functions for the affine expansion of the left-hand,
+	 * right-hand side and outputs. We need to access this object at runtime, hence we use a ClassLoader and reflection
+	 * in order to call the relevant functions.
 	 */
 	public IAffineFunctions affineFunctionsInstance;
 
@@ -89,9 +85,8 @@ public class RBSystem extends ModelBase {
 	protected double[][][] Fq_Aq_representor_norms;
 
 	/**
-	 * Arrays storing the residual representor inner products to be used in
-	 * computing the residuals in the Online stage. These are resized by reading
-	 * in the Offline data written out by rbOOmit.
+	 * Arrays storing the residual representor inner products to be used in computing the residuals in the Online stage.
+	 * These are resized by reading in the Offline data written out by rbOOmit.
 	 */
 	protected double[] Fq_representor_norms;
 
@@ -139,24 +134,23 @@ public class RBSystem extends ModelBase {
 	private int numBasisFuncs;
 
 	/**
-	 * @deprecated Here for rbappmit compatibility.
+	 * @deprecated Here for @ref rbappmit compatibility.
 	 */
 	public Class<?> oldAffFcnCl;
 
 	/**
-	 * @deprecated Here for rbappmit compatibility.
+	 * @deprecated Here for @ref rbappmit compatibility.
 	 */
 	public Object oldAffFcnObj;
 
 	/**
-	 * This array stores the dual norms for each output. Row n stores the Q_l
-	 * dual norms for the expansion of the n^th output.
+	 * This array stores the dual norms for each output. Row n stores the Q_l dual norms for the expansion of the n^th
+	 * output.
 	 */
 	public double[][] output_dual_norms;
 
 	/**
-	 * The system's parameters object containing the parameter values and
-	 * descriptions
+	 * The system's parameters object containing the parameter values and descriptions
 	 */
 	private Parameters params;
 
@@ -202,16 +196,15 @@ public class RBSystem extends ModelBase {
 	 */
 	public double[][] RB_outputs_all_k;
 	/**
-	 * The RB solution vector. Stored as a Vector so that we can easily resize
-	 * it during an RB_solve.
+	 * The RB solution vector. Stored as a Vector so that we can easily resize it during an RB_solve.
 	 */
 	protected RealVector RB_solution;
 
 	protected double[][][] RB_sweep_solution;
 
 	/**
-	 * Boolean flag to indicate whether RB_solve returns an absolute or relative
-	 * error bound. True => relative, false => absolute.
+	 * Boolean flag to indicate whether RB_solve returns an absolute or relative error bound. True => relative, false =>
+	 * absolute.
 	 */
 	public boolean return_rel_error_bound;
 
@@ -404,8 +397,7 @@ public class RBSystem extends ModelBase {
 	}
 
 	/**
-	 * Compute the dual norm of the i^th output function at the current
-	 * parameter value
+	 * Compute the dual norm of the i^th output function at the current parameter value
 	 */
 	protected double compute_output_dual_norm(int i, double t) {
 
@@ -426,8 +418,7 @@ public class RBSystem extends ModelBase {
 	}
 
 	/**
-	 * Compute the dual norm of the residual for the solution saved in
-	 * RB_solution_vector.
+	 * Compute the dual norm of the residual for the solution saved in RB_solution_vector.
 	 */
 	protected double compute_residual_dual_norm(int N) {
 
@@ -522,8 +513,7 @@ public class RBSystem extends ModelBase {
 	}
 
 	/**
-	 * A private helper function to get the SCM from AffineFunctions in the case
-	 * that SCM_TYPE = NONE
+	 * A private helper function to get the SCM from AffineFunctions in the case that SCM_TYPE = NONE
 	 */
 	protected double get_SCM_from_AffineFunction() {
 		// we assume that an SCM LB function has been specified
@@ -592,7 +582,7 @@ public class RBSystem extends ModelBase {
 	 * TODO: Use this method in any RB_Solve member in subclasses!
 	 * 
 	 * @param N
-	 *            The RB size
+	 * The RB size
 	 * @return The initial solution coefficient vector of size N
 	 */
 	public RealVector getInitialCoefficients(int N) {
@@ -633,32 +623,29 @@ public class RBSystem extends ModelBase {
 	}
 
 	/**
-	 * @return Q_a, the number of term in the affine expansion of the bilinear
-	 *         form
+	 * @return Q_a, the number of term in the affine expansion of the bilinear form
 	 */
 	public int getQa() {
 		return fQa;
 	}
 
 	/**
-	 * TODO: if all affine_functions implement the IAffineFunctions interface,
-	 * just call the getQf method of the local instance.
+	 * TODO: if all affine_functions implement the IAffineFunctions interface, just call the getQf method of the local
+	 * instance.
 	 * 
-	 * @return Q_f, the number of term in the affine expansion of the right-hand
-	 *         side
+	 * @return Q_f, the number of term in the affine expansion of the right-hand side
 	 */
 	public int getQf() {
 		return fQf;
 	}
 
 	/**
-	 * TODO: if all affine_functions implement the IAffineFunctions interface,
-	 * just call the getQl method of the local instance.
+	 * TODO: if all affine_functions implement the IAffineFunctions interface, just call the getQl method of the local
+	 * instance.
 	 * 
 	 * @param output_index
-	 *            The index of the output we are interested in
-	 * @return the number of terms in the affine expansion of the specified
-	 *         output
+	 * The index of the output we are interested in
+	 * @return the number of terms in the affine expansion of the specified output
 	 */
 	protected int getQl(int output_index) {
 		return Ql_values[output_index];
@@ -669,17 +656,14 @@ public class RBSystem extends ModelBase {
 	}
 
 	/**
-	 * Constructs the true solution from the most recent RB reduced solution
-	 * using the full Z data and current coefficients.
+	 * Constructs the true solution from the most recent RB reduced solution using the full Z data and current
+	 * coefficients.
 	 * 
-	 * @attention This is a "hack" as the former rbappmit had only a limited
-	 *            number of models, of which all visualization has been
-	 *            organized a certain way (previously coded inside the
-	 *            RBVisualization.onCreate method). This is as follows: One
-	 *            field: Only field values Two fields: If not transient, it is
-	 *            2D displacement data Three fields: If not transient, it is 3D
-	 *            displacement data Four fields: If not transient, it is 3D
-	 *            displacement and a fourth field with normal values.
+	 * @attention This is a "hack" as the former @ref rbappmit had only a limited number of models, of which all
+	 * visualization has been organized a certain way (previously coded inside the RBVisualization.onCreate method).
+	 * This is as follows: One field: Only field values Two fields: If not transient, it is 2D displacement data Three
+	 * fields: If not transient, it is 3D displacement data Four fields: If not transient, it is 3D displacement and a
+	 * fourth field with normal values.
 	 * 
 	 * @see ComplexRBSystem for an overridden version of this method.
 	 * 
@@ -755,8 +739,7 @@ public class RBSystem extends ModelBase {
 	}
 
 	/**
-	 * Returns the increment used during the last parameter sweep or zero if
-	 * there hasn't been any.
+	 * Returns the increment used during the last parameter sweep or zero if there hasn't been any.
 	 * 
 	 * @return
 	 */
@@ -857,14 +840,12 @@ public class RBSystem extends ModelBase {
 	}
 
 	/**
-	 * Returns a float array of transformation data for each node, using the
-	 * specified parameter mu.
+	 * Returns a float array of transformation data for each node, using the specified parameter mu.
 	 * 
 	 * Only to be called for models who have a parameterized geometry.
 	 * 
-	 * The get_local_transformation method of the AffineFunctions class is
-	 * called (using the current parameter \mu) and the linear transform
-	 * function returned.
+	 * The get_local_transformation method of the AffineFunctions class is called (using the current parameter \mu) and
+	 * the linear transform function returned.
 	 * 
 	 * @return
 	 */
@@ -961,7 +942,7 @@ public class RBSystem extends ModelBase {
 		}
 
 		/*
-		 * Load zero initial conditions for old rbappmit models
+		 * Load zero initial conditions for old @ref rbappmit models
 		 */
 		RB_initial_coeffs = new RealVector[1];
 		RB_initial_coeffs[0] = new ArrayRealVector(numBasisFuncs);
@@ -1350,8 +1331,7 @@ public class RBSystem extends ModelBase {
 	}
 
 	/**
-	 * Performs a parameter sweep with automatic guess of the number of
-	 * parameter sweeps.
+	 * Performs a parameter sweep with automatic guess of the number of parameter sweeps.
 	 * 
 	 * @param sweepIndex
 	 * @param N
@@ -1367,11 +1347,11 @@ public class RBSystem extends ModelBase {
 	 * Performs a parameter sweep for the current RB system.
 	 * 
 	 * @param sweepIndex
-	 *            The index of the parameter to sweep
+	 * The index of the parameter to sweep
 	 * @param N
-	 *            The reduced basis size for sweeping
+	 * The reduced basis size for sweeping
 	 * @param numSweepPts
-	 *            The desired number of sweep points
+	 * The desired number of sweep points
 	 * @return The number of sweeps effectively performed
 	 */
 	public int performSweep(int sweepIndex, int N, int numSweepPts) {
@@ -1443,8 +1423,8 @@ public class RBSystem extends ModelBase {
 	}
 
 	/**
-	 * Perform online solve with the N RB basis functions, for the set of
-	 * parameters in current_params, where 1 <= N <= RB_size.
+	 * Perform online solve with the N RB basis functions, for the set of parameters in current_params, where 1 <= N <=
+	 * RB_size.
 	 */
 	protected double RB_solve(int N) {
 
@@ -1601,9 +1581,8 @@ public class RBSystem extends ModelBase {
 	}
 
 	/**
-	 * Specifies the residual scaling on the denominator to be used in the a
-	 * posteriori error bound. Overload in subclass in order to obtain the
-	 * desired error bound.
+	 * Specifies the residual scaling on the denominator to be used in the a posteriori error bound. Overload in
+	 * subclass in order to obtain the desired error bound.
 	 */
 	protected double residual_scaling_denom(double alpha_LB) {
 		return Math.sqrt(alpha_LB);
@@ -1614,8 +1593,7 @@ public class RBSystem extends ModelBase {
 	}
 
 	/**
-	 * Only used to set the current parameters object for an SCMSystem, as this
-	 * also inherits from the RBBase class.
+	 * Only used to set the current parameters object for an SCMSystem, as this also inherits from the RBBase class.
 	 * 
 	 * @param p
 	 */
@@ -1631,17 +1609,15 @@ public class RBSystem extends ModelBase {
 	}
 
 	/**
-	 * Performs a reduced basis simulation and stores the results locally.
-	 * Access via getSimulationResults
+	 * Performs a reduced basis simulation and stores the results locally. Access via getSimulationResults
+	 * 
 	 * @param N
 	 * @return
 	 */
 	public double computeRBSolution(int N) {
 		/**
-		 * If this system is unsteady dont perform geometric transformations
-		 * (not checked yet/no models there yet) Comes from the LINEAR_STEADY /
-		 * LINEAR_COMPLEX_STEADY enums in ROMSim/rbappmit, where the check was
-		 * made originally.
+		 * If this system is unsteady dont perform geometric transformations (not checked yet/no models there yet) Comes
+		 * from the LINEAR_STEADY / LINEAR_COMPLEX_STEADY enums in ROMSim/rbappmit, where the check was made originally.
 		 */
 		transforms.clear();
 		if (!(this instanceof TransientRBSystem)) {
@@ -1650,7 +1626,8 @@ public class RBSystem extends ModelBase {
 					float[][] tmp = getAffLinTransformationData(getParams().getCurrent());
 					Log.d("RBSystem", "Storing AffLinTrafo: " + Log.dumpArr(tmp));
 					transforms.add(new AffineLinearMeshTransform(tmp, getGeometry().vertexLTFuncNr));
-				} else transforms.add(new DefaultTransform());
+				} else
+					transforms.add(new DefaultTransform());
 			} else {
 				transforms.add(new rbappmitCustomMeshTransform(getParams().getCurrent(), this));
 			}

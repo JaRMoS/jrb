@@ -1,8 +1,7 @@
 /**
- * Created on Aug 29, 2011 in Project JRB
- * Location: test.TestRBSolve.java
+ * Created on Aug 29, 2011 in Project JRB Location: rb.test.TestRBSolve.java
  */
-package test;
+package rb.test;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -15,20 +14,20 @@ import jarmos.visual.VisualizationData;
 
 import org.junit.Test;
 
-import rb.java.RBContainer;
-import rb.java.RBSystem;
+import rb.RBContainer;
+import rb.RBSystem;
 
 /**
  * @author Daniel Wirtz
  * @date Aug 29, 2011
- *
+ * 
  */
 public class TestRBSolve {
 
 	/**
 	 * Tests loading & solving of JRB models (type "rb")
 	 */
-	//@Test
+	// @Test
 	public void testRBSolveJRB() {
 		FileModelManager f = new FileModelManager("models");
 		try {
@@ -37,22 +36,22 @@ public class TestRBSolve {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		RBContainer rb = new RBContainer();
 		assertTrue(rb.loadModel(f));
-		
+
 		// Perform the solve
-		RBSystem s=rb.mRbSystem;
-//		double[] par = s.getParams().getRandomParam();
-		double[] par = new double[]{.5, .5};
+		RBSystem s = rb.mRbSystem;
+		// double[] par = s.getParams().getRandomParam();
+		double[] par = new double[] { .5, .5 };
 		s.getParams().setCurrent(par);
 		s.computeRBSolution(4);
 	}
-	
+
 	/**
 	 * Tests loading & solving of JRB models (type "rb")
 	 */
-	//@Test
+	// @Test
 	public void testRBSolveJRB_TimeConst() {
 		FileModelManager f = new FileModelManager("models");
 		try {
@@ -61,28 +60,26 @@ public class TestRBSolve {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		RBContainer rb = new RBContainer();
 		assertTrue(rb.loadModel(f));
-		
+
 		// Perform the solve
-		RBSystem s=rb.mRbSystem;
-//		double[] par = s.getParams().getRandomParam();
-		double[] par = new double[]{.5, .5, .5};
+		RBSystem s = rb.mRbSystem;
+		// double[] par = s.getParams().getRandomParam();
+		double[] par = new double[] { .5, .5, .5 };
 		s.getParams().setCurrent(par);
 		s.computeRBSolution(4);
-		
+
 		SimulationResult sol = s.getSimulationResults();
-		
+
 		GeometryData g = new GeometryData();
 		g.loadModelGeometry(f);
 		VisualizationData d = new VisualizationData(g);
 		d.useResult(sol);
 		d.computeVisualFeatures(new ColorGenerator());
 	}
-	
-	
-	
+
 	/**
 	 * Tests loading & solving of JRB models (type "rb")
 	 */
@@ -95,22 +92,22 @@ public class TestRBSolve {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		RBContainer rb = new RBContainer();
 		assertTrue(rb.loadModel(f));
-		
+
 		// Perform the solve
-		RBSystem s=rb.mRbSystem;
+		RBSystem s = rb.mRbSystem;
 		double[] par = s.getParams().getRandomParam();
-//		double[] par = new double[]{.5, .5};
+		// double[] par = new double[]{.5, .5};
 		s.getParams().setCurrent(par);
-		s.computeRBSolution(s.getNBF()/2);
-		
+		s.computeRBSolution(s.getNBF() / 2);
+
 		SimulationResult res = s.getSimulationResults();
 		GeometryData g = rb.mRbSystem.getGeometry();
 		VisualizationData v = new VisualizationData(g);
 		v.useResult(res);
-		
+
 		v.computeVisualFeatures(new ColorGenerator());
 	}
 

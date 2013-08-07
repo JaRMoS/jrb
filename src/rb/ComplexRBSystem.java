@@ -1,22 +1,22 @@
-package rb.java;
+package rb;
 
-//    rbAPPmit: An Android front-end for the Certified Reduced Basis Method
-//    Copyright (C) 2010 David J. Knezevic and Phuong Huynh
+// rbAPPmit: An Android front-end for the Certified Reduced Basis Method
+// Copyright (C) 2010 David J. Knezevic and Phuong Huynh
 //
-//    This file is part of rbAPPmit
+// This file is part of rbAPPmit
 //
-//    rbAPPmit is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
+// @ref rbappmit is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-//    rbAPPmit is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
+// @ref rbappmit is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
 //
-//    You should have received a copy of the GNU General Public License
-//    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
+// You should have received a copy of the GNU General Public License
+// along with rbAPPmit. If not, see <http://www.gnu.org/licenses/>.
 
 import jarmos.ComplexSolutionField;
 import jarmos.FieldDescriptor;
@@ -39,7 +39,12 @@ import org.apache.commons.math.linear.ArrayFieldVector;
 import org.apache.commons.math.linear.FieldMatrix;
 import org.apache.commons.math.linear.FieldVector;
 
-
+/**
+ * RB system class for complex-valued fields.
+ * 
+ * @author Daniel Wirtz @date 07.08.2013
+ * 
+ */
 public class ComplexRBSystem extends RBSystem {
 
 	// Logging tag
@@ -544,8 +549,8 @@ public class ComplexRBSystem extends RBSystem {
 	}
 
 	/**
-	 * @see rb.java.RBSystem#compute_output_dual_norm(int, double) TODO: make
-	 *      use of the t variable and change the complex_eval_theta etc
+	 * @see rb.RBSystem#compute_output_dual_norm(int, double) TODO: make use of the t variable and change the
+	 * complex_eval_theta etc
 	 */
 	@Override
 	protected double compute_output_dual_norm(int i, double t) {
@@ -604,13 +609,11 @@ public class ComplexRBSystem extends RBSystem {
 	/**
 	 * Returns the results of the complex RB simulation.
 	 * 
-	 * Formerly, the returned float[][] array was again sorted into
-	 * visualization data in RBVisualization.onCreate. As there have only been
-	 * rbappmit models with complex field data, which has been split into real,
-	 * imaginary and norm field values for visualization, this new method is the
-	 * native way of transforming the results into ComplexSolutionFields,
-	 * however many there may be. For each field the visualization will
-	 * automatically create views for real, imaginary and norm value fields.
+	 * Formerly, the returned float[][] array was again sorted into visualization data in RBVisualization.onCreate. As
+	 * there have only been @ref rbappmit models with complex field data, which has been split into real, imaginary and
+	 * norm field values for visualization, this new method is the native way of transforming the results into
+	 * ComplexSolutionFields, however many there may be. For each field the visualization will automatically create
+	 * views for real, imaginary and norm value fields.
 	 */
 	@Override
 	public SimulationResult getSimulationResults() {

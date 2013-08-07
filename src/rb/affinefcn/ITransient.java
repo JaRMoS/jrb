@@ -1,8 +1,4 @@
-/**
- * Created on Aug 28, 2011 in Project JRB
- * Location: rb.java.affinefcn.ITransient.java
- */
-package rb.java.affinefcn;
+package rb.affinefcn;
 
 /**
  * Interface for AffineFunctions in unsteady rb systems.
@@ -14,21 +10,22 @@ package rb.java.affinefcn;
  * 
  */
 public interface ITransient {
-	
+
 	/**
 	 * Flag that determines if the theta^m coefficient functions are time dependent.
-	 * @return True if any theta^m_i is time dependent, false otherwise 
+	 * 
+	 * @return True if any theta^m_i is time dependent, false otherwise
 	 */
 	public boolean isTimeDependentM();
 
 	/**
 	 * 
 	 * @param i
-	 *            The mass coefficient function i
+	 * The mass coefficient function i
 	 * @param p
-	 *            The current paramter p
+	 * The current paramter p
 	 * @param t
-	 *            The time t
+	 * The time t
 	 * @return
 	 */
 	public double thetaQm(int i, double[] p, double t);

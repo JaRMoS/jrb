@@ -1,23 +1,4 @@
-package rb.java;
-//    rbAPPmit: An Android front-end for the Certified Reduced Basis Method
-//    Copyright (C) 2010 David J. Knezevic and Phuong Huynh
-//
-//    This file is part of rbAPPmit
-//
-//    rbAPPmit is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    rbAPPmit is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
-
-
+package rb;
 
 import jarmos.Log;
 import jarmos.io.AModelManager;
@@ -29,13 +10,15 @@ import java.lang.reflect.Method;
 
 import org.apache.commons.math.linear.RealVector;
 
-
-// This class implements the Online stage
-// of the Successive Constraint Method
-// for coercive problems.
-// This class is modeled on the RBSCMSystem
-// class in rbOOmit
-
+/**
+ * Base class for quadratically nonlinear RB systems including the SCM method for error bound computation.
+ * 
+ * This class has been taken from the original @ref rbappmit package and modified to fit into the current JaRMoS
+ * framework.
+ * 
+ * @author Daniel Wirtz @date 07.08.2013
+ * 
+ */
 public class QNTransientSCMSystem extends RBSCMSystem {
 
 	public QNTransientSCMSystem(RBSystem sys) {
@@ -85,8 +68,7 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 	}
 
 	/**
-	 * Evaluate theta_c (for the quadratic nonlinearity) at the current
-	 * parameter.
+	 * Evaluate theta_c (for the quadratic nonlinearity) at the current parameter.
 	 */
 	public double eval_theta_c() {
 
@@ -126,8 +108,7 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 	}
 
 	/**
-	 * Override eval_theta_q_a in order to account for the affine terms related
-	 * to basis functions
+	 * Override eval_theta_q_a in order to account for the affine terms related to basis functions
 	 */
 	@Override
 	public double thetaQa(int q) {
@@ -146,8 +127,7 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 
 				meth = sys.oldAffFcnCl.getMethod("evaluateA", partypes);
 			} catch (NoSuchMethodException nsme) {
-				throw new RuntimeException("getMethod for evaluateA failed",
-						nsme);
+				throw new RuntimeException("getMethod for evaluateA failed", nsme);
 			}
 
 			Double theta_val;
@@ -200,19 +180,18 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 	}
 
 	/**
-	 * Override read_offline_data in order to read in the extra data in the
-	 * QNTransient case.
+	 * Override read_offline_data in order to read in the extra data in the QNTransient case.
 	 */
 	@Override
-	public void loadOfflineData(AModelManager m) throws IOException,
-			InconsistentStateException {
+	public void loadOfflineData(AModelManager m) throws IOException, InconsistentStateException {
 
 		// Initially set number of basis functions from n_bfs.dat
 		{
 			BufferedReader reader = m.getBufReader("n_bfs.dat");
 
 			String line = reader.readLine();
-			reader.close(); reader = null;
+			reader.close();
+			reader = null;
 
 			n_bfs = Integer.parseInt(line);
 
@@ -229,7 +208,8 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 				{
 					BufferedReader reader = m.getBufReader("C_J_RB_coeffs.dat");
 					String line = reader.readLine();
-					reader.close(); reader = null;
+					reader.close();
+					reader = null;
 					tokens = line.split(" ");
 				}
 
@@ -247,9 +227,8 @@ public class QNTransientSCMSystem extends RBSCMSystem {
 
 	/**
 	 * @param parameters_filename
-	 *            The name of the file to parse Parse the input file to
-	 *            initialize this RBSCMSystem.
-	 * @throws IOException 
+	 * The name of the file to parse Parse the input file to initialize this RBSCMSystem.
+	 * @throws IOException
 	 */
 	@Override
 	public void readConfiguration(AModelManager m) throws IOException {

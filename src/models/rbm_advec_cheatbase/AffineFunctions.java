@@ -1,16 +1,17 @@
 package models.rbm_advec_cheatbase;
 
-import rb.java.affinefcn.IAffineFunctions;
-import rb.java.affinefcn.IAffineInitials;
-import rb.java.affinefcn.ITransient;
+import rb.affinefcn.IAffineFunctions;
+import rb.affinefcn.IAffineInitials;
+import rb.affinefcn.ITransient;
 
 /**
+ * Affine coefficient functions for time-dependent advection/diffusion problem
+ * 
  * @author Daniel Wirtz
  * @date Aug 29, 2011
  * 
  */
-public class AffineFunctions implements IAffineFunctions, ITransient,
-		IAffineInitials {
+public class AffineFunctions implements IAffineFunctions, ITransient, IAffineInitials {
 
 	/**
 	 * TODO: precompute spline coefficients for each i=0..2
@@ -65,7 +66,7 @@ public class AffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#getNumOutputs()
+	 * @see rb.affinefcn.IAffineFunctions#getNumOutputs()
 	 */
 	@Override
 	public int getNumOutputs() {
@@ -73,35 +74,35 @@ public class AffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#getQa()
+	 * @see rb.affinefcn.IAffineFunctions#getQa()
 	 */
 	public int getQa() {
 		return 2;
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#getQf()
+	 * @see rb.affinefcn.IAffineFunctions#getQf()
 	 */
 	public int getQf() {
 		return 6;
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#getQl()
+	 * @see rb.affinefcn.IAffineFunctions#getQl()
 	 */
 	public int[] getQl() {
 		return new int[] { 1 };
 	}
 
 	/**
-	 * @see rb.java.affinefcn.ITransient#getQm()
+	 * @see rb.affinefcn.ITransient#getQm()
 	 */
 	public int getQm() {
 		return 1;
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffiniInitials#getQu0()
+	 * @see rb.affinefcn.IAffiniInitials#getQu0()
 	 */
 	@Override
 	public int getQu0() {
@@ -109,7 +110,7 @@ public class AffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#isTimeDependentAF()
+	 * @see rb.affinefcn.IAffineFunctions#isTimeDependentAF()
 	 */
 	@Override
 	public boolean isTimeDependentA() {
@@ -117,7 +118,7 @@ public class AffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#isTimeDependentL()
+	 * @see rb.affinefcn.IAffineFunctions#isTimeDependentL()
 	 */
 	@Override
 	public boolean isTimeDependentL() {
@@ -125,7 +126,7 @@ public class AffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.ITransient#isTimeDependentM()
+	 * @see rb.affinefcn.ITransient#isTimeDependentM()
 	 */
 	@Override
 	public boolean isTimeDependentM() {
@@ -133,27 +134,25 @@ public class AffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#thetaQa(int, double[], double)
+	 * @see rb.affinefcn.IAffineFunctions#thetaQa(int, double[], double)
 	 */
 	@Override
 	public double thetaQa(int i, double[] p, double t) {
 		if ((i < 0) || (i > getQa() - 1)) {
-			throw new RuntimeException(
-					"Input parameter is invalid in thetaQa()," + " i = " + i
-							+ " but getQa() = " + getQa());
+			throw new RuntimeException("Input parameter is invalid in thetaQa()," + " i = " + i + " but getQa() = "
+					+ getQa());
 		}
 		return p[i + 1] * (1 - t);
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#thetaQf(int, double[], double)
+	 * @see rb.affinefcn.IAffineFunctions#thetaQf(int, double[], double)
 	 */
 	@Override
 	public double thetaQf(int i, double[] p, double t) {
 		if ((i < 0) || (i > getQf() - 1)) {
-			throw new RuntimeException(
-					"Input parameter is invalid in evaluateF()," + " i = " + i
-							+ " but get_n_F_functions() = " + getQf());
+			throw new RuntimeException("Input parameter is invalid in evaluateF()," + " i = " + i
+					+ " but get_n_F_functions() = " + getQf());
 		}
 
 		// flux_mat entspricht Theta_a
@@ -174,34 +173,31 @@ public class AffineFunctions implements IAffineFunctions, ITransient,
 		//
 		// bdir_E_conv liefert dann die endg�ltigen Theta_f
 
-		int didx = (int)Math.floor(i / getQa());
-		int Qaidx = i - getQa()*didx;
+		int didx = (int) Math.floor(i / getQa());
+		int Qaidx = i - getQa() * didx;
 		return thetaQa(Qaidx, p, t) * dirichletBoundCoeffs(didx, p, t);
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#thetaQl(int, int, double[],
-	 *      double)
+	 * @see rb.affinefcn.IAffineFunctions#thetaQl(int, int, double[], double)
 	 */
 	@Override
 	public double thetaQl(int k, int i, double[] p, double t) {
 		if ((k < 0) || (k > getQl().length - 1)) {
-			throw new RuntimeException(
-					"Input parameter is invalid in evaluateL()," + " k = " + k
-							+ " but get_n_outputs() = " + getQl());
+			throw new RuntimeException("Input parameter is invalid in evaluateL()," + " k = " + k
+					+ " but get_n_outputs() = " + getQl());
 		}
 
 		if ((i < 0) || (i > getQl()[i] - 1)) {
-			throw new RuntimeException(
-					"Input parameter is invalid in evaluateL()," + " q_l = "
-							+ i + " but get_Q_l(i) = " + getQl()[i]);
+			throw new RuntimeException("Input parameter is invalid in evaluateL()," + " q_l = " + i
+					+ " but get_Q_l(i) = " + getQl()[i]);
 		}
 
 		return 1;
 	}
 
 	/**
-	 * @see rb.java.affinefcn.ITransient#thetaQm(int, double[], double)
+	 * @see rb.affinefcn.ITransient#thetaQm(int, double[], double)
 	 */
 	@Override
 	public double thetaQm(int i, double[] p, double t) {
@@ -209,7 +205,7 @@ public class AffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffiniInitials#thetaQu0(int i, double[] p)
+	 * @see rb.affinefcn.IAffiniInitials#thetaQu0(int i, double[] p)
 	 */
 	@Override
 	public double thetaQu0(int i, double[] p) {

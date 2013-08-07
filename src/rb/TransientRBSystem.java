@@ -1,22 +1,4 @@
-package rb.java;
-
-//    rbAPPmit: An Android front-end for the Certified Reduced Basis Method
-//    Copyright (C) 2010 David J. Knezevic and Phuong Huynh
-//
-//    This file is part of rbAPPmit
-//
-//    rbAPPmit is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    rbAPPmit is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with rbAPPmit.  If not, see <http://www.gnu.org/licenses/>. 
+package rb;
 
 import jarmos.DefaultSolutionField;
 import jarmos.FieldDescriptor;
@@ -35,16 +17,13 @@ import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 
-import rb.java.affinefcn.ITransient;
-
-// This class provides the Online reduced
-// basis functionality for linear parabolic
-// problems.
-// This class is modeled on the TransientRBSystem
-// class in rbOOmit
+import rb.affinefcn.ITransient;
 
 /**
- * Changes made by
+ * This class provides the Online reduced basis functionality for linear parabolic problems.
+ * 
+ * This class has been taken from the original @ref rbappmit package and modified to fit into the current JaRMoS
+ * framework.
  * 
  * @author Daniel Wirtz
  * @date Aug 26, 2011
@@ -56,8 +35,7 @@ public class TransientRBSystem extends RBSystem {
 	private static final String DEBUG_TAG = "TransientRBSystem";
 
 	/**
-	 * boolean flag that determines whether or not we impose a temporal filter
-	 * on each output
+	 * boolean flag that determines whether or not we impose a temporal filter on each output
 	 */
 	private boolean apply_temporal_filter_flag;
 
@@ -81,9 +59,8 @@ public class TransientRBSystem extends RBSystem {
 	 */
 	protected double[] error_bound_all_k;
 	/**
-	 * Parameter that defines the temporal discretization: euler_theta = 0 --->
-	 * Forward Euler euler_theta = 0.5 ---> Crank-Nicolson euler_theta = 1 --->
-	 * Backward Euler
+	 * Parameter that defines the temporal discretization: euler_theta = 0 ---> Forward Euler euler_theta = 0.5 --->
+	 * Crank-Nicolson euler_theta = 1 ---> Backward Euler
 	 */
 	private double euler_theta;
 	/**
@@ -91,8 +68,7 @@ public class TransientRBSystem extends RBSystem {
 	 */
 	private double filter_width;
 	/**
-	 * Vectors storing the residual representor inner products to be used in
-	 * computing the residuals online.
+	 * Vectors storing the residual representor inner products to be used in computing the residuals online.
 	 */
 	private double[][][] Fq_Mq_representor_norms;
 
@@ -109,9 +85,8 @@ public class TransientRBSystem extends RBSystem {
 	private double[][][] Mq_Mq_representor_norms;
 
 	/**
-	 * The number of time steps we actually plot in the output plotter. This is
-	 * sometimes less than K so that we don't plot the effect of the filter near
-	 * the final time.
+	 * The number of time steps we actually plot in the output plotter. This is sometimes less than K so that we don't
+	 * plot the effect of the filter near the final time.
 	 */
 	public int n_plotting_steps;
 
@@ -140,8 +115,7 @@ public class TransientRBSystem extends RBSystem {
 	 */
 	protected int timestep;
 	/**
-	 * The solution coefficients at each time level from the most recent
-	 * RB_solve.
+	 * The solution coefficients at each time level from the most recent RB_solve.
 	 */
 	protected RealVector[] timestepRBSolutions;
 
@@ -298,11 +272,9 @@ public class TransientRBSystem extends RBSystem {
 	}
 
 	/**
-	 * Compute the dual norm of the residual for the solution saved in
-	 * RB_solution_vector.
+	 * Compute the dual norm of the residual for the solution saved in RB_solution_vector.
 	 * 
-	 * This assumes that the time-independent quantities were cached in
-	 * RB_solve.
+	 * This assumes that the time-independent quantities were cached in RB_solve.
 	 * 
 	 * TODO: fit to time-dependent residual norms for error estimation!
 	 */
@@ -360,9 +332,8 @@ public class TransientRBSystem extends RBSystem {
 	}
 
 	/**
-	 * Get/set euler_theta, parameter that determines the temporal
-	 * discretization. euler_theta = 0 ---> Forward Euler euler_theta = 0.5 --->
-	 * Crank-Nicolson euler_theta = 1 ---> Backward Euler
+	 * Get/set euler_theta, parameter that determines the temporal discretization. euler_theta = 0 ---> Forward Euler
+	 * euler_theta = 0.5 ---> Crank-Nicolson euler_theta = 1 ---> Backward Euler
 	 */
 	public double getEulerTheta() {
 		return euler_theta;
@@ -371,12 +342,11 @@ public class TransientRBSystem extends RBSystem {
 	/**
 	 * Returns the animated results of the transient RB system.
 	 * 
-	 * So far the solution float[][] truth_sol was again sorted/processed in
-	 * RBVisualization.onCreate; as for transient systems there are no models
-	 * with transient displacements yet, the returned SolutionFields are simply
-	 * real values for different simulation fields.
+	 * So far the solution float[][] truth_sol was again sorted/processed in RBVisualization.onCreate; as for transient
+	 * systems there are no models with transient displacements yet, the returned SolutionFields are simply real values
+	 * for different simulation fields.
 	 * 
-	 * @see rb.java.RBSystem#getSimulationResults()
+	 * @see rb.RBSystem#getSimulationResults()
 	 */
 	@Override
 	public SimulationResult getSimulationResults() {
@@ -404,7 +374,7 @@ public class TransientRBSystem extends RBSystem {
 				double tmpval;
 				for (timestep = 1; timestep <= nt; timestep++) {
 					// Choose equally spaced indices
-					int solidx = (int) Math.round(Math.floor(fTotalTimesteps * ((float)timestep  / nt)));
+					int solidx = (int) Math.round(Math.floor(fTotalTimesteps * ((float) timestep / nt)));
 					for (int dim = 0; dim < numDoFs; dim++) {
 						tmpval = 0;
 						for (int j = 0; j < N; j++) {
@@ -430,8 +400,7 @@ public class TransientRBSystem extends RBSystem {
 	}
 
 	/**
-	 * @return Q_m, the number of terms in the affine expansion of the mass
-	 *         matrix
+	 * @return Q_m, the number of terms in the affine expansion of the mass matrix
 	 */
 	public int getQm() {
 		return fQm;
@@ -448,8 +417,7 @@ public class TransientRBSystem extends RBSystem {
 		/*
 		 * int nt = Math.round(50000/get_calN()); nt = nt>_K?_K:nt; return nt;
 		 */
-		int nt = (int) Math.round(75000 / getGeometry().getNumVertices()
-				/ (1 + 0.4 * (getNumDoFFields() - 1)));
+		int nt = (int) Math.round(75000 / getGeometry().getNumVertices() / (1 + 0.4 * (getNumDoFFields() - 1)));
 		nt = nt > 25 ? 25 : nt; // cap nt at 25
 		return nt > fTotalTimesteps ? fTotalTimesteps : nt;
 	}
@@ -472,8 +440,7 @@ public class TransientRBSystem extends RBSystem {
 	}
 
 	/**
-	 * Override read_offline_data_from_files in order to read in the mass matrix
-	 * and initial condition data as well.
+	 * Override read_offline_data_from_files in order to read in the mass matrix and initial condition data as well.
 	 */
 	@Override
 	public void loadOfflineData_rbappmit(AModelManager m) throws IOException {
@@ -631,8 +598,7 @@ public class TransientRBSystem extends RBSystem {
 	}
 
 	/**
-	 * Override read_offline_data_from_files in order to read in the mass matrix
-	 * and initial condition data as well.
+	 * Override read_offline_data_from_files in order to read in the mass matrix and initial condition data as well.
 	 */
 	@Override
 	public void loadOfflineDataJRB(AModelManager m) throws IOException {
@@ -702,8 +668,8 @@ public class TransientRBSystem extends RBSystem {
 	}
 
 	/**
-	 * Perform online solve with the N RB basis functions, for the set of
-	 * parameters in current_params, where 1 <= N <= RB_size.
+	 * Perform online solve with the N RB basis functions, for the set of parameters in current_params, where 1 <= N <=
+	 * RB_size.
 	 */
 	@Override
 	public double RB_solve(int N) {
@@ -851,8 +817,8 @@ public class TransientRBSystem extends RBSystem {
 			for (int i = 0; i < sol.length; i++) {
 				sol_str += String.format("%1.15e  ", sol[i]);
 			}
-//			Log.d("TransientRBSystem", "RB_solution at t=" + String.format("%5f", time_level * getdt()) + ": "
-//					+ sol_str + "]");
+			// Log.d("TransientRBSystem", "RB_solution at t=" + String.format("%5f", time_level * getdt()) + ": "
+			// + sol_str + "]");
 
 			// Save RB_solution for current time level
 			timestepRBSolutions[timestep] = RB_solution_N;
@@ -928,7 +894,7 @@ public class TransientRBSystem extends RBSystem {
 
 	/**
 	 * 
-	 * @see rb.java.RBSystem#readConfigurationRBAppMIT(rb.java.GetPot)
+	 * @see rb.RBSystem#readConfigurationRBAppMIT(rb.GetPot)
 	 */
 	@Override
 	protected void readConfigurationRBAppMIT(GetPot infile) {
@@ -962,9 +928,8 @@ public class TransientRBSystem extends RBSystem {
 	}
 
 	/**
-	 * Specifies the residual scaling on the denominator to be used in the a
-	 * posteriori error bound. Overload in subclass in order to obtain the
-	 * desired error bound.
+	 * Specifies the residual scaling on the denominator to be used in the a posteriori error bound. Overload in
+	 * subclass in order to obtain the desired error bound.
 	 */
 	@Override
 	protected double residual_scaling_denom(double alpha_LB) {
@@ -972,9 +937,8 @@ public class TransientRBSystem extends RBSystem {
 	}
 
 	/**
-	 * Specifies the residual scaling on the numerator to be used in the a
-	 * posteriori error bound. Overload in subclass in order to obtain the
-	 * desired error bound.
+	 * Specifies the residual scaling on the numerator to be used in the a posteriori error bound. Overload in subclass
+	 * in order to obtain the desired error bound.
 	 */
 	protected double residual_scaling_numer(double alpha_LB) {
 		return getdt();
@@ -987,8 +951,7 @@ public class TransientRBSystem extends RBSystem {
 	}
 
 	/**
-	 * Evaluate theta_q_m (for the q^th mass matrix term) at the current
-	 * parameter.
+	 * Evaluate theta_q_m (for the q^th mass matrix term) at the current parameter.
 	 * 
 	 * @param i
 	 * @return
@@ -1010,8 +973,7 @@ public class TransientRBSystem extends RBSystem {
 	// }
 
 	/**
-	 * Evaluate theta_q_m (for the q^th mass matrix term) at the current
-	 * parameter.
+	 * Evaluate theta_q_m (for the q^th mass matrix term) at the current parameter.
 	 * 
 	 * @param i
 	 * @param t
@@ -1029,9 +991,8 @@ public class TransientRBSystem extends RBSystem {
 	// }
 
 	/**
-	 * Compute the dual norm of the residual for the solution saved in
-	 * RB_solution_vector. This does not assume cached data hence works for
-	 * parameters that change as a function of time.
+	 * Compute the dual norm of the residual for the solution saved in RB_solution_vector. This does not assume cached
+	 * data hence works for parameters that change as a function of time.
 	 */
 	protected double uncached_compute_residual_dual_norm(int N) {
 

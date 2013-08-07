@@ -1,27 +1,5 @@
-package rb.java; // Added line to specify the rb.app package
+package rb;
 
-//  -*- java -*- 
-//  GetPot Version 1.0                                        Sept/13/2002
-//  
-//  WEBSITE: http://getpot.sourceforge.net
-//  
-//  This library is  free software; you can redistribute  it and/or modify
-//  it  under  the terms  of  the GNU  Lesser  General  Public License  as
-//  published by the  Free Software Foundation; either version  2.1 of the
-//  License, or (at your option) any later version.
-//  
-//  This library  is distributed in the  hope that it will  be useful, but
-//  WITHOUT   ANY  WARRANTY;   without  even   the  implied   warranty  of
-//  MERCHANTABILITY  or FITNESS  FOR A  PARTICULAR PURPOSE.   See  the GNU
-//  Lesser General Public License for more details.
-//  
-//  You  should have  received a  copy of  the GNU  Lesser  General Public
-//  License along  with this library; if  not, write to  the Free Software
-//  Foundation, Inc.,  59 Temple Place,  Suite 330, Boston,  MA 02111-1307
-//  USA
-//  
-//  (C) 2001 Frank R. Schaefer  
-//==========================================================================
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PushbackInputStream;
@@ -29,6 +7,27 @@ import java.util.Enumeration;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+/**
+ * Utility helper class from @ref rbappmit included for compatibility of @ref rbappmit model loading.
+ * 
+ * @author Daniel Wirtz @date 07.08.2013
+ * 
+ * Original source: GetPot Version 1.0 Sept/13/2002, http://getpot.sourceforge.net
+ * 
+ * This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General
+ * Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ * 
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License along with this library; if not, write to
+ * the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * 
+ * (C) 2001 Frank R. Schaefer
+ * 
+ */
 public class GetPot {
 
 	// variable structure
@@ -105,37 +104,39 @@ public class GetPot {
 		__parse_argument_vector(__argv);
 	}
 
-//	GetPot(Context c_in, String FileName, boolean isAssetFile_in) {
-//
-//		androidContext = c_in; // Added Android Context for file I/O
-//		isAssetFile = isAssetFile_in; // Added boolean for app
-//
-//		prefix = "";
-//		cursor = 0;
-//		nominus_cursor = -1;
-//		search_loop_f = true;
-//		search_failed_f = false;
-//
-//		Vector<String> __argv = new Vector<String>();
-//		idx_nominus = new Vector<Integer>();
-//		variables = new Vector<variable>();
-//		section_list = new Vector<String>();
-//
-//		__argv = read_in_file(FileName);
-//
-//		argv = new Vector<String>();
-//		__argv.insertElementAt(FileName, 0);
-//		__parse_argument_vector(__argv);
-//	}
-	
+	// GetPot(Context c_in, String FileName, boolean isAssetFile_in) {
+	//
+	// androidContext = c_in; // Added Android Context for file I/O
+	// isAssetFile = isAssetFile_in; // Added boolean for app
+	//
+	// prefix = "";
+	// cursor = 0;
+	// nominus_cursor = -1;
+	// search_loop_f = true;
+	// search_failed_f = false;
+	//
+	// Vector<String> __argv = new Vector<String>();
+	// idx_nominus = new Vector<Integer>();
+	// variables = new Vector<variable>();
+	// section_list = new Vector<String>();
+	//
+	// __argv = read_in_file(FileName);
+	//
+	// argv = new Vector<String>();
+	// __argv.insertElementAt(FileName, 0);
+	// __parse_argument_vector(__argv);
+	// }
+
 	/**
-	 * Added this constructor for the modified version of rbAPPmit.
-	 * The former arguments have only been used to create the correct InputStream, either via asset or previously created local copy.
-	 * This is done by the ModelManager now, so the InputStream is passed directly.
-	 * Also the local copy of the parameter_filename for Web-Based models is now created in the ModelManager.
+	 * Added this constructor for the modified version of rbAPPmit. The former arguments have only been used to create
+	 * the correct InputStream, either via asset or previously created local copy. This is done by the ModelManager now,
+	 * so the InputStream is passed directly. Also the local copy of the parameter_filename for Web-Based models is now
+	 * created in the ModelManager.
 	 * 
-	 * @param in The InputStream linked to the model parameter file
-	 * @param filename the filename of the file read - unsure what it is used for
+	 * @param in
+	 * The InputStream linked to the model parameter file
+	 * @param filename
+	 * the filename of the file read - unsure what it is used for
 	 */
 	public GetPot(InputStream in, String filename) {
 
@@ -170,8 +171,7 @@ public class GetPot {
 		if (_argv.size() < 1)
 			return;
 
-		for (Enumeration<String> arge = _argv.elements(); arge
-				.hasMoreElements(); i++) {
+		for (Enumeration<String> arge = _argv.elements(); arge.hasMoreElements(); i++) {
 			String arg = arge.nextElement();
 
 			if (i == 0) {
@@ -182,10 +182,8 @@ public class GetPot {
 				continue;
 
 			// -- [section] labels
-			if (arg.length() > 1 && arg.charAt(0) == '['
-					&& arg.charAt(arg.length() - 1) == ']') {
-				String name = DBE_expand_string(arg.substring(1,
-						arg.length() - 1));
+			if (arg.length() > 1 && arg.charAt(0) == '[' && arg.charAt(arg.length() - 1) == ']') {
+				String name = DBE_expand_string(arg.substring(1, arg.length() - 1));
 				// String name = arg.substring(1, arg.length()-1);
 				section = process_section_label(name, section_stack);
 				// new section --> append to list of sections
@@ -207,35 +205,34 @@ public class GetPot {
 			if (k > 0) {
 				variable Var = find_variable(arg.substring(0, k));
 				if (Var.name.compareTo("") == 0)
-					variables.addElement(new variable(arg.substring(0, k), arg
-							.substring(k + 1)));
+					variables.addElement(new variable(arg.substring(0, k), arg.substring(k + 1)));
 				else
 					Var.take(arg.substring(k + 1));
 			}
 		}
 	}
 
-//	// file parsing
-//	Vector<String> read_in_file(String filename) {
-//		Vector<String> Empty = new Vector<String>();
-//		try {
-//			// InputStream i = new FileInputStream(filename);
-//			InputStream i;
-//			if (!isAssetFile) { // Modified for Android
-//				i = androidContext.openFileInput(filename);
-//			} else {
-//				i = androidContext.getAssets().open(filename);
-//			}
-//			if (i.available() == 0)
-//				return Empty;
-//			// argv[0] == the filename of the file that was read in
-//			return read_in_stream(new PushbackInputStream(i));
-//		} catch (FileNotFoundException ID_10T) {
-//			return Empty;
-//		} catch (IOException ID_20T) {
-//			return Empty;
-//		}
-//	}
+	// // file parsing
+	// Vector<String> read_in_file(String filename) {
+	// Vector<String> Empty = new Vector<String>();
+	// try {
+	// // InputStream i = new FileInputStream(filename);
+	// InputStream i;
+	// if (!isAssetFile) { // Modified for Android
+	// i = androidContext.openFileInput(filename);
+	// } else {
+	// i = androidContext.getAssets().open(filename);
+	// }
+	// if (i.available() == 0)
+	// return Empty;
+	// // argv[0] == the filename of the file that was read in
+	// return read_in_stream(new PushbackInputStream(i));
+	// } catch (FileNotFoundException ID_10T) {
+	// return Empty;
+	// } catch (IOException ID_20T) {
+	// return Empty;
+	// }
+	// }
 
 	Vector<String> read_in_stream(PushbackInputStream istr) {
 		Vector<String> brute_tokens = new Vector<String>();
@@ -268,14 +265,11 @@ public class GetPot {
 			// 1) concatinate 'abcdef' '=' 'efgasdef' to 'abcdef=efgasdef'
 			// note: java.lang.String: substring(a,b) = from a to b-1
 			// C++ string: substr(a,b) = from a to a + b
-			if (i2 < brute_tokens.size()
-					&& brute_tokens.elementAt(i2).charAt(0) == '=') {
+			if (i2 < brute_tokens.size() && brute_tokens.elementAt(i2).charAt(0) == '=') {
 				if (i3 >= brute_tokens.size())
-					arglist.addElement(brute_tokens.elementAt(i1)
-							+ brute_tokens.elementAt(i2));
+					arglist.addElement(brute_tokens.elementAt(i1) + brute_tokens.elementAt(i2));
 				else
-					arglist.addElement(brute_tokens.elementAt(i1)
-							+ brute_tokens.elementAt(i2)
+					arglist.addElement(brute_tokens.elementAt(i1) + brute_tokens.elementAt(i2)
 							+ brute_tokens.elementAt(i3));
 
 				i1 = i3 + 1;
@@ -298,8 +292,7 @@ public class GetPot {
 				int tmp = istr.read(); // read first character out of stream
 				if (tmp == -1)
 					return -1;
-				while ((char) tmp == ' ' || (char) tmp == '\t'
-						|| (char) tmp == '\n') {
+				while ((char) tmp == ' ' || (char) tmp == '\t' || (char) tmp == '\n') {
 					tmp = istr.read();
 					if (tmp == -1)
 						return -1;
@@ -339,8 +332,7 @@ public class GetPot {
 				last_letter = tmp;
 				tmp0 = istr.read();
 				tmp = (char) tmp0;
-				if (tmp == -1
-						|| ((tmp == ' ' || tmp == '\t' || tmp == '\n') && last_letter != '\\')) {
+				if (tmp == -1 || ((tmp == ' ' || tmp == '\t' || tmp == '\n') && last_letter != '\\')) {
 					return token;
 				} else if (tmp == '\'' && last_letter != '\\') {
 					// QUOTES: un-backslashed quotes => it's a string
@@ -428,8 +420,7 @@ public class GetPot {
 			sname = sname.substring(2, sname.length());
 		}
 		// 2) subsection of parent section ('../' prefix)
-		else if (sname.length() >= 3
-				&& sname.substring(0, 3).compareTo("../") == 0) {
+		else if (sname.length() >= 3 && sname.substring(0, 3).compareTo("../") == 0) {
 			do {
 				if (section_stack.size() != 0)
 					section_stack.removeElementAt(section_stack.size() - 1);
@@ -478,8 +469,7 @@ public class GetPot {
 				return Integer.parseInt(S);
 			} catch (NumberFormatException ID_10T) {
 				try {
-					return (int) java.lang.Math.rint(Double.valueOf(S)
-							.doubleValue());
+					return (int) java.lang.Math.rint(Double.valueOf(S).doubleValue());
 				} catch (NumberFormatException ID_20T) {
 					return Default;
 				}
@@ -632,8 +622,7 @@ public class GetPot {
 			return false;
 	}
 
-	boolean search(String P1, String P2, String P3, String P4, String P5,
-			String P6) {
+	boolean search(String P1, String P2, String P3, String P4, String P5, String P6) {
 		if (search(P1, P2, P3, P4, P5) == true)
 			return true;
 		else if (search(P6) == true)
@@ -688,11 +677,9 @@ public class GetPot {
 		if (prefix.compareTo("") == 0)
 			return __convert_to_type(argv.elementAt(cursor), Default);
 
-		String Remain = __get_remaining_string(argv.elementAt(cursor),
-				prefix);
+		String Remain = __get_remaining_string(argv.elementAt(cursor), prefix);
 
-		return Remain.compareTo("") != 0 ? __convert_to_type(Remain, Default)
-				: Default;
+		return Remain.compareTo("") != 0 ? __convert_to_type(Remain, Default) : Default;
 	}
 
 	double next(double Default) {
@@ -707,11 +694,9 @@ public class GetPot {
 		if (prefix.compareTo("") == 0)
 			return __convert_to_type(argv.elementAt(cursor), Default);
 
-		String Remain = __get_remaining_string(argv.elementAt(cursor),
-				prefix);
+		String Remain = __get_remaining_string(argv.elementAt(cursor), prefix);
 
-		return Remain.compareTo("") != 0 ? __convert_to_type(Remain, Default)
-				: Default;
+		return Remain.compareTo("") != 0 ? __convert_to_type(Remain, Default) : Default;
 	}
 
 	String next(String Default) {
@@ -726,8 +711,7 @@ public class GetPot {
 		if (prefix.compareTo("") == 0)
 			return argv.elementAt(cursor);
 
-		String Remain = __get_remaining_string(argv.elementAt(cursor),
-				prefix);
+		String Remain = __get_remaining_string(argv.elementAt(cursor), prefix);
 
 		return Remain.compareTo("") != 0 ? Remain : Default;
 	}
@@ -764,15 +748,13 @@ public class GetPot {
 		return next(Default);
 	}
 
-	int follow(int Default, String A1, String A2, String A3, String A4,
-			String A5) {
+	int follow(int Default, String A1, String A2, String A3, String A4, String A5) {
 		if (search(A1, A2, A3, A4, A5) == false)
 			return Default;
 		return next(Default);
 	}
 
-	int follow(int Default, String A1, String A2, String A3, String A4,
-			String A5, String A6) {
+	int follow(int Default, String A1, String A2, String A3, String A4, String A5, String A6) {
 		if (search(A1, A2, A3, A4, A5, A6) == false)
 			return Default;
 		return next(Default);
@@ -809,15 +791,13 @@ public class GetPot {
 		return next(Default);
 	}
 
-	double follow(double Default, String A1, String A2, String A3, String A4,
-			String A5) {
+	double follow(double Default, String A1, String A2, String A3, String A4, String A5) {
 		if (search(A1, A2, A3, A4, A5) == false)
 			return Default;
 		return next(Default);
 	}
 
-	double follow(double Default, String A1, String A2, String A3, String A4,
-			String A5, String A6) {
+	double follow(double Default, String A1, String A2, String A3, String A4, String A5, String A6) {
 		if (search(A1, A2, A3, A4, A5, A6) == false)
 			return Default;
 		return next(Default);
@@ -854,15 +834,13 @@ public class GetPot {
 		return next(Default);
 	}
 
-	String follow(String Default, String A1, String A2, String A3, String A4,
-			String A5) {
+	String follow(String Default, String A1, String A2, String A3, String A4, String A5) {
 		if (search(A1, A2, A3, A4, A5) == false)
 			return Default;
 		return next(Default);
 	}
 
-	String follow(String Default, String A1, String A2, String A3, String A4,
-			String A5, String A6) {
+	String follow(String Default, String A1, String A2, String A3, String A4, String A5, String A6) {
 		if (search(A1, A2, A3, A4, A5, A6) == false)
 			return Default;
 		return next(Default);
@@ -912,8 +890,7 @@ public class GetPot {
 		// (*) first loop from cursor position until end
 		for (int c = cursor; c < argv.size(); c++) {
 			String Arg = argv.elementAt(c);
-			if (Arg.length() >= N
-					&& Arg.substring(0, N).compareTo(StartString) == 0) {
+			if (Arg.length() >= N && Arg.substring(0, N).compareTo(StartString) == 0) {
 				cursor = c;
 				search_failed_f = false;
 				return argv.elementAt(c).substring(N);
@@ -926,8 +903,7 @@ public class GetPot {
 		// (*) second loop from 0 to old cursor position
 		for (int c = 1; c < OldCursor; c++) {
 			String Arg = argv.elementAt(c);
-			if (Arg.length() >= N
-					&& Arg.substring(0, N).compareTo(StartString) == 0) {
+			if (Arg.length() >= N && Arg.substring(0, N).compareTo(StartString) == 0) {
 				cursor = c;
 				search_failed_f = false;
 				return argv.elementAt(c).substring(N);
@@ -949,8 +925,7 @@ public class GetPot {
 			else
 				str = argv.elementAt(i);
 
-			if (str.length() > 1 && str.charAt(0) == '-'
-					&& str.charAt(1) != '-')
+			if (str.length() > 1 && str.charAt(0) == '-' && str.charAt(1) != '-')
 				if (check_flags(str, FlagList))
 					return true;
 		}
@@ -969,8 +944,7 @@ public class GetPot {
 		// => only check list of arguments that start with prefix
 		int no_matches = 0;
 		for (int i = 0; i < argv.size(); i++) {
-			String Remain = __get_remaining_string(argv.elementAt(i),
-					prefix);
+			String Remain = __get_remaining_string(argv.elementAt(i), prefix);
 			if (Remain.compareTo("") != 0) {
 				no_matches += 1;
 				if (no_matches == Idx)
@@ -995,8 +969,7 @@ public class GetPot {
 	String[] nominus_vector() {
 		String nv[] = new String[idx_nominus.size()];
 		int i = 0;
-		for (Enumeration<Integer> inm = idx_nominus.elements(); inm
-				.hasMoreElements(); i++) {
+		for (Enumeration<Integer> inm = idx_nominus.elements(); inm.hasMoreElements(); i++) {
 			Integer e = inm.nextElement();
 			nv[i] = argv.elementAt(e.intValue());
 		}
@@ -1007,8 +980,7 @@ public class GetPot {
 		if (nominus_cursor >= idx_nominus.size() - 1)
 			return "";
 		int C = ++nominus_cursor;
-		return argv.elementAt(idx_nominus.elementAt(C)
-				.intValue());
+		return argv.elementAt(idx_nominus.elementAt(C).intValue());
 	}
 
 	void reset_nominus_cursor() {
@@ -1083,8 +1055,7 @@ public class GetPot {
 
 	variable find_variable(String NameX) {
 		String Name = prefix + NameX;
-		for (Enumeration<variable> inm = variables.elements(); inm
-				.hasMoreElements();) {
+		for (Enumeration<variable> inm = variables.elements(); inm.hasMoreElements();) {
 			variable v = inm.nextElement();
 			if (v.name.compareTo(Name) == 0)
 				return v;
@@ -1095,8 +1066,7 @@ public class GetPot {
 	String[] get_variable_names() {
 		Vector<String> result = new Vector<String>();
 		int length = 0;
-		for (Enumeration<variable> inm = variables.elements(); inm
-				.hasMoreElements();) {
+		for (Enumeration<variable> inm = variables.elements(); inm.hasMoreElements();) {
 			String Name = inm.nextElement().name;
 			String Tmp = __get_remaining_string(Name, prefix);
 			if (Tmp != "") {
@@ -1180,8 +1150,7 @@ public class GetPot {
 		int open_brackets = 0;
 		int first = 0;
 		for (int i = 0; i < str.length(); i++) {
-			if (i < str.length() - 2
-					&& str.substring(i, i + 2).compareTo("${") == 0) {
+			if (i < str.length() - 2 && str.substring(i, i + 2).compareTo("${") == 0) {
 				if (open_brackets == 0)
 					first = i + 2;
 				open_brackets++;
@@ -1223,8 +1192,7 @@ public class GetPot {
 		while (i < l) {
 			char letter = str.charAt(i);
 			// whitespace -> end of expression
-			if ((letter == ' ' || letter == '\t' || letter == '\n')
-					&& open_brackets == 0) {
+			if ((letter == ' ' || letter == '\t' || letter == '\n') && open_brackets == 0) {
 				expr_list.addElement(str.substring(start_new_string, i));
 				boolean no_breakout_f = true;
 				for (i++; i < l; i++) {
@@ -1247,20 +1215,17 @@ public class GetPot {
 			}
 
 			// dollar-bracket expression
-			if (str.length() >= i + 2
-					&& str.substring(i, i + 2).compareTo("${") == 0) {
+			if (str.length() >= i + 2 && str.substring(i, i + 2).compareTo("${") == 0) {
 				open_brackets++;
 				start_idx.addElement(new Integer(i + 2));
 			} else if (letter == '}' && open_brackets > 0) {
-				int start = start_idx
-						.elementAt(start_idx.size() - 1).intValue();
+				int start = start_idx.elementAt(start_idx.size() - 1).intValue();
 				start_idx.removeElementAt(start_idx.size() - 1);
 				String Replacement = DBE_expand(str.substring(start, i));
 				if (start - 3 < 0)
 					str = Replacement + str.substring(i + 1);
 				else
-					str = str.substring(0, start - 2) + Replacement
-							+ str.substring(i + 1);
+					str = str.substring(0, start - 2) + Replacement + str.substring(i + 1);
 				l = str.length();
 				i = start + Replacement.length() - 3;
 				open_brackets--;
@@ -1324,8 +1289,7 @@ public class GetPot {
 		}
 
 		// ${<-> expr expr expr} text replacement
-		else if (expr.length() >= 3
-				&& expr.substring(0, 3).compareTo("<->") == 0) {
+		else if (expr.length() >= 3 && expr.substring(0, 3).compareTo("<->") == 0) {
 			Vector<String> A = DBE_get_expr_list(expr.substring(3), 3);
 			String Arg0 = A.elementAt(0);
 			String Arg1 = A.elementAt(1);
@@ -1339,8 +1303,7 @@ public class GetPot {
 				if (tmp == 0)
 					Arg0 = Arg2 + Arg0.substring(L);
 				else
-					Arg0 = Arg0.substring(0, tmp) + Arg2
-							+ Arg0.substring(L + tmp);
+					Arg0 = Arg0.substring(0, tmp) + Arg2 + Arg0.substring(L + tmp);
 			}
 			return Arg0;
 		}
@@ -1408,10 +1371,8 @@ public class GetPot {
 		// ${== } ${<= } ${>= } comparisons (return the number of the first
 		// 'match'
 		else if (expr.length() >= 2
-				&& (expr.substring(0, 2).compareTo("==") == 0
-						|| expr.substring(0, 2).compareTo(">=") == 0
-						|| expr.substring(0, 2).compareTo("<=") == 0
-						|| expr.charAt(0) == '>' || expr.charAt(0) == '<')) {
+				&& (expr.substring(0, 2).compareTo("==") == 0 || expr.substring(0, 2).compareTo(">=") == 0
+						|| expr.substring(0, 2).compareTo("<=") == 0 || expr.charAt(0) == '>' || expr.charAt(0) == '<')) {
 			// differentiate between two and one sign operators
 			int op = 0;
 			// EQ = 0 GEQ = 1 LEQ = 2 GT = 3 LT = 4
@@ -1445,17 +1406,13 @@ public class GetPot {
 					// it's a string comparison
 					int comparison = x_orig.compareTo(y_orig);
 
-					if ((op == 0 && comparison == 0)
-							|| (op == 1 && comparison >= 0)
-							|| (op == 2 && comparison <= 0)
-							|| (op == 3 && comparison > 0)
-							|| (op == 4 && comparison < 0)) {
+					if ((op == 0 && comparison == 0) || (op == 1 && comparison >= 0) || (op == 2 && comparison <= 0)
+							|| (op == 3 && comparison > 0) || (op == 4 && comparison < 0)) {
 						return (new Integer(i)).toString();
 					}
 				} else {
 					// it's a number comparison
-					if ((op == 0 && x == y) || (op == 1 && x >= y)
-							|| (op == 2 && x <= y) || (op == 3 && x > y)
+					if ((op == 0 && x == y) || (op == 1 && x >= y) || (op == 2 && x <= y) || (op == 3 && x > y)
 							|| (op == 4 && x < y)) {
 						return (new Integer(i)).toString();
 					}
@@ -1466,8 +1423,7 @@ public class GetPot {
 			return "0";
 		}
 		// ${?? expr expr} select
-		else if (expr.length() >= 2
-				&& expr.substring(0, 2).compareTo("??") == 0) {
+		else if (expr.length() >= 2 && expr.substring(0, 2).compareTo("??") == 0) {
 			Vector<String> a = DBE_get_expr_list(expr.substring(2), 2);
 			double x = __convert_to_type(a.elementAt(0), 1e37);
 			// last element is always the default argument
@@ -1497,21 +1453,17 @@ public class GetPot {
 			return A.elementAt(0);
 		}
 		// ${@: } - string subscription
-		else if (expr.length() >= 2
-				&& expr.substring(0, 2).compareTo("@:") == 0) {
+		else if (expr.length() >= 2 && expr.substring(0, 2).compareTo("@:") == 0) {
 			Vector<String> A = DBE_get_expr_list(expr.substring(2), 2);
 			double x = __convert_to_type(A.elementAt(1), 1e37);
 
 			// last element is always the default argument
-			if (x == 1e37 || x < 0
-					|| x >= (double) A.elementAt(0).length() - 1)
+			if (x == 1e37 || x < 0 || x >= (double) A.elementAt(0).length() - 1)
 				return "<<1st index out of range>>";
 
 			if (A.size() > 2) {
 				double y = __convert_to_type(A.elementAt(2), 1e37);
-				if (y != 1e37 && y > 0
-						&& y <= (double) A.elementAt(0).length() - 1
-						&& y > x) {
+				if (y != 1e37 && y > 0 && y <= (double) A.elementAt(0).length() - 1 && y > x) {
 					// note: java.lang.String: substring(a,b) = from a to b - 1
 					// C++ string: substr(a,b) = from a to a + b
 					int rx1 = (int) java.lang.Math.rint(x);
@@ -1716,8 +1668,7 @@ public class GetPot {
 	String[] unidentified_variables(String[] Knowns) {
 		Vector<String> ufos = new Vector<String>();
 
-		for (Enumeration<variable> inm = variables.elements(); inm
-				.hasMoreElements();) {
+		for (Enumeration<variable> inm = variables.elements(); inm.hasMoreElements();) {
 			variable it = inm.nextElement();
 			// -- variable belongs to prefixed section ?
 			String var_name = __get_remaining_string(it.name, prefix);
@@ -1734,8 +1685,7 @@ public class GetPot {
 	String[] unidentified_sections(String[] Knowns) {
 		Vector<String> ufos = new Vector<String>();
 
-		for (Enumeration<String> inm = section_list.elements(); inm
-				.hasMoreElements();) {
+		for (Enumeration<String> inm = section_list.elements(); inm.hasMoreElements();) {
 			String it = inm.nextElement();
 			// -- section a subsection of prefix ?
 			String sec_name = __get_remaining_string(it, prefix);

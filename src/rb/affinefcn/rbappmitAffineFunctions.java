@@ -1,28 +1,26 @@
-/**
- * Created on Aug 29, 2011 in Project JRB
- * Location: rb.java.affinefcn.rbappmitAffineFunctions.java
- */
-package rb.java.affinefcn;
+package rb.affinefcn;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 /**
+ * Compatibility class for old @ref rbappmit affine functions
+ * 
  * @author Daniel Wirtz
  * @date Aug 29, 2011
- *
+ * 
  */
-public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
-		IWithuL {
-	
+public class rbappmitAffineFunctions implements IAffineFunctions, ITransient, IWithuL {
+
 	/*
 	 * The wrapped classes.
 	 */
 	private Class<?> affineFunctionsClass;
 	private Object affineFunctionsInstance;
-	
+
 	/**
-	 * Creates a wrapper for the old rbappmit affine functions classes.
+	 * Creates a wrapper for the old @ref rbappmit affine functions classes.
+	 * 
 	 * @param theclass
 	 * @param inst
 	 */
@@ -32,7 +30,7 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IWithuL#getQuL()
+	 * @see rb.affinefcn.IWithuL#getQuL()
 	 */
 	@Override
 	public int getQuL() {
@@ -71,7 +69,7 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 
 	/**
 	 * 
-	 * @see rb.java.affinefcn.ITransient#thetaQm(int, double[], double)
+	 * @see rb.affinefcn.ITransient#thetaQm(int, double[], double)
 	 */
 	@Override
 	public double thetaQm(int i, double[] p, double t) {
@@ -108,7 +106,7 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.ITransient#getQm()
+	 * @see rb.affinefcn.ITransient#getQm()
 	 */
 	@Override
 	public int getQm() {
@@ -122,7 +120,7 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 		}
 		try {
 			Object Q_m_obj = meth.invoke(affineFunctionsInstance, (Object[]) null);
-			return (Integer)Q_m_obj;
+			return (Integer) Q_m_obj;
 		} catch (IllegalAccessException iae) {
 			throw new RuntimeException(iae);
 		} catch (InvocationTargetException ite) {
@@ -131,7 +129,7 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#isTimeDependentL()
+	 * @see rb.affinefcn.IAffineFunctions#isTimeDependentL()
 	 */
 	@Override
 	public boolean isTimeDependentL() {
@@ -140,7 +138,7 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#isTimeDependentA()
+	 * @see rb.affinefcn.IAffineFunctions#isTimeDependentA()
 	 */
 	@Override
 	public boolean isTimeDependentA() {
@@ -149,7 +147,7 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#getQl()
+	 * @see rb.affinefcn.IAffineFunctions#getQl()
 	 */
 	@Override
 	public int[] getQl() {
@@ -176,7 +174,7 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#thetaQl(int, int, double[], double)
+	 * @see rb.affinefcn.IAffineFunctions#thetaQl(int, int, double[], double)
 	 */
 	@Override
 	public double thetaQl(int i, int q_l, double[] p, double t) {
@@ -215,7 +213,7 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#getQf()
+	 * @see rb.affinefcn.IAffineFunctions#getQf()
 	 */
 	@Override
 	public int getQf() {
@@ -232,7 +230,7 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#thetaQf(int, double[], double)
+	 * @see rb.affinefcn.IAffineFunctions#thetaQf(int, double[], double)
 	 */
 	@Override
 	public double thetaQf(int i, double[] p, double t) {
@@ -269,7 +267,7 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#getQa()
+	 * @see rb.affinefcn.IAffineFunctions#getQa()
 	 */
 	@Override
 	public int getQa() {
@@ -297,7 +295,7 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#thetaQa(int, double[], double)
+	 * @see rb.affinefcn.IAffineFunctions#thetaQa(int, double[], double)
 	 */
 	@Override
 	public double thetaQa(int i, double[] p, double t) {
@@ -333,9 +331,8 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 		return theta_val.doubleValue();
 	}
 
-	
 	/**
-	 * @see rb.java.affinefcn.IAffineFunctions#getNumOutputs()
+	 * @see rb.affinefcn.IAffineFunctions#getNumOutputs()
 	 */
 	@Override
 	public int getNumOutputs() {
@@ -356,7 +353,7 @@ public class rbappmitAffineFunctions implements IAffineFunctions, ITransient,
 	}
 
 	/**
-	 * @see rb.java.affinefcn.ITransient#isTimeDependentM()
+	 * @see rb.affinefcn.ITransient#isTimeDependentM()
 	 */
 	@Override
 	public boolean isTimeDependentM() {

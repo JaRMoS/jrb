@@ -1,25 +1,26 @@
-/**
- * 
- */
-package rb.java;
+package rb;
 
 import jarmos.geometry.MeshTransform;
 
 /**
- * @author CreaByte
- *
+ * Compatibility class for old @ref rbappmit models with custom mesh/geometry transformations.
+ * 
+ * @author Daniel Wirtz
+ * 
  */
 public class rbappmitCustomMeshTransform implements MeshTransform {
-	
+
 	private double[] mu;
 	private RBSystem sys;
-	
+
 	public rbappmitCustomMeshTransform(double[] mu, RBSystem sys) {
 		this.mu = mu.clone();
 		this.sys = sys;
 	}
 
-	/** (non-Javadoc)
+	/**
+	 * (non-Javadoc)
+	 * 
 	 * @see jarmos.geometry.MeshTransform#transformMesh(float[])
 	 */
 	@Override

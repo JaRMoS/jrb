@@ -1,8 +1,7 @@
 /**
- * Created on Aug 23, 2011 in Project JRB
- * Location: test.TestRBLoading.java
+ * Created on Aug 23, 2011 in Project JRB Location: rb.test.TestRBLoading.java
  */
-package test;
+package rb.test;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -14,7 +13,7 @@ import jarmos.io.FileModelManager;
 
 import org.junit.Test;
 
-import rb.java.RBContainer;
+import rb.RBContainer;
 
 /**
  * @author Daniel Wirtz
@@ -32,7 +31,8 @@ public class TestRBLoading {
 		try {
 			for (ModelDescriptor m : f.getModelDescriptors()) {
 				if (m.type == ModelType.JRB || m.type == ModelType.rbappmit) {
-					System.out.println("\n----------------- Trying to load model "+m.title+" from folder "+m.modeldir+" -----------------\n");
+					System.out.println("\n----------------- Trying to load model " + m.title + " from folder "
+							+ m.modeldir + " -----------------\n");
 					try {
 						f.useModel(m.modeldir);
 					} catch (ModelManagerException e) {
