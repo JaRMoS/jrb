@@ -1,7 +1,8 @@
 /**
  * @defgroup jrb JRB
- * @ingroup jarmosbase
  * @short Package for simulation of rbmatlab models.
+ *
+ * \note This module depends on \ref jarmosbase.
  * 
  * This package is an extension/cleanup/rewrite of all the classes previously contained in the @ref rbappmit android
  * application. Even though basically everything has been structured and streamlined, the original work has been an
