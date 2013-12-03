@@ -1013,7 +1013,7 @@ public class GetPot {
 		variable sv = find_variable(VarName);
 		if (sv.name.compareTo("") == 0)
 			return Default;
-		return sv.original;
+		return sv.original.replace("\r", "");
 	}
 
 	int call(String VarName, int Default, int Idx) {
