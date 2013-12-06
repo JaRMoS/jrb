@@ -5,7 +5,8 @@
  * \note This module depends on \ref jarmosbase.
  * 
  * This package is an extension/cleanup/rewrite of all the classes previously contained in the @ref rbappmit android
- * application. Even though basically everything has been structured and streamlined, the original work has been an
+ * application, see http://augustine.mit.edu/methodology/methodology_rbAPPmit_Client_Software.htm.
+ * Even though basically everything has been structured and streamlined, the original work has been an
  * invaluable starting point in order to get grips on both Java RB simulations and android application development.
  * Hence, we owe a big thanks to David J. Knezevic and Phuong Huynh (MIT at that time) for the initial programming and
  * their agreement to use and improve the existing program.
